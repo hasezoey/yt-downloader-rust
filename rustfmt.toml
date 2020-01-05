@@ -1,0 +1,15 @@
+# used toolchain: nightly-x86_64-unknown-linux-gnu
+
+hard_tabs = true
+imports_indent = "Block" # unstable
+imports_layout = "Vertical" # unstable
+indent_style = "Block" # unstable
+control_brace_style = "AlwaysSameLine" # unstable
+max_width = 120
+newline_style = "Unix"
+binop_separator = "Front" # unstable
+brace_style = "SameLineWhere" # unstable
+enum_discrim_align_threshold = 20 # unstable
+struct_field_align_threshold = 20 # unstable
+match_block_trailing_comma = true # unstable
+trailing_semicolon = true # unstable

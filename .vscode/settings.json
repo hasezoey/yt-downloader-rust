@@ -1,0 +1,13 @@
+{
+	"editor.formatOnSave": true,
+	"editor.wordWrapColumn": 120,
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false,
+	"rust.unstable_features": true,
+	"rust-client.channel": "nightly",
+	"[yaml]": {
+		"editor.detectIndentation": false,
+		"editor.tabSize": 2,
+		"editor.insertSpaces": true,
+	}
+}

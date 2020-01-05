@@ -1,0 +1,17 @@
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+dependencies = ["clippy"]
+
+[tasks.clippy]
+command = "cargo"
+args = ["clippy", "--", "-A", "clippy::needless_return", "-D", "clippy::implicit_return"]
+
+[tasks.test]
+command = "cargo"
+args = ["test"]
+dependencies = ["clippy"]

@@ -1,0 +1,42 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'yt-downloader'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=yt-downloader",
+					"--package=yt-downloader"
+				],
+				"filter": {
+					"name": "yt-downloader",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'yt-downloader'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=yt-downloader",
+					"--package=yt-downloader"
+				],
+				"filter": {
+					"name": "yt-downloader",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}
