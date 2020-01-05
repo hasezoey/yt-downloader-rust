@@ -1,0 +1,52 @@
+name: yt-downloader
+version: "0.1.0"
+author: hasezoey <hasezoey@gmail.com>
+about: Download <EDIT ME>
+
+settings: 
+  - ArgRequiredElseHelp # show help if no args are given
+  - StrictUtf8 # only allow valid UTF-8
+
+args:
+  - out:
+      short: o
+      long: out
+      value_name: DIR
+      help: Sets the input file to use
+      takes_value: true
+      default_value: ~/Downloads/ytdl-out
+      env: YTDL_OUT
+  - audio_only:
+      short: a
+      help: Audio Only?
+  - tmp:
+      long: tmp
+      value_name: DIR
+      help: Sets a custom temporary directory
+      takes_value: true
+      default_value: /tmp
+      env: YTDL_TMP
+  - tmpcreate:
+      short: c
+      long: tmpc
+      value_name: BOOL
+      help: Create Sub-directory in the specified tmp directory
+      takes_value: true
+      possible_values:
+        - "true"
+        - "false"
+      env: YTDL_TMPC
+      default_value: "true"
+  # - verbose:
+  #     short: v
+  #     multiple: true
+  #     help: Sets the level of verbosity
+  #     global: true
+  - URL:
+      required: true
+      index: 1
+      help: Sets the URL to download from
+  - ytdlargs:
+      help: Passthrough Args to Youtube-Download
+      last: true
+      multiple: true
