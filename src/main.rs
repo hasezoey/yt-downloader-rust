@@ -1,5 +1,5 @@
 #![allow(clippy::needless_return)]
-#![deny(clippy::implicit_return)]
+#![warn(clippy::implicit_return)]
 
 // TODO: Progress Bar
 // TODO: Split into multiple files
@@ -9,10 +9,17 @@
 extern crate clap;
 #[macro_use]
 extern crate lazy_static;
+extern crate colored;
+extern crate indicatif;
 extern crate regex;
 extern crate serde;
 
 use clap::App;
+use colored::*;
+use indicatif::{
+	ProgressBar,
+	ProgressStyle,
+};
 use regex::Regex;
 use std::error::Error;
 use std::fmt;
@@ -30,8 +37,6 @@ use std::process::{
 	Stdio,
 };
 use std::str;
-
-// type GenericErrorResult<T> = Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
 struct GenericError {
@@ -71,6 +76,8 @@ struct Arguments {
 	pub extra_args: Vec<String>,
 	/// Audio Only?
 	pub audio_only: bool,
+	/// print youtube-dl stdout?
+	pub debug:      bool,
 }
 
 #[derive(Debug)]
@@ -78,16 +85,23 @@ enum YTDLOutputs {
 	Youtube,
 	Download,
 	FFMPEG,
+	Generic,
 	Unkown,
 }
 
 impl YTDLOutputs {
-	pub fn try_match(input: String) -> Result<YTDLOutputs, GenericError> {
+	pub fn try_match(input: &String) -> Result<YTDLOutputs, GenericError> {
 		lazy_static! {
-			static ref YTDL_OUTPUT_MATCHER: Regex = Regex::new(r"(?m)^\s*\[(ffmpeg|download|\w*)\]").unwrap();
+			static ref YTDL_OUTPUT_MATCHER: Regex = Regex::new(r"(?mi)^\s*\[(ffmpeg|download|[\w:]*)\]").unwrap();
+			static ref YTDL_OUTPUT_GENERIC: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();
 		}
+
+		if YTDL_OUTPUT_GENERIC.is_match(input) {
+			return Ok(YTDLOutputs::Generic);
+		}
+
 		let cap = YTDL_OUTPUT_MATCHER
-			.captures_iter(&input)
+			.captures_iter(input)
 			.next()
 			.ok_or_else(|| return GenericError::new(format!("Coudlnt parse type for \"{}\"", input)))?;
 
@@ -95,6 +109,7 @@ impl YTDLOutputs {
 			"ffmpeg" => YTDLOutputs::FFMPEG,
 			"download" => YTDLOutputs::Download,
 			"youtube" => YTDLOutputs::Youtube,
+			"youtube:playlist" => YTDLOutputs::Youtube,
 			_ => {
 				println!("unkown: {:?}", &cap[1]);
 				YTDLOutputs::Unkown
@@ -113,6 +128,7 @@ fn main() -> Result<(), ioError> {
 		url:        cli_matches.value_of("URL").unwrap().to_owned(), // unwrap, because "URL" is required
 		tmp_sub:    cli_matches.value_of("tmpcreate").unwrap().to_owned(), // unwrap, because of a set default
 		audio_only: cli_matches.is_present("audio_only"),
+		debug:      cli_matches.is_present("debug"),
 		extra_args: cli_matches
 			.values_of("ytdlargs") // get all values after "--"
 			.map(|v| return v.collect::<Vec<&str>>()) // because "clap::Values" is an iterator, collect it all as Vec<&str>
@@ -145,17 +161,68 @@ fn main() -> Result<(), ioError> {
 		_ => return Err(ioError::new(ErrorKind::Other, "Invalid tmpcreate value!")),
 	};
 
-	println!("tmpdir {:?}", args.tmp);
-	println!("tmp_sub {:?}", args.tmp_sub);
-	println!("args: {:?}", args); // DEBUG
+	// println!("tmpdir {:?}", args.tmp);
+	// println!("tmp_sub {:?}", args.tmp_sub);
+	// println!("args: {:?}", args); // DEBUG
 	spawn_ytdl(&args)?;
 
-	println!("args2: {:?}", args); // DEBUG
+	// println!("args2: {:?}", args); // DEBUG
 
 	return Ok(());
 }
 
+/// Count all videos in the playlist or single video
+fn count(args: &Arguments) -> Result<u32, ioError> {
+	let mut ytdl = Command::new("youtube-dl");
+	ytdl.arg("-s").arg("--flat-playlist").arg("--get-id");
+	ytdl.arg(&args.url);
+
+	let mut spawned = ytdl.stdout(Stdio::piped()).spawn()?;
+
+	let reader = BufReader::new(
+		spawned
+			.stdout
+			.take()
+			.expect("couldnt get stdout of Youtube-DL (counter)"),
+	);
+
+	let mut count: u32 = 0;
+
+	reader.lines().filter_map(|line| return line.ok()).for_each(|_| {
+		count += 1;
+	});
+
+	spawned.wait().expect("youtube-dl (counter) wasnt running??");
+
+	return Ok(count);
+}
+
+lazy_static! {
+	static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
+		.template("{prefix:.dim} [{elapsed_precise}] {bar:40.cyan/blue} {msg}")
+		.progress_chars("#>-");
+}
+
+macro_rules! unwrap_or_return {
+	($e:expr) => {
+		match $e {
+			Some(v) => v,
+			None => return,
+			}
+	};
+}
+
+/// to have a unified prefix
+macro_rules! prefix_format {
+	($cur:expr, $cou:expr, $id:expr) => {
+		format!("[{}/{}] ({})", $cur, $cou, $id)
+	};
+}
+
 fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
+	let count_video = count(&args)?;
+	let mut current_video: u32 = 0;
+
 	let mut ytdl = Command::new("youtube-dl");
 	// it needs to be a string, otherwise the returns would complain about not living long enough
 	let tmpdir = Path::new(&args.tmp).join("%(title)s.%(ext)s");
@@ -177,23 +244,82 @@ fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
 
 	ytdl.arg(&args.url);
 
-	let spawned = ytdl.stdout(Stdio::piped()).spawn()?;
+	let mut spawned = ytdl.stdout(Stdio::piped()).spawn()?;
 
-	let reader = BufReader::new(spawned.stdout.expect("couldnt get stdout of Youtube-DL"));
+	let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of Youtube-DL"));
+
+	// used to match against the parsed id (the prefix cannot be retrieved from the progress bar)
+	let mut current_id: String = String::from("");
+
+	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
+
+	bar.set_prefix(&prefix_format!(current_video, count_video, "<none>"));
+	bar.set_position(0);
 
 	reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
-		println!("{}", line);
-		let matched = match YTDLOutputs::try_match(line) {
+		if args.debug {
+			bar.println(format!("{}", line));
+		}
+
+		let matched = match YTDLOutputs::try_match(&line) {
 			Ok(v) => v,
 			Err(err) => {
-				println!("{}", err.description());
+				bar.println(format!("{}", err.description()));
 				return;
 			},
 		};
 
-		println!("type: {:?}", matched);
-		// TODO: Do more with "matched" (progress bar?)
+		match matched {
+			YTDLOutputs::Youtube => {
+				lazy_static! {
+					// 1. capture group is the Video ID
+					static ref YOUTUBE_MATCHER: Regex = Regex::new(r"(?mi)^\[youtube]\s*([\w-]*):").unwrap();
+				}
+
+				let tmp = unwrap_or_return!(YOUTUBE_MATCHER.captures_iter(&line).next())[1].to_owned();
+				if current_id != tmp {
+					current_video += 1;
+					current_id = tmp.to_owned();
+					bar.reset();
+					bar.set_prefix(&prefix_format!(current_video, count_video, &tmp));
+				}
+			},
+			YTDLOutputs::Download => {
+				lazy_static! {
+					// 1. capture group is percentage
+					// 2. capture group is of how much
+					// 3. capture group is ETA
+					// original: ^\[download]\s*(\d{1,3}.\d{1,3})%\sof\s(\d*.\d*\w{3}).*ETA\s(\d*:\d*)
+					static ref DOWNLOAD_MATCHER: Regex = Regex::new(r"(?mi)^\[download]\s*(\d{1,3}).\d{1,3}%\sof\s(\d*.\d*\w{3}).*ETA\s(\d*:\d*)").unwrap();
+
+					static ref DOWNLOAD100_MATCHER: Regex = Regex::new(r"(?mi)^\[download]\s*100%\sof\s\d*\.\d*\w*\sin\s\d*:\d*$").unwrap();
+				}
+
+				if DOWNLOAD100_MATCHER.is_match(&line) {
+					bar.finish_and_clear();
+					println!("{}", format!(
+						"{} Download done",
+						prefix_format!(current_video, count_video, current_id).dimmed()
+					));
+					return;
+				}
+
+				let tmp = unwrap_or_return!(DOWNLOAD_MATCHER.captures_iter(&line).next());
+				bar.set_position(tmp[1].parse::<u64>().unwrap_or(0));
+				bar.set_message(&format!(""));
+			},
+			YTDLOutputs::FFMPEG | YTDLOutputs::Generic => {
+				bar.reset();
+				bar.set_position(99);
+				bar.set_message("FFMPEG Convertion");
+			},
+			_ => {},
+		}
 	});
+
+	spawned
+		.wait()
+		.expect("Something went wrong while waiting for youtube-dl to finish... (Did it even run?)");
 
 	return Ok(());
 }

@@ -19,6 +19,9 @@ args:
   - audio_only:
       short: a
       help: Audio Only?
+  - debug:
+      short: d
+      help: print youtube-dl stdout
   - tmp:
       long: tmp
       value_name: DIR
