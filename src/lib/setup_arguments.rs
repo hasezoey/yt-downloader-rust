@@ -7,17 +7,21 @@ use std::io::{
 	Error as ioError,
 	ErrorKind,
 };
-use std::path::Path;
+use std::path::{
+	Path,
+	PathBuf,
+};
 
 /// Setup clap-arguments
 pub fn setup_args() -> Result<Arguments, ioError> {
 	let yml = load_yaml!("../cli.yml");
 	let cli_matches = App::from_yaml(yml).get_matches();
 	let mut args = Arguments {
-		out:        cli_matches.value_of("out").unwrap().to_owned(), // unwrap, because of a set default
-		tmp:        cli_matches.value_of("tmp").unwrap().to_owned(), // unwrap, because of a set default
-		url:        cli_matches.value_of("URL").unwrap().to_owned(), // unwrap, because "URL" is required
+		out:        PathBuf::from(&cli_matches.value_of("out").unwrap()), // unwrap, because of a set default
+		tmp:        PathBuf::from(&cli_matches.value_of("tmp").unwrap()), // unwrap, because of a set default
+		url:        cli_matches.value_of("URL").unwrap().to_owned(),      // unwrap, because "URL" is required
 		tmp_sub:    cli_matches.value_of("tmpcreate").unwrap().to_owned(), // unwrap, because of a set default
+		archive:    PathBuf::from(&cli_matches.value_of("archive").unwrap()), // unwrap, because of a set default
 		audio_only: cli_matches.is_present("audio_only"),
 		debug:      cli_matches.is_present("debug"),
 		extra_args: cli_matches
@@ -29,6 +33,13 @@ pub fn setup_args() -> Result<Arguments, ioError> {
 			.collect(), // Collect it again as Vec<String>
 	};
 
+	if args.archive.is_dir() {
+		info!("Provided Archive-Path was an directory");
+		args.archive.push("ytdl_archive");
+	}
+
+	args.archive.set_extension("json");
+
 	args.extra_args.push("--write-thumbnail".to_owned());
 	args.tmp = match args.tmp_sub.as_ref() {
 		"true" => {
@@ -36,19 +47,11 @@ pub fn setup_args() -> Result<Arguments, ioError> {
 
 			create_dir_all(&lepath).expect("Couldnt create tmpsub directory");
 
-			lepath
-				.canonicalize()
-				.expect("failed to canonicalize a path")
-				.to_str()
-				.expect("failed to parse a PathBuf to a string")
-				.to_owned()
+			lepath.canonicalize().expect("failed to canonicalize a path")
 		},
 		"false" => Path::new(&args.tmp)
 			.canonicalize()
-			.expect("failed to canonicalize a path")
-			.to_str()
-			.expect("failed to parse a PathBuf to a string")
-			.to_owned(),
+			.expect("failed to canonicalize a path"),
 		_ => return Err(ioError::new(ErrorKind::Other, "Invalid tmpcreate value!")),
 	};
 

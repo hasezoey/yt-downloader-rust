@@ -29,6 +29,14 @@ args:
       takes_value: true
       default_value: /tmp
       env: YTDL_TMP
+  - archive:
+      long: archive
+      short: r
+      env: YTDL_ARCHIVE
+      help: Sets the Archive location (Custom Archive) 
+      value_name: FILE_PATH
+      takes_value: true
+      default_value: "~/.config/yt-dl-rust"
   - tmpcreate:
       short: c
       long: tmpc

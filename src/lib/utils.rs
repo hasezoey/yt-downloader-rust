@@ -1,13 +1,15 @@
 use super::errors::GenericError;
 use regex::Regex;
+use std::path::PathBuf;
 
 #[derive(Debug)]
 /// Arguments for Youtube-DL
 pub struct Arguments {
 	/// Output directory
-	pub out:        String,
+	/// TODO: implement moving file to out after asking for edit
+	pub out:        PathBuf,
 	/// Temporary Directory
-	pub tmp:        String,
+	pub tmp:        PathBuf,
 	/// Create a Sub-Directory in the Temporary Directory?
 	pub tmp_sub:    String,
 	/// The URL to download
@@ -18,6 +20,8 @@ pub struct Arguments {
 	pub audio_only: bool,
 	/// print youtube-dl stdout?
 	pub debug:      bool,
+	/// Archive location
+	pub archive:    PathBuf,
 }
 
 #[derive(Debug)]
