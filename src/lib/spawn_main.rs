@@ -10,7 +10,6 @@ use indicatif::{
 	ProgressStyle,
 };
 use regex::Regex;
-use std::error::Error; // needed, otherwise "error.description" cannot be used
 use std::io::{
 	BufRead, // is needed because otherwise ".lines" does not exist????
 	BufReader,
@@ -114,7 +113,7 @@ pub fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
 		let matched = match YTDLOutputs::try_match(&line) {
 			Ok(v) => v,
 			Err(err) => {
-				bar.println(format!("{}", err.description()));
+				bar.println(format!("{}", err));
 				return;
 			},
 		};

@@ -18,8 +18,4 @@ impl fmt::Display for GenericError {
 	}
 }
 
-impl Error for GenericError {
-	fn description(&self) -> &str {
-		return &self.details;
-	}
-}
+impl Error for GenericError {}
