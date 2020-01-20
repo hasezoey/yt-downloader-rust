@@ -1,3 +1,4 @@
+use super::setup_archive::setup_archive;
 use super::utils::Arguments;
 
 use clap::load_yaml;
@@ -21,7 +22,7 @@ pub fn setup_args() -> Result<Arguments, ioError> {
 		tmp:        PathBuf::from(&cli_matches.value_of("tmp").unwrap()), // unwrap, because of a set default
 		url:        cli_matches.value_of("URL").unwrap().to_owned(),      // unwrap, because "URL" is required
 		tmp_sub:    cli_matches.value_of("tmpcreate").unwrap().to_owned(), // unwrap, because of a set default
-		archive:    PathBuf::from(&cli_matches.value_of("archive").unwrap()), // unwrap, because of a set default
+		archive:    setup_archive(&cli_matches.value_of("archive").unwrap()), // unwrap, because of a set default
 		audio_only: cli_matches.is_present("audio_only"),
 		debug:      cli_matches.is_present("debug"),
 		extra_args: cli_matches
@@ -32,13 +33,6 @@ pub fn setup_args() -> Result<Arguments, ioError> {
 			.map(|v| return String::from(*v)) // Map every value to String (de-referencing because otherwise it would be "&&str")
 			.collect(), // Collect it again as Vec<String>
 	};
-
-	if args.archive.is_dir() {
-		info!("Provided Archive-Path was an directory");
-		args.archive.push("ytdl_archive");
-	}
-
-	args.archive.set_extension("json");
 
 	args.extra_args.push("--write-thumbnail".to_owned());
 	args.tmp = match args.tmp_sub.as_ref() {

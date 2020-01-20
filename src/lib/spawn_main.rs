@@ -14,9 +14,14 @@ use std::io::{
 	BufRead, // is needed because otherwise ".lines" does not exist????
 	BufReader,
 	Error as ioError,
+	ErrorKind,
 };
 use std::path::Path;
 use std::process::Stdio;
+
+lazy_static! {
+	static ref YTDL_ERROR: Regex = Regex::new(r"(?mi)^ERROR").unwrap();
+}
 
 /// Count all videos in the playlist or single video
 fn count(args: &Arguments) -> Result<u32, ioError> {
@@ -39,7 +44,14 @@ fn count(args: &Arguments) -> Result<u32, ioError> {
 		count += 1;
 	});
 
-	spawned.wait().expect("youtube-dl (counter) wasnt running??");
+	let exit_status = spawned.wait().expect("youtube-dl (counter) wasnt running??");
+
+	if !exit_status.success() {
+		return Err(ioError::new(
+			ErrorKind::Other,
+			"Youtube-DL exited with a non-zero status (Counter), Stopping YT-DL-Rust",
+		));
+	}
 
 	return Ok(count);
 }
@@ -166,9 +178,16 @@ pub fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
 		}
 	});
 
-	spawned
+	let exit_status = spawned
 		.wait()
 		.expect("Something went wrong while waiting for youtube-dl to finish... (Did it even run?)");
+
+	if !exit_status.success() {
+		return Err(ioError::new(
+			ErrorKind::Other,
+			"Youtube-DL exited with a non-zero status, Stopping YT-DL-Rust",
+		));
+	}
 
 	return Ok(());
 }

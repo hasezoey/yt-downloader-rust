@@ -1,4 +1,6 @@
+use super::archive_schema::Archive;
 use super::errors::GenericError;
+
 use regex::Regex;
 use std::path::PathBuf;
 
@@ -21,7 +23,7 @@ pub struct Arguments {
 	/// print youtube-dl stdout?
 	pub debug:      bool,
 	/// Archive location
-	pub archive:    PathBuf,
+	pub archive:    Option<Archive>,
 }
 
 #[derive(Debug)]
