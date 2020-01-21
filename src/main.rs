@@ -34,7 +34,9 @@ fn main() -> Result<(), ioError> {
 
 	let args = setup_args()?;
 
-	spawn_ytdl(&args)?;
+	spawn_ytdl(&args).unwrap_or_else(|err| {
+		println!("An Error Occured in spawn_ytdl (still saving archive):\n\t{}", err);
+	});
 
 	finish_archive(&args)?;
 
