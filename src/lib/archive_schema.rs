@@ -1,3 +1,5 @@
+use crate::unwrap_or_return;
+
 // use chrono::{
 // 	DateTime,
 // 	Utc,
@@ -10,6 +12,7 @@ use serde::{
 	*,
 };
 use std::default::Default;
+use std::fmt;
 use std::path::PathBuf;
 
 /// used for serde default
@@ -58,6 +61,46 @@ impl Default for Archive {
 	}
 }
 
+impl Archive {
+	/// convert Archive.videos to an youtube-dl archive, but only if the download was already finished
+	pub fn to_ytdl_archive(&self) -> Vec<(String, &str)> {
+		let mut ret = Vec::new();
+		for video in &self.videos {
+			if video.dl_finished {
+				ret.push((String::from(&video.provider).to_lowercase(), video.id.as_ref()));
+			}
+		}
+
+		return ret;
+	}
+
+	/// Add a video to the Archive (with dl_finished = false)
+	pub fn add_video(&mut self, id: &String, provider: Provider) -> () {
+		// return if the id already exists in the Archive
+		if let Some(video) = self.videos.iter_mut().find(|v| return &v.id == id) {
+			// video already exists int archive.videos
+			if video.provider != provider {
+				// if the providers dont match, re assign them
+				match video.provider {
+					// assign  the new provider because the old was unkown
+					Provider::Unkown => video.provider = provider,
+					// just warn that the id already exists and is *not* added to the archive
+					_ => {
+						warn!("Video ID \"{}\" already exists, but providers dont match! old_provider: \"{}\", new_provider: \"{}\"\n", &id, video.provider, provider);
+					},
+				}
+			}
+			return;
+		}
+		self.videos.push(Video::new(id, provider));
+	}
+
+	/// Find the the id in the videos vec and set dl_finished to true
+	pub fn mark_dl_finished(&mut self, id: &String) -> () {
+		unwrap_or_return!(self.videos.iter_mut().find(|v| return &v.id == id)).dl_finished = true;
+	}
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Playlist {
 	#[serde(rename = "url")]
@@ -76,11 +119,27 @@ impl Playlist {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Provider {
 	Youtube,
 	Unkown,
 	Other(String),
+}
+
+impl From<&Provider> for String {
+	fn from(provider: &Provider) -> Self {
+		return match provider {
+			Provider::Youtube => "Youtube".to_owned(),
+			Provider::Unkown => "Unkown".to_owned(),
+			Provider::Other(d) => format!("Other({})", d),
+		};
+	}
+}
+
+impl fmt::Display for Provider {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		return write!(f, "{}", String::from(self));
+	}
 }
 
 impl Default for Provider {
@@ -163,9 +222,9 @@ pub struct Video {
 }
 
 impl Video {
-	pub fn new(id: String, provider: Provider) -> Video {
+	pub fn new(id: &String, provider: Provider) -> Video {
 		return Video {
-			id:          id,
+			id:          id.clone(),
 			provider:    provider,
 			dl_finished: false,
 			edit_asked:  false,

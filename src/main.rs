@@ -32,9 +32,10 @@ use spawn_main::spawn_ytdl;
 fn main() -> Result<(), ioError> {
 	builder().target(Target::Stderr).init();
 
-	let args = setup_args()?;
+	// mutable because it is needed for the archive
+	let mut args = setup_args()?;
 
-	spawn_ytdl(&args).unwrap_or_else(|err| {
+	spawn_ytdl(&mut args).unwrap_or_else(|err| {
 		println!("An Error Occured in spawn_ytdl (still saving archive):\n\t{}", err);
 	});
 

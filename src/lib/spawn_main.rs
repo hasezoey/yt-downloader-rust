@@ -1,3 +1,4 @@
+use super::archive_schema::Provider;
 use super::spawn_multi_platform::*;
 use super::utils::{
 	Arguments,
@@ -10,13 +11,18 @@ use indicatif::{
 	ProgressStyle,
 };
 use regex::Regex;
+use std::fs::File;
 use std::io::{
 	BufRead, // is needed because otherwise ".lines" does not exist????
 	BufReader,
 	Error as ioError,
 	ErrorKind,
+	Write,
 };
-use std::path::Path;
+use std::path::{
+	Path,
+	PathBuf,
+};
 use std::process::Stdio;
 
 lazy_static! {
@@ -63,6 +69,7 @@ lazy_static! {
 }
 
 /// shorthand for unwrapping or early-returning
+#[macro_export]
 macro_rules! unwrap_or_return {
 	($e:expr) => {
 		match $e {
@@ -80,7 +87,7 @@ macro_rules! prefix_format {
 }
 
 /// Spawn the main Youtube-dl task
-pub fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
+pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let count_video = count(&args)?;
 	let mut current_video: u32 = 0;
 
@@ -94,6 +101,23 @@ pub fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
 		ytdl.arg("mp3");
 		ytdl.arg("--embed-thumbnail");
 		ytdl.arg("--add-metadata");
+	}
+
+	if let Some(archive) = &args.archive {
+		let archive_tmp = PathBuf::from(&tmpdir)
+			.parent()
+			.expect("Couldnt get Parent from tmpdir!")
+			.join("ytdl_archive.txt");
+
+		{
+			let mut archive_handle = File::create(&archive_tmp).expect("Couldnt open archive_tmp path!");
+
+			for (provider, id) in archive.to_ytdl_archive() {
+				write!(archive_handle, "{} {}\n", &provider, &id).expect("Couldnt Write to archive_tmp file!");
+			}
+		}
+
+		ytdl.arg("--download-archive").arg(&archive_tmp);
 	}
 
 	ytdl.arg("--newline"); // to make parsing easier
@@ -141,6 +165,10 @@ pub fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
 				if current_id != tmp {
 					current_video += 1;
 					current_id = tmp.to_owned();
+					if let Some(archive) = &mut args.archive {
+						// add the video to the Archive with Provider Youtube and dl_finished = false
+						archive.add_video(&current_id, Provider::Youtube);
+					}
 					bar.reset();
 					bar.set_prefix(&prefix_format!(current_video, count_video, &tmp));
 				}
@@ -154,14 +182,29 @@ pub fn spawn_ytdl(args: &Arguments) -> Result<(), ioError> {
 					static ref DOWNLOAD_MATCHER: Regex = Regex::new(r"(?mi)^\[download]\s*(\d{1,3}).\d{1,3}%\sof\s(\d*.\d*\w{3}).*ETA\s(\d*:\d*)").unwrap();
 
 					static ref DOWNLOAD100_MATCHER: Regex = Regex::new(r"(?mi)^\[download]\s*100%\sof\s\d*\.\d*\w*\sin\s\d*:\d*$").unwrap();
+
+					static ref ALREADY_IN_ARCHIVE: Regex = Regex::new(r"(?mi)has already been recorded in archive").unwrap();
 				}
 
-				if DOWNLOAD100_MATCHER.is_match(&line) {
+				if DOWNLOAD100_MATCHER.is_match(&line) || ALREADY_IN_ARCHIVE.is_match(&line) {
 					bar.finish_and_clear();
-					println!("{}", format!(
-						"{} Download done",
-						prefix_format!(current_video, count_video, current_id).dimmed()
-					));
+					
+					if ALREADY_IN_ARCHIVE.is_match(&line) {
+						println!("{}", format!(
+							"{} Download done (Already in Archive)",
+							prefix_format!(current_video, count_video, current_id).dimmed()
+						));
+					} else {
+						println!("{}", format!(
+							"{} Download done",
+							prefix_format!(current_video, count_video, current_id).dimmed()
+						));
+					}
+					
+					if let Some(archive) = &mut args.archive {
+						// mark "dl_finished" for current_id if archive is used
+						archive.mark_dl_finished(&current_id);
+					}
 					return;
 				}
 
