@@ -37,6 +37,18 @@ add `--` to the end of the command and every argument after that will be send to
 
 use `-h` | `--help`
 
+### Change Archive path / disable archive
+
+use `-r <ARCHIVE_FILE>` | `--archive <ARCHIVE_FILE>` (replace `ARCHIVE_FILE` with the path to the archive file, or `""`(empty) to disable archives)
+
+Note: default archive file location `~/.config/yt-dl-rust.json`
+
+### Import already existing youtube-dl archive
+
+use the subcommand `import <ARCHIVE_FILE>` (replace `ARCHIVE_FILE` with the path to the archive file)
+
+Note: default archive file location `~/.config/yt-dl-rust.json`
+
 ---
 
 Please note this project is still in development (so not finished) and im still new to rust
