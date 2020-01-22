@@ -75,24 +75,24 @@ impl Archive {
 	}
 
 	/// Add a video to the Archive (with dl_finished = false)
-	pub fn add_video(&mut self, id: &String, provider: Provider) -> () {
+	pub fn add_video(&mut self, video: Video) -> () {
 		// return if the id already exists in the Archive
-		if let Some(video) = self.videos.iter_mut().find(|v| return &v.id == id) {
+		if let Some(fvideo) = self.videos.iter_mut().find(|v| return &v.id == &video.id) {
 			// video already exists int archive.videos
-			if video.provider != provider {
+			if fvideo.provider != video.provider {
 				// if the providers dont match, re assign them
-				match video.provider {
+				match fvideo.provider {
 					// assign  the new provider because the old was unkown
-					Provider::Unkown => video.provider = provider,
+					Provider::Unkown => fvideo.provider = video.provider,
 					// just warn that the id already exists and is *not* added to the archive
 					_ => {
-						warn!("Video ID \"{}\" already exists, but providers dont match! old_provider: \"{}\", new_provider: \"{}\"\n", &id, video.provider, provider);
+						warn!("Video ID \"{}\" already exists, but providers dont match! old_provider: \"{}\", new_provider: \"{}\"\n", &video.id, fvideo.provider, video.provider);
 					},
 				}
 			}
 			return;
 		}
-		self.videos.push(Video::new(id, provider));
+		self.videos.push(video);
 	}
 
 	/// Find the the id in the videos vec and set dl_finished to true
@@ -229,5 +229,12 @@ impl Video {
 			dl_finished: false,
 			edit_asked:  false,
 		};
+	}
+
+	/// Used to set "dl_finished" for builder
+	pub fn set_dl_finished(mut self, b: bool) -> Self {
+		self.dl_finished = b;
+
+		return self;
 	}
 }

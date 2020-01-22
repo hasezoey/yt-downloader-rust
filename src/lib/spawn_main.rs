@@ -1,4 +1,7 @@
-use super::archive_schema::Provider;
+use super::archive_schema::{
+	Provider,
+	Video
+};
 use super::spawn_multi_platform::*;
 use super::utils::{
 	Arguments,
@@ -158,7 +161,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			YTDLOutputs::Youtube => {
 				lazy_static! {
 					// 1. capture group is the Video ID
-					static ref YOUTUBE_MATCHER: Regex = Regex::new(r"(?mi)^\[youtube]\s*([\w-]*):").unwrap();
+					static ref YOUTUBE_MATCHER: Regex = Regex::new(r"(?mi)^\[youtube]\s*([\w\-_]*):").unwrap();
 				}
 
 				let tmp = unwrap_or_return!(YOUTUBE_MATCHER.captures_iter(&line).next())[1].to_owned();
@@ -167,7 +170,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					current_id = tmp.to_owned();
 					if let Some(archive) = &mut args.archive {
 						// add the video to the Archive with Provider Youtube and dl_finished = false
-						archive.add_video(&current_id, Provider::Youtube);
+						archive.add_video(Video::new(&current_id, Provider::Youtube));
 					}
 					bar.reset();
 					bar.set_prefix(&prefix_format!(current_video, count_video, &tmp));

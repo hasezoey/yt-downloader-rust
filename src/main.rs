@@ -15,6 +15,8 @@ extern crate semver;
 extern crate serde;
 extern crate serde_json;
 
+use clap::load_yaml;
+use clap::App;
 use env_logger::{
 	builder,
 	Target,
@@ -24,22 +26,34 @@ use std::io::Error as ioError;
 mod lib;
 
 use lib::*;
-use setup_archive::finish_archive;
-use setup_arguments::setup_args;
-use spawn_main::spawn_ytdl;
 
 /// Main
 fn main() -> Result<(), ioError> {
 	builder().target(Target::Stderr).init();
 
-	// mutable because it is needed for the archive
-	let mut args = setup_args()?;
+	let yml = load_yaml!("./cli.yml");
+	let cli_matches = App::from_yaml(yml).get_matches();
 
-	spawn_ytdl(&mut args).unwrap_or_else(|err| {
+	if let Some(matches) = cli_matches.subcommand_matches("import") {
+		let archive = import_archive::import_archive(&matches)?;
+
+		setup_archive::finish_archive(&archive)?;
+
+		return Ok(());
+	}
+
+	// mutable because it is needed for the archive
+	let mut args = setup_arguments::setup_args(&cli_matches)?;
+
+	spawn_main::spawn_ytdl(&mut args).unwrap_or_else(|err| {
 		println!("An Error Occured in spawn_ytdl (still saving archive):\n\t{}", err);
 	});
 
-	finish_archive(&args)?;
+	if let Some(archive) = &args.archive {
+		setup_archive::finish_archive(&archive)?;
+	} else {
+		info!("No Archive, not writing");
+	}
 
 	return Ok(());
 }

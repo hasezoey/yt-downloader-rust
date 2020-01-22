@@ -1,8 +1,6 @@
 use super::setup_archive::setup_archive;
 use super::utils::Arguments;
 
-use clap::load_yaml;
-use clap::App;
 use std::fs::create_dir_all;
 use std::io::{
 	Error as ioError,
@@ -14,9 +12,7 @@ use std::path::{
 };
 
 /// Setup clap-arguments
-pub fn setup_args() -> Result<Arguments, ioError> {
-	let yml = load_yaml!("../cli.yml");
-	let cli_matches = App::from_yaml(yml).get_matches();
+pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
 		out:        PathBuf::from(&cli_matches.value_of("out").unwrap()), // unwrap, because of a set default
 		tmp:        PathBuf::from(&cli_matches.value_of("tmp").unwrap()), // unwrap, because of a set default

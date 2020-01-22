@@ -1,5 +1,4 @@
 use super::archive_schema::Archive;
-use super::utils::Arguments;
 
 use std::fs::{
 	create_dir_all,
@@ -12,7 +11,7 @@ use std::io::{
 };
 use std::path::PathBuf;
 
-fn get_path(val: &str) -> PathBuf {
+pub fn get_path(val: &str) -> PathBuf {
 	return PathBuf::from(
 		val
 			// trim unwanted spaces
@@ -66,15 +65,8 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 }
 
 /// if an Archive is existing in Arguments, write it
-pub fn finish_archive(args: &Arguments) -> Result<(), ioError> {
+pub fn finish_archive(archive: &Archive) -> Result<(), ioError> {
 	debug!("Finishing Archive");
-	let archive = match &args.archive {
-		Some(d) => d,
-		None => {
-			info!("No Archive, not writing");
-			return Ok(());
-		},
-	};
 	create_dir_all(PathBuf::from(&archive.path).parent().unwrap())
 		.expect("Recursivly creating directory(s) for Archive File Failed");
 	let writer = File::create(&archive.path)?;

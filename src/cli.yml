@@ -6,6 +6,7 @@ about: Download <EDIT ME>
 settings: 
   - ArgRequiredElseHelp # show help if no args are given
   - StrictUtf8 # only allow valid UTF-8
+  - VersionlessSubcommands # disable versions for subcommands
 
 args:
   - out:
@@ -48,16 +49,26 @@ args:
         - "false"
       env: YTDL_TMPC
       default_value: "true"
-  # - verbose:
-  #     short: v
-  #     multiple: true
-  #     help: Sets the level of verbosity
-  #     global: true
   - URL:
-      required: true
+      # required: true
       index: 1
       help: Sets the URL to download from
   - ytdlargs:
       help: Passthrough Args to Youtube-Download
       last: true
       multiple: true
+
+subcommands:
+  - import:
+      about: Import an youtube-dl Archive (Combine if the output archive already exists)
+      author: hasezoey
+      args:
+        - input:
+            required: true
+            index: 1
+            help: Input youtube-dl Archive
+        - output:
+            short: o
+            long: output
+            help: Output YT-DL-Rust Archive
+            default_value: "~/.config/yt-dl-rust"
