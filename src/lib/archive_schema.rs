@@ -31,7 +31,7 @@ fn default_bool() -> bool {
 	return false;
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Archive {
 	#[serde(rename = "version", default = "default_version")]
 	version: String,
@@ -61,9 +61,12 @@ impl Default for Archive {
 	}
 }
 
+type StringProvider = String;
+type ID = str;
+
 impl Archive {
 	/// convert Archive.videos to an youtube-dl archive, but only if the download was already finished
-	pub fn to_ytdl_archive(&self) -> Vec<(String, &str)> {
+	pub fn to_ytdl_archive(&self) -> Vec<(StringProvider, &ID)> {
 		let mut ret = Vec::new();
 		for video in &self.videos {
 			if video.dl_finished {
@@ -101,7 +104,7 @@ impl Archive {
 	}
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Playlist {
 	#[serde(rename = "url")]
 	url: String,
@@ -206,7 +209,7 @@ impl Provider {
 	}
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Video {
 	#[serde(rename = "id")]
 	id: String,
@@ -236,5 +239,81 @@ impl Video {
 		self.dl_finished = b;
 
 		return self;
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn test_video_set_dl_finished() {
+		let mut to_assert = Video::new(&"SomeID".to_owned(), Provider::Youtube);
+		to_assert.dl_finished = true;
+		assert_eq!(
+			Video::new(&"SomeID".to_owned(), Provider::Youtube).set_dl_finished(true),
+			to_assert
+		);
+	}
+
+	#[test]
+	fn test_provider_try_match() {
+		assert_eq!(Provider::try_match("youtube"), Provider::Youtube);
+		assert_eq!(Provider::try_match(""), Provider::Unkown);
+		assert_eq!(Provider::try_match("unkown"), Provider::Unkown);
+		assert_eq!(
+			Provider::try_match("Something Different"),
+			Provider::Other("Something Different".to_lowercase())
+		);
+	}
+
+	#[test]
+	fn test_string_from_provider() {
+		assert_eq!(String::from(&Provider::Youtube), "Youtube".to_owned());
+		assert_eq!(String::from(&Provider::Unkown), "Unkown".to_owned());
+		assert_eq!(
+			String::from(&Provider::Other("Hello".to_owned())),
+			"Other(Hello)".to_owned()
+		);
+	}
+
+	#[test]
+	fn test_archive_add_video() {
+		let id = "SomeID".to_owned();
+		let mut archive = Archive::default();
+		archive.add_video(Video::new(&id, Provider::Youtube));
+
+		let mut should_archive: Vec<Video> = Vec::new();
+		should_archive.push(Video::new(&id, Provider::Youtube));
+
+		assert_eq!(archive.videos, should_archive);
+	}
+
+	#[test]
+	fn test_archive_mark_dl_finished() {
+		let id = "SomeID".to_owned();
+		let mut archive = Archive::default();
+		archive.add_video(Video::new(&id, Provider::Youtube));
+		archive.mark_dl_finished(&id);
+
+		let mut should_archive: Vec<Video> = Vec::new();
+		should_archive.push(Video::new(&id, Provider::Youtube).set_dl_finished(true));
+
+		assert_eq!(archive.videos[0].dl_finished, true);
+	}
+
+	#[test]
+	fn test_archive_to_ytdl_archive() {
+		let id1 = "SomeID".to_owned();
+		let id2 = "SomeSecondID".to_owned();
+		let mut archive = Archive::default();
+		archive.add_video(Video::new(&id1, Provider::Youtube).set_dl_finished(true));
+		archive.add_video(Video::new(&id2, Provider::Unkown).set_dl_finished(true));
+
+		let mut should_archive: Vec<(StringProvider, &ID)> = Vec::new();
+		should_archive.push((String::from(&Provider::Youtube).to_lowercase(), &id1));
+		should_archive.push((String::from(&Provider::Unkown).to_lowercase(), &id2));
+
+		assert_eq!(archive.to_ytdl_archive(), should_archive);
 	}
 }
