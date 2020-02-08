@@ -5,7 +5,7 @@
 - Linux / Mac - build with POSIX system paths in mind
 - youtube-dl is installed and be accessable via the command `youtube-dl`
 - ffmpeg is installed and be accessable via the command `ffmpeg`
-- rust stable 1.40 or higher is installed
+- rust stable 1.40 or higher
 - having `cargo-make` installed for extra scripts [clippy, etc - build would still work without it]
 
 ## Usage
@@ -42,6 +42,24 @@ use `-h` | `--help`
 use `-r <ARCHIVE_FILE>` | `--archive <ARCHIVE_FILE>` (replace `ARCHIVE_FILE` with the path to the archive file, or `""`(empty) to disable archives)
 
 Note: default archive file location `~/.config/yt-dl-rust.json`
+
+### Ask for Edits
+
+use `-e <BOOL>` | `--askedit <BOOL>` (replace `BOOL` with `true` or `false`)
+
+With this option asking for edits after download can be enabled (by default) or disabled
+
+Default: `true`
+
+### Editor
+
+use `--editor <EXECUTEABLE>` (replace `EXECUTEABLE` with the path / command to use as the editor)
+
+With this option the editor to use can be set
+
+Note: if empty, it will be asked after download
+
+Default: ""
 
 ### Import already existing youtube-dl archive
 
