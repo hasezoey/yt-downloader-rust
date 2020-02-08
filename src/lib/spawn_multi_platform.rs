@@ -23,7 +23,7 @@ pub fn spawn_command() -> Command {
 		path.join("youtube-dl");
 	}
 
-	if let Ok(data) = metadata(path) {
+	if let Ok(_) = metadata(path) {
 		return Command::new(path);
 	}
 
