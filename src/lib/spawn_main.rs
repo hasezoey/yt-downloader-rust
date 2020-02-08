@@ -1,6 +1,6 @@
 use super::archive_schema::{
 	Provider,
-	Video
+	Video,
 };
 use super::spawn_multi_platform::*;
 use super::utils::{
@@ -137,7 +137,8 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of Youtube-DL"));
 
 	// used to match against the parsed id (the prefix cannot be retrieved from the progress bar)
-	let mut current_id: String = String::from("");
+	let mut current_id: String = String::default();
+	let mut current_filename: String = String::default();
 
 	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
 
@@ -189,9 +190,13 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					static ref ALREADY_IN_ARCHIVE: Regex = Regex::new(r"(?mi)has already been recorded in archive").unwrap();
 				}
 
+				if let Some(filenametmp) = match_to_path(&line) {
+					current_filename = filenametmp;
+				}
+
 				if DOWNLOAD100_MATCHER.is_match(&line) || ALREADY_IN_ARCHIVE.is_match(&line) {
 					bar.finish_and_clear();
-					
+
 					if ALREADY_IN_ARCHIVE.is_match(&line) {
 						println!("{}", format!(
 							"{} Download done (Already in Archive)",
@@ -203,19 +208,31 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 							prefix_format!(current_video, count_video, current_id).dimmed()
 						));
 					}
-					
+
 					if let Some(archive) = &mut args.archive {
 						// mark "dl_finished" for current_id if archive is used
 						archive.mark_dl_finished(&current_id);
+						// set the currently known filename
+						archive.set_filename(&current_id, &current_filename);
 					}
 					return;
 				}
 
-				let tmp = unwrap_or_return!(DOWNLOAD_MATCHER.captures_iter(&line).next());
-				bar.set_position(tmp[1].parse::<u64>().unwrap_or(0));
+				let position = unwrap_or_return!(DOWNLOAD_MATCHER.captures_iter(&line).next());
+				bar.set_position(position[1].parse::<u64>().unwrap_or(0));
 				bar.set_message(&format!(""));
 			},
 			YTDLOutputs::FFMPEG | YTDLOutputs::Generic => {
+				if let Some(filenametmp) = match_to_path(&line) {
+					current_filename = filenametmp;
+
+					if let Some(archive) = &mut args.archive {
+						// set the currently known filename
+						// (this is because ffmpeg is not always used by youtube-dl)
+						archive.set_filename(&current_id, &current_filename);
+					}
+				}
+
 				bar.reset();
 				bar.set_position(99);
 				bar.set_message("FFMPEG Convertion");
@@ -236,4 +253,23 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	}
 
 	return Ok(());
+}
+
+/// check line for "Destination: " and return an option
+fn match_to_path(line: &String) -> Option<String> {
+	lazy_static! {
+		// 1. capture group is filename
+		static ref MATCH_DESTINATION: Regex = Regex::new(r"(?m)Destination:\s+(.+)").unwrap();
+	}
+
+	let filenametmp = MATCH_DESTINATION.captures_iter(&line).next();
+	if let Some(filenametmp) = filenametmp {
+		return Some(((Path::new(&filenametmp[1].to_owned()).file_name()?).to_str()?).to_owned());
+		// return just the filename of the found path
+		// most-inner: create an Path of the regexed file path, get the file_name
+		// middle-nest: convert it to &str
+		// outer-nest: convert it to String
+	}
+
+	return None;
 }

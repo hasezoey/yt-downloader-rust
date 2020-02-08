@@ -11,6 +11,10 @@ dependencies = ["clippy"]
 command = "cargo"
 args = ["clippy", "--", "-A", "clippy::needless_return", "-D", "clippy::implicit_return"]
 
+[tasks.format]
+command = "cargo"
+args = ["+nightly", "fmt"]
+
 [tasks.test]
 command = "cargo"
 args = ["test"]

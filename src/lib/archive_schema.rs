@@ -102,6 +102,14 @@ impl Archive {
 	pub fn mark_dl_finished(&mut self, id: &String) -> () {
 		unwrap_or_return!(self.videos.iter_mut().find(|v| return &v.id == id)).dl_finished = true;
 	}
+
+	pub fn get_mut_videos(&mut self) -> &mut Vec<Video> {
+		return &mut self.videos;
+	}
+
+	pub fn set_filename(&mut self, id: &String, filename: &String) -> () {
+		unwrap_or_return!(self.videos.iter_mut().find(|v| return &v.id == id)).file_name = filename.clone();
+	}
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -222,6 +230,9 @@ pub struct Video {
 
 	#[serde(rename = "editAsked", default = "default_bool")]
 	pub edit_asked: bool,
+
+	#[serde(rename = "fileName", default = "String::default")]
+	pub file_name: String,
 }
 
 impl Video {
@@ -231,6 +242,7 @@ impl Video {
 			provider:    provider,
 			dl_finished: false,
 			edit_asked:  false,
+			file_name:   String::default(),
 		};
 	}
 
@@ -239,6 +251,16 @@ impl Video {
 		self.dl_finished = b;
 
 		return self;
+	}
+
+	pub fn set_edit_asked(&mut self, b: bool) {
+		self.edit_asked = true;
+	}
+}
+
+impl fmt::Display for Video {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		return write!(f, "{{ id: {}, file_name: {} }}", self.id, self.file_name);
 	}
 }
 
