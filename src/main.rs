@@ -44,6 +44,8 @@ use std::process::Command;
 use std::process::Stdio;
 use utils::Arguments;
 
+// TODO: implement moving files & edited files to OUT
+
 fn trim_newline(s: &mut String) {
 	if s.ends_with('\n') {
 		s.pop();
