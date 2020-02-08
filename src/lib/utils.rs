@@ -24,6 +24,10 @@ pub struct Arguments {
 	pub debug:      bool,
 	/// Archive location
 	pub archive:    Option<Archive>,
+	/// Ask for Editing?
+	pub askedit:    bool,
+	/// Editor to use
+	pub editor:     String,
 }
 
 #[derive(Debug)]

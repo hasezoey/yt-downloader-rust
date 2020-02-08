@@ -49,8 +49,26 @@ args:
         - "false"
       env: YTDL_TMPC
       default_value: "true"
+  - askedit:
+      short: e
+      long: askedit
+      value_name: BOOL
+      help: Ask for editing or just move all files out OUT?
+      takes_value: true
+      possible_values:
+        - "true"
+        - "false"
+      env: YTDL_ASKEDIT
+      default_value: "true"
+  - editor:
+      long: editor
+      value_name: EXECUTEABLE
+      help: Which editor to use (only used when askedit is true) the path will be added to the end of the command; Needs Archive enabled
+      takes_value: true
+      env: YTDL_EDITOR
+      default_value: ""
   - URL:
-      # required: true
+      # required: true # disabled otherwise it would be required in the subcommands
       index: 1
       help: Sets the URL to download from
   - ytdlargs:
