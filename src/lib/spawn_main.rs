@@ -197,6 +197,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					bar.finish_and_clear();
 
 					if ALREADY_IN_ARCHIVE.is_match(&line) {
+						current_video += 1;
 						println!("{}", format!(
 							"{} Download done (Already in Archive)",
 							prefix_format!(current_video, count_video, current_id).dimmed()
