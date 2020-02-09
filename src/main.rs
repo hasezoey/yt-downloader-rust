@@ -27,6 +27,8 @@ mod lib;
 
 use lib::*;
 
+// TODO: Overwrite edited file with ffmpeg thumbnail addition (audacity dosnt copy thumbnails)
+
 /// Main
 fn main() -> Result<(), ioError> {
 	builder().target(Target::Stderr).init();
