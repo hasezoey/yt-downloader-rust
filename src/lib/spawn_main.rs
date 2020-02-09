@@ -143,7 +143,6 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
 
 	bar.set_prefix(&prefix_format!(current_video, count_video, "<none>"));
-	bar.set_position(0);
 
 	reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
 		if args.debug {

@@ -9,6 +9,17 @@ settings:
   - VersionlessSubcommands # disable versions for subcommands
 
 args:
+  # flags
+  - audio_only:
+      short: a
+      help: Audio Only?
+  - debug:
+      short: d
+      help: print youtube-dl stdout
+  - disablecleanup:
+      short: c
+      help: Disable cleanup (removing all files from the TMP location)
+  # everything else
   - out:
       short: o
       long: out
@@ -17,12 +28,6 @@ args:
       takes_value: true
       default_value: ~/Downloads/ytdl-out
       env: YTDL_OUT
-  - audio_only:
-      short: a
-      help: Audio Only?
-  - debug:
-      short: d
-      help: print youtube-dl stdout
   - tmp:
       long: tmp
       value_name: DIR
@@ -39,7 +44,6 @@ args:
       takes_value: true
       default_value: "~/.config/yt-dl-rust"
   - tmpcreate:
-      short: c
       long: tmpc
       value_name: BOOL
       help: Create Sub-directory in the specified tmp directory

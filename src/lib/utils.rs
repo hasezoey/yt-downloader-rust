@@ -9,25 +9,27 @@ use std::path::PathBuf;
 pub struct Arguments {
 	/// Output directory
 	/// TODO: implement moving file to out after asking for edit
-	pub out:        PathBuf,
+	pub out:             PathBuf,
 	/// Temporary Directory
-	pub tmp:        PathBuf,
+	pub tmp:             PathBuf,
 	/// Create a Sub-Directory in the Temporary Directory?
-	pub tmp_sub:    String,
+	pub tmp_sub:         String,
 	/// The URL to download
-	pub url:        String,
+	pub url:             String,
 	/// Extra options passed to youtube-dl
-	pub extra_args: Vec<String>,
+	pub extra_args:      Vec<String>,
 	/// Audio Only?
-	pub audio_only: bool,
+	pub audio_only:      bool,
 	/// print youtube-dl stdout?
-	pub debug:      bool,
+	pub debug:           bool,
+	/// disable cleanup?
+	pub disable_cleanup: bool,
 	/// Archive location
-	pub archive:    Option<Archive>,
+	pub archive:         Option<Archive>,
 	/// Ask for Editing?
-	pub askedit:    bool,
+	pub askedit:         bool,
 	/// Editor to use
-	pub editor:     String,
+	pub editor:          String,
 }
 
 #[derive(Debug)]
