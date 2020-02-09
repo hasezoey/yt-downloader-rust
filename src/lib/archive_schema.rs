@@ -121,14 +121,14 @@ pub struct Playlist {
 	pub finished: bool,
 }
 
-impl Playlist {
-	pub fn new(url: String) -> Self {
-		return Playlist {
-			url:      url,
-			finished: false,
-		};
-	}
-}
+// impl Playlist {
+// 	pub fn new(url: String) -> Self {
+// 		return Playlist {
+// 			url:      url,
+// 			finished: false,
+// 		};
+// 	}
+// }
 
 #[derive(Debug, PartialEq)]
 pub enum Provider {
@@ -254,7 +254,7 @@ impl Video {
 	}
 
 	pub fn set_edit_asked(&mut self, b: bool) {
-		self.edit_asked = true;
+		self.edit_asked = b;
 	}
 }
 
