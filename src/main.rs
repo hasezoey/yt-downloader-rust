@@ -76,6 +76,10 @@ fn main() -> Result<(), ioError> {
 		info!("No Archive, not writing");
 	}
 
+	if !errcode && !args.disable_cleanup {
+		file_cleanup::file_cleanup(&args)?;
+	}
+
 	// if an error happened, exit with an non-zero error code
 	if errcode {
 		warn!("Existing with non-zero code, because of an previous Error");

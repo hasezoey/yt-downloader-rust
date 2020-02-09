@@ -1,6 +1,7 @@
 pub mod archive_schema;
 pub mod ask_edit;
 pub mod errors;
+pub mod file_cleanup;
 pub mod import_archive;
 pub mod move_finished;
 pub mod setup_archive;
