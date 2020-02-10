@@ -29,6 +29,7 @@ pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> 
 		audio_only:      cli_matches.is_present("audio_only"),
 		debug:           cli_matches.is_present("debug"),
 		disable_cleanup: cli_matches.is_present("disablecleanup"),
+		d_e_thumbnail:   cli_matches.is_present("disableeditorthumbnail"),
 		askedit:         string_to_bool(cli_matches.value_of("askedit").unwrap()),
 		editor:          cli_matches.value_of("editor").unwrap().to_owned(),
 		extra_args:      cli_matches

@@ -1,4 +1,5 @@
 use super::archive_schema::Video;
+use super::move_finished::mv_handler;
 use super::utils::Arguments;
 use std::fs::metadata;
 use std::io::{
@@ -10,7 +11,10 @@ use std::io::{
 	Error as ioError,
 	Write,
 };
-use std::path::Path;
+use std::path::{
+	Path,
+	PathBuf,
+};
 use std::process::Command;
 use std::process::Stdio;
 
@@ -49,8 +53,10 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 			return Ok(());
 		}
 	}
+
 	debug!("Starting Edit ask loop");
-	for video in &mut archive.get_mut_videos().iter_mut() {
+	let mut edited: Vec<PathBuf> = Vec::new();
+	for video in archive.get_mut_videos() {
 		if video.edit_asked {
 			continue;
 		}
@@ -81,10 +87,9 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 
 		let mut spawned = editorcommand.stdout(Stdio::piped()).spawn()?;
 
-		let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of the Editor"));
-
 		if args.debug {
 			// i dont know why this dosnt work in the "for_each" loop
+			let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of the Editor"));
 			reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
 				println!("Editor Output: {}", line);
 			});
@@ -102,7 +107,77 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		}
 
 		&video.set_edit_asked(true);
+
+		if !args.d_e_thumbnail {
+			edited.push(video_path);
+		}
 	}
+
+	for video_path in edited {
+		// this is needed, otherwise "&args" would be borrowed mutable and immutable
+		re_thumbnail(&args, &video_path)?;
+	}
+
+	return Ok(());
+}
+
+/// Reapply the thumbnail after the video has been edited
+/// Reason for this is that some editor like audacity dosnt copy the thumbnail when saving
+fn re_thumbnail(args: &Arguments, video_path: &PathBuf) -> Result<(), ioError> {
+	info!("Reapplying thumbnail for \"{}\"", &video_path.display());
+	let mut thumbnail_path = PathBuf::from(&video_path.as_os_str());
+	&thumbnail_path.set_extension("jpg");
+	let ffmpegout_path = PathBuf::from(&video_path.as_os_str()).join("_2");
+
+	if let Err(err) = metadata(&thumbnail_path) {
+		warn!(
+			"Couldnt find \"{}\" in the Temporary directory. Error:\n{}",
+			&thumbnail_path.display(),
+			err
+		);
+
+		return Ok(()); // dont error out, just warn
+	}
+
+	{
+		let mut ffmpeg = Command::new("ffmpeg");
+		ffmpeg.arg("-i").arg(&video_path);
+		ffmpeg.arg("-i").arg(&thumbnail_path);
+		ffmpeg.arg("-map").arg("0:0");
+		ffmpeg.arg("-map").arg("1:0");
+		ffmpeg.arg("-c").arg("copy");
+		ffmpeg.arg("-id3v2_version").arg("3");
+		ffmpeg.arg("-metadata:s:v").arg("title=\"Album cover\"");
+		ffmpeg.arg("-movflags").arg("use_metadata_tags");
+		ffmpeg.arg("-hide_banner");
+
+		ffmpeg.arg(&ffmpegout_path); // OUT Path
+
+		let mut spawned = ffmpeg.stdout(Stdio::piped()).spawn()?;
+
+		if args.debug {
+			// i dont know why this dosnt work in the "for_each" loop
+			let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of ffmpeg"));
+			reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
+				println!("ffmpeg Output: {}", line);
+			});
+		}
+
+		let exit_status = spawned
+			.wait()
+			.expect("Something went wrong while waiting for ffmpeg to finish... (Did it even run?)");
+
+		if !exit_status.success() {
+			return Err(ioError::new(
+				ErrorKind::Other,
+				"ffmpeg exited with a non-zero status, Stopping YT-DL-Rust",
+			));
+		}
+
+		mv_handler(&ffmpegout_path, &video_path)?;
+	}
+
+	info!("Finished Reapplying for \"{}\"", &video_path.display());
 
 	return Ok(());
 }

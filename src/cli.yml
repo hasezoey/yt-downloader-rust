@@ -19,6 +19,9 @@ args:
   - disablecleanup:
       short: c
       help: Disable cleanup (removing all files from the TMP location)
+  - disableeditorthumbnail:
+      short: t
+      help: Disable reapplying the thumbnail after the editor finished
   # everything else
   - out:
       short: o

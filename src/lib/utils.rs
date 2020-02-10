@@ -24,6 +24,8 @@ pub struct Arguments {
 	pub debug:           bool,
 	/// disable cleanup?
 	pub disable_cleanup: bool,
+	/// disable re-adding the thumbnail after the editor closes
+	pub d_e_thumbnail:   bool,
 	/// Archive location
 	pub archive:         Option<Archive>,
 	/// Ask for Editing?

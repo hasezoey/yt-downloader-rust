@@ -58,38 +58,44 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	for file in files {
 		bar.inc(1);
 
-		let file_name = file.file_name().expect("Couldnt get the filename");
+		let file_name = PathBuf::from(file.file_name().expect("Couldnt get the filename"));
 		let target = Path::new(&out_path).join(&file_name);
 
-		info!(
-			"Moving file from \"{}\" to \"{}\"\n",
-			&file.display(),
-			&target.display()
-		);
-
-		// block for the "mv" command
-		{
-			let mut mvcommand = Command::new("mv");
-			mvcommand.arg(&file);
-			mvcommand.arg(&target);
-
-			let mut spawned = mvcommand.stdout(Stdio::piped()).spawn()?;
-
-			let exit_status = spawned
-				.wait()
-				.expect("Something went wrong while waiting for \"mv\" to finish... (Did it even run?)");
-
-			if !exit_status.success() {
-				return Err(ioError::new(
-					ErrorKind::Other,
-					"\"mv\" exited with a non-zero status, Stopping YT-DL-Rust",
-				));
-			}
-		}
+		mv_handler(&file_name, &target)?;
 	}
 
 	bar.finish_with_message("Moving Files, Done");
 	info!("Moving Files from TMP to OUT finished");
+
+	return Ok(());
+}
+
+pub fn mv_handler(file: &PathBuf, target: &PathBuf) -> Result<(), ioError> {
+	info!(
+		"Moving file from \"{}\" to \"{}\"\n",
+		&file.display(),
+		&target.display()
+	);
+
+	// block for the "mv" command
+	{
+		let mut mvcommand = Command::new("mv");
+		mvcommand.arg(&file);
+		mvcommand.arg(&target);
+
+		let mut spawned = mvcommand.stdout(Stdio::piped()).spawn()?;
+
+		let exit_status = spawned
+			.wait()
+			.expect("Something went wrong while waiting for \"mv\" to finish... (Did it even run?)");
+
+		if !exit_status.success() {
+			return Err(ioError::new(
+				ErrorKind::Other,
+				"\"mv\" exited with a non-zero status, Stopping YT-DL-Rust",
+			));
+		}
+	}
 
 	return Ok(());
 }
