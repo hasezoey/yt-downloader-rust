@@ -61,7 +61,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 		let file_name = PathBuf::from(file.file_name().expect("Couldnt get the filename"));
 		let target = Path::new(&out_path).join(&file_name);
 
-		mv_handler(&file_name, &target)?;
+		mv_handler(&file, &target)?;
 	}
 
 	bar.finish_with_message("Moving Files, Done");
