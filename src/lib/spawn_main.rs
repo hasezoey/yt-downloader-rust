@@ -247,10 +247,23 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 		.expect("Something went wrong while waiting for youtube-dl to finish... (Did it even run?)");
 
 	if !exit_status.success() {
-		return Err(ioError::new(
-			ErrorKind::Other,
-			"Youtube-DL exited with a non-zero status, Stopping YT-DL-Rust",
-		));
+		match exit_status.code() {
+			Some(code) => {
+				return Err(ioError::new(
+					ErrorKind::Other,
+					format!(
+						"Youtube-DL exited with a non-zero status, Stopping YT-DL-Rust (exit code: {})",
+						code
+					),
+				))
+			},
+			None => {
+				return Err(ioError::new(
+					ErrorKind::Other,
+					format!("Youtube-DL exited with a non-zero status, Stopping YT-DL-Rust (exit by signal)",),
+				))
+			},
+		};
 	}
 
 	return Ok(());
