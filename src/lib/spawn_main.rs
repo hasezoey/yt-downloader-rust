@@ -132,9 +132,10 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	ytdl.arg(&args.url);
 
-	let mut spawned = ytdl.stdout(Stdio::piped()).spawn()?;
+	let mut spawned = ytdl.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
 
-	let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of Youtube-DL"));
+	let reader_stdout = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of Youtube-DL"));
+	let reader_stderr = BufReader::new(spawned.stderr.take().expect("couldnt get stderr of Youtube-DL"));
 
 	// used to match against the parsed id (the prefix cannot be retrieved from the progress bar)
 	let mut current_id: String = String::default();
@@ -144,9 +145,22 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	bar.set_prefix(&prefix_format!(current_video, count_video, "<none>"));
 
-	reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
+	// always print STDERR
+	reader_stderr
+		.lines()
+		.filter_map(|line| return line.ok())
+		.for_each(|line| {
+			bar.println(format!("[STDERR] {}", line));
+		});
+
+	if args.debug {
+		bar.println("Printing YTDL raw-Output");
+	}
+
+	reader_stdout.lines().filter_map(|line| return line.ok()).for_each(|line| {
+		// only print STDOUT raw if debug is enabled
 		if args.debug {
-			bar.println(format!("{}", line));
+			bar.println(format!("[STDOUT] {}", line));
 		}
 
 		let matched = match YTDLOutputs::try_match(&line) {
