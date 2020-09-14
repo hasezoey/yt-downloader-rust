@@ -57,6 +57,8 @@ use `--editor <EXECUTEABLE>` (replace `EXECUTEABLE` with the path / command to u
 
 With this option the editor to use can be set
 
+Output path is the input path (export to input file)
+
 Note: if empty, it will be asked after download
 
 Default: ""
