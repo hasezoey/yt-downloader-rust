@@ -127,7 +127,16 @@ fn re_thumbnail(args: &Arguments, video_path: &PathBuf) -> Result<(), ioError> {
 	info!("Reapplying thumbnail for \"{}\"", &video_path.display());
 	let mut thumbnail_path = PathBuf::from(&video_path.as_os_str());
 	&thumbnail_path.set_extension("jpg");
-	let ffmpegout_path = PathBuf::from(&video_path.as_os_str()).join("_2");
+	let mut ffmpegout_path = PathBuf::from(&video_path.as_os_str());
+	ffmpegout_path.set_file_name(format!(
+		"{}{}",
+		&video_path
+			.file_name()
+			.expect("Expected video_path to have file_name")
+			.to_str()
+			.unwrap(),
+		"re_apply"
+	));
 
 	if let Err(err) = metadata(&thumbnail_path) {
 		warn!(
