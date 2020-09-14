@@ -145,13 +145,15 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	bar.set_prefix(&prefix_format!(current_video, count_video, "<none>"));
 
-	// always print STDERR
-	reader_stderr
-		.lines()
-		.filter_map(|line| return line.ok())
-		.for_each(|line| {
-			bar.println(format!("[STDERR] {}", line));
-		});
+	let thread = std::thread::spawn(move || {
+		// always print STDERR
+		reader_stderr
+			.lines()
+			.filter_map(|line| return line.ok())
+			.for_each(|line| {
+				println!("[STDERR] {}", line);
+			});
+	});
 
 	if args.debug {
 		bar.println("Printing YTDL raw-Output");
@@ -259,6 +261,8 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let exit_status = spawned
 		.wait()
 		.expect("Something went wrong while waiting for youtube-dl to finish... (Did it even run?)");
+
+	thread.join().expect("Couldnt join back STDERR Handler Thread");
 
 	if !exit_status.success() {
 		match exit_status.code() {
