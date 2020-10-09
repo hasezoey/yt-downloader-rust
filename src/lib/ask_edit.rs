@@ -129,13 +129,12 @@ fn re_thumbnail(args: &Arguments, video_path: &PathBuf) -> Result<(), ioError> {
 	&thumbnail_path.set_extension("jpg");
 	let mut ffmpegout_path = PathBuf::from(&video_path.as_os_str());
 	ffmpegout_path.set_file_name(format!(
-		"{}{}",
+		"{}_re-apply.mp3",
 		&video_path
-			.file_name()
+			.file_stem()
 			.expect("Expected video_path to have file_name")
 			.to_str()
-			.unwrap(),
-		"re_apply"
+			.unwrap()
 	));
 
 	if let Err(err) = metadata(&thumbnail_path) {
