@@ -8,7 +8,6 @@ use std::path::PathBuf;
 /// Arguments for Youtube-DL
 pub struct Arguments {
 	/// Output directory
-	/// TODO: implement moving file to out after asking for edit
 	pub out:             PathBuf,
 	/// Temporary Directory
 	pub tmp:             PathBuf,
