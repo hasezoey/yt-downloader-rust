@@ -45,7 +45,7 @@ args:
       help: Sets the Archive location (Custom Archive) 
       value_name: FILE_PATH
       takes_value: true
-      default_value: "~/.config/yt-dl-rust"
+      default_value: "~/.config/ytdl_archive.json"
   - tmpcreate:
       long: tmpc
       value_name: BOOL
