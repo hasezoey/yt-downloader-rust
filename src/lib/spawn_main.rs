@@ -78,7 +78,7 @@ macro_rules! unwrap_or_return {
 		match $e {
 			Some(v) => v,
 			None => return,
-			}
+		}
 	};
 }
 
@@ -180,16 +180,16 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					static ref YOUTUBE_MATCHER: Regex = Regex::new(r"(?mi)^\[youtube]\s*([\w\-_]*):").unwrap();
 				}
 
-				let tmp = unwrap_or_return!(YOUTUBE_MATCHER.captures_iter(&line).next())[1].to_owned();
-				if current_id != tmp {
+				let new_id = unwrap_or_return!(YOUTUBE_MATCHER.captures_iter(&line).next())[1].to_owned();
+				if current_id != new_id {
 					current_video += 1;
-					current_id = tmp.to_owned();
+					current_id = new_id.to_owned();
 					if let Some(archive) = &mut args.archive {
 						// add the video to the Archive with Provider Youtube and dl_finished = false
 						archive.add_video(Video::new(&current_id, Provider::Youtube));
 					}
 					bar.reset();
-					bar.set_prefix(&prefix_format!(current_video, count_video, &tmp));
+					bar.set_prefix(&prefix_format!(current_video, count_video, &new_id));
 				}
 			},
 			YTDLOutputs::Download => {
