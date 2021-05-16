@@ -25,7 +25,7 @@ pub fn get_path(val: &str) -> PathBuf {
 /// Returns "None" if the path is invalid
 pub fn setup_archive(val: &str) -> Option<Archive> {
 	if val.is_empty() {
-		info!("Archive Path length is 0, working without an Archive");
+		debug!("Archive Path length is 0, working without an Archive");
 		return None;
 	}
 	let mut path = get_path(&val);
@@ -75,7 +75,7 @@ where
 	T: Write,
 {
 	if cfg!(debug_assertions) {
-		info!("Writing Archive PRETTY to \"{}\"", &archive.path.display());
+		debug!("Writing Archive PRETTY to \"{}\"", &archive.path.display());
 		serde_json::to_writer_pretty(writer, &archive)?;
 	} else {
 		serde_json::to_writer(writer, &archive)?;
