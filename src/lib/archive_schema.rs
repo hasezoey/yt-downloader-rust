@@ -78,9 +78,9 @@ impl Archive {
 	}
 
 	/// Add a video to the Archive (with dl_finished = false)
-	pub fn add_video(&mut self, video: Video) -> () {
+	pub fn add_video(&mut self, video: Video) {
 		// return if the id already exists in the Archive
-		if let Some(fvideo) = self.videos.iter_mut().find(|v| return &v.id == &video.id) {
+		if let Some(fvideo) = self.videos.iter_mut().find(|v| return v.id == video.id) {
 			// video already exists int archive.videos
 			if fvideo.provider != video.provider {
 				// if the providers dont match, re assign them
@@ -99,16 +99,16 @@ impl Archive {
 	}
 
 	/// Find the the id in the videos vec and set dl_finished to true
-	pub fn mark_dl_finished(&mut self, id: &String) -> () {
-		unwrap_or_return!(self.videos.iter_mut().find(|v| return &v.id == id)).dl_finished = true;
+	pub fn mark_dl_finished(&mut self, id: &str) {
+		unwrap_or_return!(self.videos.iter_mut().find(|v| return v.id == id)).dl_finished = true;
 	}
 
 	pub fn get_mut_videos(&mut self) -> &mut Vec<Video> {
 		return &mut self.videos;
 	}
 
-	pub fn set_filename(&mut self, id: &String, filename: &String) -> () {
-		unwrap_or_return!(self.videos.iter_mut().find(|v| return &v.id == id)).file_name = filename.clone();
+	pub fn set_filename(&mut self, id: &str, filename: &str) {
+		unwrap_or_return!(self.videos.iter_mut().find(|v| return v.id == id)).file_name = filename.to_string();
 	}
 }
 
@@ -236,13 +236,13 @@ pub struct Video {
 }
 
 impl Video {
-	pub fn new(id: &String, provider: Provider) -> Video {
+	pub fn new(id: &str, provider: Provider) -> Video {
 		return Video {
-			id:          id.clone(),
-			provider:    provider,
+			id: id.to_string(),
+			provider,
 			dl_finished: false,
-			edit_asked:  false,
-			file_name:   String::default(),
+			edit_asked: false,
+			file_name: String::default(),
 		};
 	}
 

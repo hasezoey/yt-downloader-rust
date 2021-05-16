@@ -116,7 +116,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			let mut archive_handle = File::create(&archive_tmp).expect("Couldnt open archive_tmp path!");
 
 			for (provider, id) in archive.to_ytdl_archive() {
-				write!(archive_handle, "{} {}\n", &provider, &id).expect("Couldnt Write to archive_tmp file!");
+				writeln!(archive_handle, "{} {}", &provider, &id).expect("Couldnt Write to archive_tmp file!");
 			}
 		}
 
@@ -222,7 +222,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 						println!("{}", format!(
 							"{} Download done \"{}\"",
 							prefix_format!(current_video, count_video, current_id).dimmed(),
-							PathBuf::from(&current_filename).file_stem().unwrap_or(std::ffi::OsStr::new("UNKOWN")).to_string_lossy()
+							PathBuf::from(&current_filename).file_stem().unwrap_or_else(|| return std::ffi::OsStr::new("UNKOWN")).to_string_lossy()
 						));
 					}
 
@@ -278,7 +278,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			None => {
 				return Err(ioError::new(
 					ErrorKind::Other,
-					format!("Youtube-DL exited with a non-zero status, Stopping YT-DL-Rust (exit by signal)",),
+					"Youtube-DL exited with a non-zero status, Stopping YT-DL-Rust (exit by signal?)",
 				))
 			},
 		};
@@ -288,7 +288,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 }
 
 /// check line for "Destination: " and return an option
-fn match_to_path(line: &String) -> Option<String> {
+fn match_to_path(line: &str) -> Option<String> {
 	lazy_static! {
 		// 1. capture group is filename
 		static ref MATCH_DESTINATION: Regex = Regex::new(r"(?m)Destination:\s+(.+)").unwrap();

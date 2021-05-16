@@ -24,7 +24,7 @@ pub fn get_path(val: &str) -> PathBuf {
 /// Setup Archive, if correct path
 /// Returns "None" if the path is invalid
 pub fn setup_archive(val: &str) -> Option<Archive> {
-	if val.len() == 0 {
+	if val.is_empty() {
 		info!("Archive Path length is 0, working without an Archive");
 		return None;
 	}

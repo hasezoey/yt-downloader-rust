@@ -37,7 +37,7 @@ enum YesNo {
 pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 	let archive = args.archive.as_mut().unwrap(); // unwrap because it is checked before
 	debug!("Asking for Edit");
-	if args.editor.len() <= 0 {
+	if args.editor.is_empty() {
 		println!("Please enter an command to be used as editor, or leave it empty to skip it");
 		print!("$ ");
 		std::io::stdout().flush()?; // ensure the print is printed
@@ -47,7 +47,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		args.editor = input.trim().to_owned();
 		debug!("Editor entered: {}", args.editor);
 
-		if args.editor.len() <= 0 {
+		if args.editor.is_empty() {
 			// if it is still empty, just dont ask for edits
 			info!("Editor is empty, not asking for edits");
 			return Ok(());
@@ -62,14 +62,14 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		}
 
 		// Skip the video if the filename is empty
-		if video.file_name.len() <= 0 {
+		if video.file_name.is_empty() {
 			info!("{} does not have an filename!", video);
-			&video.set_edit_asked(true);
+			video.set_edit_asked(true);
 			continue;
 		}
 
 		if ask_edit(&video)? == YesNo::No {
-			&video.set_edit_asked(true);
+			video.set_edit_asked(true);
 			continue;
 		}
 
@@ -78,7 +78,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		// test if the video file can even still be found in the tmp directory
 		if let Err(err) = metadata(&video_path) {
 			info!("Video not found in tmp directory! Error:\n{}", err);
-			&video.set_edit_asked(true); // set asked to true, even though not asked - the video cant be found in the temporary directory anymore
+			video.set_edit_asked(true); // set asked to true, even though not asked - the video cant be found in the temporary directory anymore
 			continue;
 		}
 
@@ -106,7 +106,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 			));
 		}
 
-		&video.set_edit_asked(true);
+		video.set_edit_asked(true);
 
 		if !args.d_e_thumbnail {
 			edited.push(video_path);
@@ -123,10 +123,10 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 
 /// Reapply the thumbnail after the video has been edited
 /// Reason for this is that some editor like audacity dosnt copy the thumbnail when saving
-fn re_thumbnail(args: &Arguments, video_path: &PathBuf) -> Result<(), ioError> {
+fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 	info!("Reapplying thumbnail for \"{}\"", &video_path.display());
 	let mut thumbnail_path = PathBuf::from(&video_path.as_os_str());
-	&thumbnail_path.set_extension("jpg");
+	thumbnail_path.set_extension("jpg");
 	let mut ffmpegout_path = PathBuf::from(&video_path.as_os_str());
 	ffmpegout_path.set_file_name(format!(
 		"{}_re-apply.mp3",

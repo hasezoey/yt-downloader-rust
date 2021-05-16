@@ -44,7 +44,7 @@ pub enum YTDLOutputs {
 }
 
 impl YTDLOutputs {
-	pub fn try_match(input: &String) -> Result<YTDLOutputs, GenericError> {
+	pub fn try_match(input: &str) -> Result<YTDLOutputs, GenericError> {
 		lazy_static! {
 			static ref YTDL_OUTPUT_MATCHER: Regex = Regex::new(r"(?mi)^\s*\[(ffmpeg|download|[\w:]*)\]").unwrap();
 			static ref YTDL_OUTPUT_GENERIC: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();

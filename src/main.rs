@@ -55,7 +55,7 @@ fn main() -> Result<(), ioError> {
 	});
 
 	if !errcode && args.askedit {
-		if let Some(_) = &args.archive {
+		if args.archive.is_some() {
 			ask_edit::edits(&mut args).unwrap_or_else(|err| {
 				println!("An Error Occured in edits:\n\t{}", err);
 				errcode = true;

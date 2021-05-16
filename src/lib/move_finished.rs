@@ -70,7 +70,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	return Ok(());
 }
 
-pub fn mv_handler(file: &PathBuf, target: &PathBuf) -> Result<(), ioError> {
+pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	info!(
 		"Moving file from \"{}\" to \"{}\"\n",
 		&file.display(),
