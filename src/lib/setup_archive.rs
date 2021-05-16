@@ -38,16 +38,9 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 	path.set_extension("json");
 
 	if !path.exists() {
-		info!("Creating Archive File at \"{}\"", path.display());
+		debug!("Creating Default Archive File at \"{}\"", path.display());
 
-		create_dir_all(PathBuf::from(&path).parent().unwrap())
-			.expect("Recursivly creating directory(s) for Archive File Failed");
-
-		let writer = File::create(&path).expect("Archive File Creation Error(1)");
-		write_archive_to_writer(&writer, &Archive::default()).expect("Archive File Creation Error(2)");
-
-		info!("Archive File created at \"{}\"", &path.display());
-		// writer gets automaticly closed by rust when exiting the scope
+		write_archive(&Archive::default()).expect("Failed to write Archive to File");
 	}
 
 	path = path.canonicalize().expect("Normalizing the Archive Path failed");
