@@ -27,6 +27,12 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 		for file in std::fs::read_dir(Path::new(&args.tmp))? {
 			// 2. convert Result<DirEntry> to PathBuf
 			let file = file?.path();
+
+			if file.is_dir() {
+				info!("Encountered an Directory, skipping: \"{}\"", file.display());
+				continue;
+			};
+
 			// 3. check if the file has an extension, when not skip it
 			let ext = (match &file.extension() {
 				Some(v) => *v,
