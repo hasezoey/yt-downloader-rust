@@ -54,12 +54,11 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 		tmp // return from block
 	};
 
-	lazy_static! {
-		static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
+	let bar: ProgressBar = ProgressBar::new(files.len() as u64).with_style(
+		ProgressStyle::default_bar()
 			.template("[{pos}/{len}] [{elapsed_precise}] {bar:40.cyan/blue} {msg}")
-			.progress_chars("#>-");
-	}
-	let bar: ProgressBar = ProgressBar::new(files.len() as u64).with_style(SINGLE_STYLE.clone());
+			.progress_chars("#>-"),
+	);
 
 	for file in files {
 		bar.inc(1);
