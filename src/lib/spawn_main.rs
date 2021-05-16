@@ -143,7 +143,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
 
-	bar.set_prefix(&prefix_format!(current_video, count_video, "<none>"));
+	bar.set_prefix(prefix_format!(current_video, count_video, "<none>"));
 
 	let thread = std::thread::spawn(move || {
 		// always print STDERR
@@ -189,7 +189,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 						archive.add_video(Video::new(&current_id, Provider::Youtube));
 					}
 					bar.reset();
-					bar.set_prefix(&prefix_format!(current_video, count_video, &new_id));
+					bar.set_prefix(prefix_format!(current_video, count_video, &new_id));
 				}
 			},
 			YTDLOutputs::Download => {
@@ -237,7 +237,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 				let position = unwrap_or_return!(DOWNLOAD_MATCHER.captures_iter(&line).next());
 				bar.set_position(position[1].parse::<u64>().unwrap_or(0));
-				bar.set_message(&format!(""));
+				bar.set_message("");
 			},
 			YTDLOutputs::FFMPEG | YTDLOutputs::Generic => {
 				if let Some(filenametmp) = match_to_path(&line) {

@@ -10,7 +10,7 @@ clap = { version = "2.33.3", features = ["yaml", "wrap_help"] }
 serde = { version = "1.0.126", features = ["derive"] }
 regex = "1.5.4"
 lazy_static = "1.4.0"
-indicatif = "0.15.0"
+indicatif = "0.16.0"
 colored = "2.0.0"
 semver = "0.11.0"
 log = "0.4.14"
