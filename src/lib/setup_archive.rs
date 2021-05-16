@@ -65,8 +65,8 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 }
 
 /// if an Archive is existing in Arguments, write it
-pub fn finish_archive(archive: &Archive) -> Result<(), ioError> {
-	debug!("Finishing Archive");
+pub fn write_archive(archive: &Archive) -> Result<(), ioError> {
+	debug!("Writing Archive to File at \"{}\"", archive.path.display());
 	create_dir_all(PathBuf::from(&archive.path).parent().unwrap())
 		.expect("Recursivly creating directory(s) for Archive File Failed");
 	let writer = File::create(&archive.path)?;

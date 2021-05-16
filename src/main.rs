@@ -39,7 +39,7 @@ fn main() -> Result<(), ioError> {
 	if let Some(matches) = cli_matches.subcommand_matches("import") {
 		let archive = import_archive::import_archive(&matches)?;
 
-		setup_archive::finish_archive(&archive)?;
+		setup_archive::write_archive(&archive)?;
 
 		return Ok(());
 	}
@@ -71,7 +71,7 @@ fn main() -> Result<(), ioError> {
 	}
 
 	if let Some(archive) = &args.archive {
-		setup_archive::finish_archive(&archive)?;
+		setup_archive::write_archive(&archive)?;
 	} else {
 		info!("No Archive, not writing");
 	}
