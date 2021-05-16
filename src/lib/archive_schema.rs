@@ -53,7 +53,7 @@ impl Default for Archive {
 	fn default() -> Archive {
 		return Archive {
 			version:       default_version(),
-			last_modified: "".to_owned(),
+			last_modified: default_last_modified(),
 			playlists:     Vec::default(),
 			videos:        Vec::default(),
 			path:          PathBuf::from(""),
