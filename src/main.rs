@@ -9,6 +9,7 @@ extern crate chrono;
 extern crate clap;
 extern crate colored;
 extern crate env_logger;
+extern crate fs_extra;
 extern crate indicatif;
 extern crate regex;
 extern crate semver;

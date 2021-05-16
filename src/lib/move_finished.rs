@@ -1,19 +1,18 @@
 use super::setup_archive::get_path;
 use super::utils::Arguments;
+use fs_extra::file::{
+	move_file,
+	CopyOptions,
+};
 use indicatif::{
 	ProgressBar,
 	ProgressStyle,
 };
-use std::io::{
-	Error as ioError,
-	ErrorKind,
-};
+use std::io::Error as ioError;
 use std::path::{
 	Path,
 	PathBuf,
 };
-use std::process::Command;
-use std::process::Stdio;
 
 pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	info!("Starting to move files");
@@ -78,25 +77,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	info!("Moving file from \"{}\" to \"{}\"\n", file.display(), target.display());
 
-	// block for the "mv" command
-	{
-		let mut mvcommand = Command::new("mv");
-		mvcommand.arg(&file);
-		mvcommand.arg(&target);
-
-		let mut spawned = mvcommand.stdout(Stdio::piped()).spawn()?;
-
-		let exit_status = spawned
-			.wait()
-			.expect("Something went wrong while waiting for \"mv\" to finish... (Did it even run?)");
-
-		if !exit_status.success() {
-			return Err(ioError::new(
-				ErrorKind::Other,
-				"\"mv\" exited with a non-zero status, Stopping YT-DL-Rust",
-			));
-		}
-	}
+	move_file(file, target, &CopyOptions::new()).expect("Failed to move the file to target");
 
 	return Ok(());
 }
