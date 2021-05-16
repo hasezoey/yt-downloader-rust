@@ -1,9 +1,5 @@
 use crate::unwrap_or_return;
 
-// use chrono::{
-// 	DateTime,
-// 	Utc,
-// };
 use serde::{
 	Deserialize,
 	Deserializer,
@@ -21,12 +17,6 @@ fn default_version() -> String {
 }
 
 /// used for serde default
-fn default_last_modified() -> String {
-	// this is in a function for adding dates later
-	return "".to_owned();
-}
-
-/// used for serde default
 fn default_bool() -> bool {
 	return false;
 }
@@ -35,9 +25,6 @@ fn default_bool() -> bool {
 pub struct Archive {
 	#[serde(rename = "version", default = "default_version")]
 	version: String,
-
-	#[serde(rename = "lastModified", default = "default_last_modified")] // TODO: replace with actual date
-	last_modified: String,
 
 	#[serde(rename = "playlists", default)]
 	playlists: Vec<Playlist>,
@@ -52,11 +39,10 @@ pub struct Archive {
 impl Default for Archive {
 	fn default() -> Archive {
 		return Archive {
-			version:       default_version(),
-			last_modified: default_last_modified(),
-			playlists:     Vec::default(),
-			videos:        Vec::default(),
-			path:          PathBuf::from(""),
+			version:   default_version(),
+			playlists: Vec::default(),
+			videos:    Vec::default(),
+			path:      PathBuf::from(""),
 		};
 	}
 }
