@@ -65,7 +65,6 @@ fn main() -> Result<(), ioError> {
 		}
 	}
 
-	// TODO: implement moving files & edited files to OUT
 	if !errcode {
 		move_finished::move_finished_files(&args)?;
 	}
