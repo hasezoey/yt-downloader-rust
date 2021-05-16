@@ -34,8 +34,8 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 			};
 
 			// 3. check if the file has an extension, when not skip it
-			let ext = (match &file.extension() {
-				Some(v) => *v,
+			let ext = (match file.extension() {
+				Some(v) => v,
 				None => continue,
 			})
 			.to_str()
