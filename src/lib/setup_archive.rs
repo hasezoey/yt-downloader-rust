@@ -44,7 +44,7 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 			.expect("Recursivly creating directory(s) for Archive File Failed");
 
 		let writer = File::create(&path).expect("Archive File Creation Error(1)");
-		write_archive(&writer, &Archive::default()).expect("Archive File Creation Error(2)");
+		write_archive_to_writer(&writer, &Archive::default()).expect("Archive File Creation Error(2)");
 
 		info!("Archive File created at \"{}\"", &path.display());
 		// writer gets automaticly closed by rust when exiting the scope
@@ -71,13 +71,13 @@ pub fn finish_archive(archive: &Archive) -> Result<(), ioError> {
 		.expect("Recursivly creating directory(s) for Archive File Failed");
 	let writer = File::create(&archive.path)?;
 
-	write_archive(&writer, &archive)?;
+	write_archive_to_writer(&writer, &archive)?;
 
 	return Ok(());
 }
 
-/// Write Archive pretty in debug or normal in release
-fn write_archive<T>(writer: T, archive: &Archive) -> Result<(), ioError>
+/// Write Archive pretty in debug and normal in release
+fn write_archive_to_writer<T>(writer: T, archive: &Archive) -> Result<(), ioError>
 where
 	T: Write,
 {
