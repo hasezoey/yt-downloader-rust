@@ -36,7 +36,7 @@ args:
       value_name: DIR
       help: Sets a custom temporary directory
       takes_value: true
-      default_value: /tmp
+      default_value: /tmp/ytdl-rust
       env: YTDL_TMP
   - archive:
       long: archive
@@ -46,16 +46,6 @@ args:
       value_name: FILE_PATH
       takes_value: true
       default_value: "~/.config/ytdl_archive.json"
-  - tmpcreate:
-      long: tmpc
-      value_name: BOOL
-      help: Create Sub-directory in the specified tmp directory
-      takes_value: true
-      possible_values:
-        - "true"
-        - "false"
-      env: YTDL_TMPC
-      default_value: "true"
   - askedit:
       short: e
       long: askedit

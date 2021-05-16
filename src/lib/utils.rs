@@ -11,8 +11,6 @@ pub struct Arguments {
 	pub out:             PathBuf,
 	/// Temporary Directory
 	pub tmp:             PathBuf,
-	/// Create a Sub-Directory in the Temporary Directory?
-	pub tmp_sub:         String,
 	/// The URL to download
 	pub url:             String,
 	/// Extra options passed to youtube-dl
