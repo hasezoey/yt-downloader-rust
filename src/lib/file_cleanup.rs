@@ -1,31 +1,9 @@
 use super::utils::Arguments;
-use std::io::{
-	Error as ioError,
-	ErrorKind,
-};
+use std::io::Error as ioError;
 
-use std::process::Command;
-use std::process::Stdio;
+use std::fs::remove_dir_all;
 
 pub fn file_cleanup(args: &Arguments) -> Result<(), ioError> {
 	info!("Cleanup of tmp files");
-	// block for the "rm" command
-	let mut rmcommand = Command::new("rm");
-	rmcommand.arg("-rf");
-	rmcommand.arg(&args.tmp);
-
-	let mut spawned = rmcommand.stdout(Stdio::piped()).spawn()?;
-
-	let exit_status = spawned
-		.wait()
-		.expect("Something went wrong while waiting for \"rm\" to finish... (Did it even run?)");
-
-	if !exit_status.success() {
-		return Err(ioError::new(
-			ErrorKind::Other,
-			"\"rm\" exited with a non-zero status, Stopping YT-DL-Rust",
-		));
-	}
-
-	return Ok(());
+	return remove_dir_all(&args.tmp);
 }
