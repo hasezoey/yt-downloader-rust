@@ -31,7 +31,7 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 	let mut path = get_path(&val);
 
 	if path.is_dir() {
-		info!("Provided Archive-Path was an directory");
+		debug!("Provided Archive-Path was an directory");
 		path.push("ytdl_archive");
 	}
 
