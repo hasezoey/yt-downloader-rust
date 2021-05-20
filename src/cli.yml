@@ -81,8 +81,3 @@ subcommands:
             required: true
             index: 1
             help: Input youtube-dl Archive
-        - output:
-            short: o
-            long: output
-            help: Output YT-DL-Rust Archive
-            default_value: "~/.config/yt-dl-rust"

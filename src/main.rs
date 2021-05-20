@@ -36,8 +36,9 @@ fn main() -> Result<(), ioError> {
 	let cli_matches = App::from_yaml(yml).get_matches();
 
 	// handle importing native youtube-dl archives
-	if let Some(matches) = cli_matches.subcommand_matches("import") {
-		let archive = import_archive::import_archive(&matches)?;
+	if let Some(sub_matches) = cli_matches.subcommand_matches("import") {
+		debug!("Subcommand \"import\" is given");
+		let archive = import_archive::import_archive(&sub_matches, &cli_matches)?;
 
 		setup_archive::write_archive(&archive)?;
 
