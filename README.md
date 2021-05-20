@@ -22,10 +22,10 @@ Parameters:
 |  -d   |           |                      |                               | Enable Command Verbose output (youtube-dl, ffmpeg)         |
 |  -c   |           |                      |                               | Disable Cleanup after successful run                       |
 |  -t   |           |                      |                               | Disable re-applying the thumbnail after running the editor |
-|  -o   |   --out   |       YTDL_OUT       |    `~/Downloads/ytdl-out`     | Set the Output Directory                                   |
+|       |   --out   |       YTDL_OUT       |    `~/Downloads/ytdl-out`     | Set the Output Directory                                   |
 |       |   --tmp   |       YTDL_TMP       |       `/tmp/ytdl-rust`        | Set the Temporary Directory to use                         |
-|  -r   | --archive |     YTDL_ARCHIVE     | `~/.config/ytdl_archive.json` | Set the Archive file path                                  |
-|  -e   | --askedit |     YTDL_ASKEDIT     |            `true`             | Ask for edit or directly move to Output Directory          |
+|       | --archive |     YTDL_ARCHIVE     | `~/.config/ytdl_archive.json` | Set the Archive file path                                  |
+|       | --askedit |     YTDL_ASKEDIT     |            `true`             | Ask for edit or directly move to Output Directory          |
 |       | --editor  |     YTDL_EDITOR      |                               | Set what editor to use on an file                          |
 |       |           |                      |                               | URL to download                                            |
 |       |    --     |                      |                               | Extra youtube-dl parameters                                |

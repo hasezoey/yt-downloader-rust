@@ -3,6 +3,9 @@ version: "0.1.0"
 author: hasezoey <hasezoey@gmail.com>
 about: Download <EDIT ME>
 
+# TODO: update to clap 3.0.0
+# TODO: change boolean argument to flags with envrionment variable (https://github.com/clap-rs/clap/issues/1476)
+
 settings: 
   - ArgRequiredElseHelp # show help if no args are given
   - StrictUtf8 # only allow valid UTF-8
@@ -24,7 +27,6 @@ args:
       help: Disable reapplying the thumbnail after the editor finished
   # everything else
   - out:
-      short: o
       long: out
       value_name: DIR
       help: Sets the input file to use
@@ -40,14 +42,12 @@ args:
       env: YTDL_TMP
   - archive:
       long: archive
-      short: r
-      env: YTDL_ARCHIVE
       help: Sets the Archive location (Custom Archive) 
       value_name: FILE_PATH
       takes_value: true
       default_value: "~/.config/ytdl_archive.json"
+      env: YTDL_ARCHIVE
   - askedit:
-      short: e
       long: askedit
       value_name: BOOL
       help: Ask for editing or just move all files out OUT?
@@ -55,8 +55,8 @@ args:
       possible_values:
         - "true"
         - "false"
-      env: YTDL_ASKEDIT
       default_value: "true"
+      env: YTDL_ASKEDIT
   - editor:
       long: editor
       value_name: EXECUTEABLE
