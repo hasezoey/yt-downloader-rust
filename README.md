@@ -2,11 +2,10 @@
 
 ## Requirements
 
-- Linux / Mac - build with POSIX system paths in mind
+- Linux / Mac - build with POSIX system paths in mind (Windows *might* work)
 - youtube-dl is installed and be accessable via the command `youtube-dl`
 - ffmpeg is installed and be accessable via the command `ffmpeg`
-- rust stable 1.40 or higher
-- having `cargo-make` installed for extra scripts [clippy, etc - build would still work without it]
+- rust stable 1.50 or higher
 
 ## Usage
 
