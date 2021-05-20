@@ -35,7 +35,14 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 		path.push("ytdl_archive");
 	}
 
-	path.set_extension("json");
+	path = path.canonicalize().expect("Failed to get Absoulte path for Archive");
+
+	if !(path.exists() && path.is_file()) {
+		debug!("Archive Path did not exist, adding file extension");
+		path.set_extension("json");
+	} else {
+		debug!("Archive Path already exists and is an file, not adding file extension");
+	}
 
 	if !path.exists() {
 		debug!("Creating Default Archive File at \"{}\"", path.display());
