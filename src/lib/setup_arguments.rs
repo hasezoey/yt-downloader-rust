@@ -59,6 +59,29 @@ mod test {
 	use super::*;
 
 	#[test]
+	// TODO: Enable this test if discussion is resolved
+	#[ignore = "https://github.com/clap-rs/clap/discussions/2489"]
+	fn test_everything_default() {
+		let args = vec!["bin", "SomeURL"];
+		let yml = clap::load_yaml!("../cli.yml");
+		let cli_matches = clap::App::from_yaml(yml).get_matches_from(args);
+
+		let arguments = setup_args(&cli_matches).unwrap();
+
+		assert_eq!(PathBuf::from("~/Downloads/ytdl-out"), arguments.out);
+		assert_eq!(PathBuf::from("/tmp/ytdl-rust"), arguments.tmp);
+		assert_eq!("SomeURL", arguments.url);
+		assert!(arguments.extra_args.is_empty());
+		assert!(!arguments.audio_only);
+		assert!(!arguments.debug);
+		assert!(!arguments.disable_cleanup);
+		assert!(!arguments.d_e_thumbnail);
+		assert!(arguments.archive.is_some());
+		assert!(arguments.askedit);
+		assert!(arguments.editor.is_empty());
+	}
+
+	#[test]
 	fn test_arguments_tmp_add_ancestor() {
 		let args = vec!["bin", "--tmp", "/tmp", "SomeURL"];
 		let yml = clap::load_yaml!("../cli.yml");
