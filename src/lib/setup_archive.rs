@@ -17,7 +17,10 @@ pub fn get_path(val: &str) -> PathBuf {
 			// trim unwanted spaces
 			.trim()
 			// if the path contains "~", then replace it with the home directory
-			.replace("~", &std::env::var("HOME").unwrap()),
+			.replace(
+				"~",
+				&std::env::var("HOME").expect("Failed to get Home Directory from ENV"),
+			),
 	);
 }
 
