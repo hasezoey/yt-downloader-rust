@@ -65,7 +65,6 @@ args:
       env: YTDL_EDITOR
       default_value: ""
   - URL:
-      # required: true # disabled otherwise it would be required in the subcommands
       index: 1
       help: Sets the URL to download from
   - ytdlargs:
