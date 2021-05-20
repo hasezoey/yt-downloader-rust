@@ -9,64 +9,34 @@
 
 ## Usage
 
-`./yt-downloader <URL>` (replace `<URL>` with the URL)
+### Basic Usage
 
-### audio only
+`yt-downloader <URL>` (replace `<URL>` with the URL)
 
-add `-a` to make the output audio-only
+Parameters:
 
-### Print youtube-dl output
+| Short |   Long    | Environment Variable |            Default            | Description                                                |
+| :---: | :-------: | :------------------: | :---------------------------: | :--------------------------------------------------------- |
+|  -a   |           |                      |                               | Output files will be audio-only                            |
+|  -h   |  --help   |                      |                               | List the help (basically this table)                       |
+|  -d   |           |                      |                               | Enable Command Verbose output (youtube-dl, ffmpeg)         |
+|  -c   |           |                      |                               | Disable Cleanup after successful run                       |
+|  -t   |           |                      |                               | Disable re-applying the thumbnail after running the editor |
+|  -o   |   --out   |       YTDL_OUT       |    `~/Downloads/ytdl-out`     | Set the Output Directory                                   |
+|       |   --tmp   |       YTDL_TMP       |       `/tmp/ytdl-rust`        | Set the Temporary Directory to use                         |
+|  -r   | --archive |     YTDL_ARCHIVE     | `~/.config/ytdl_archive.json` | Set the Archive file path                                  |
+|  -e   | --askedit |     YTDL_ASKEDIT     |            `true`             | Ask for edit or directly move to Output Directory          |
+|       | --editor  |     YTDL_EDITOR      |                               | Set what editor to use on an file                          |
+|       |           |                      |                               | URL to download                                            |
+|       |    --     |                      |                               | Extra youtube-dl parameters                                |
 
-add `-d` to print stdout of `youtube-dl`
+### Import youtube-dl archive
 
-### Change Temporary Directory
+An existing Youtube-DL archive can also be imported by using the subcommand `import`
 
-add `--tmp <DIR>` (replace `<DIR>` with an absolute path to the directory)
-default `/tmp`
+Example: `yt-downloader import ./archive`
 
-### Create Sub-Directory in the Temporary Directory
-
-add `-c <BOOL>` | `--tmpc <BOOL>` (replace `<BOOL>` with `true` or `false`)
-
-### Extra youtube-dl Arguments
-
-add `--` to the end of the command and every argument after that will be send to youtube-dl
-
-### More Help
-
-use `-h` | `--help`
-
-### Change Archive path / disable archive
-
-use `-r <ARCHIVE_FILE>` | `--archive <ARCHIVE_FILE>` (replace `ARCHIVE_FILE` with the path to the archive file, or `""`(empty) to disable archives)
-
-Note: default archive file location `~/.config/yt-dl-rust.json`
-
-### Ask for Edits
-
-use `-e <BOOL>` | `--askedit <BOOL>` (replace `BOOL` with `true` or `false`)
-
-With this option asking for edits after download can be enabled (by default) or disabled
-
-Default: `true`
-
-### Editor
-
-use `--editor <EXECUTEABLE>` (replace `EXECUTEABLE` with the path / command to use as the editor)
-
-With this option the editor to use can be set
-
-Output path is the input path (export to input file)
-
-Note: if empty, it will be asked after download
-
-Default: ""
-
-### Import already existing youtube-dl archive
-
-use the subcommand `import <ARCHIVE_FILE>` (replace `ARCHIVE_FILE` with the path to the archive file)
-
-Note: default archive file location `~/.config/yt-dl-rust.json`
+This subcommand will use the out-archive location of [`--archive`](#basic-usage)
 
 ---
 
