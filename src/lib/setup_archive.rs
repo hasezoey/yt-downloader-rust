@@ -48,9 +48,11 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 		debug!("Creating Default Archive File at \"{}\"", path.display());
 
 		let mut default_archive = Archive::default();
-		default_archive.path = path.clone();
+		default_archive.path = path;
 
 		write_archive(&default_archive).expect("Failed to write Archive to File");
+
+		return Some(default_archive);
 	}
 
 	path = path.canonicalize().expect("Normalizing the Archive Path failed");
