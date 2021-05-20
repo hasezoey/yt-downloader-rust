@@ -51,7 +51,7 @@ jobs:
         if: github.event.inputs.git-ref != ''
         with:
           ref: ${{ github.event.inputs.git-ref }}
-      - name: Install latest nightly
+      - name: Install latest Toolchain
         uses: actions-rs/toolchain@v1
         with:
             profile: minimal
