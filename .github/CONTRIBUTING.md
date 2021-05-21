@@ -50,9 +50,13 @@ look into [releaserc](../.releaserc.js) for corresponding versions
 
 ### Scope
 
-The scope could be anything specifying place of the commit change. For example the file that got modified
+In this project Scope can be either an file name or an rust path like:
 
-You can use `*` when the change affects more than a single scope.
+For non rust files & rust files that change outside an rust path: `cli.yml`.  
+For rust files with rust path: `utils::Arguments` (or less preferred `crate::utils::Arguments`).  
+For multiple changes in *one* file, the file name can also be used `utils.rs`.  
+
+The Scope can also be left out when it affects more than one file.
 
 ### Subject
 
