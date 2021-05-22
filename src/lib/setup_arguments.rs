@@ -1,20 +1,30 @@
+use super::paths::to_absolute;
 use super::setup_archive::setup_archive;
 use super::utils::Arguments;
 
+use std::ffi::OsStr;
 use std::fs::create_dir_all;
 use std::io::Error as ioError;
 use std::path::PathBuf;
 
+/// Helper function to make code more clean
+#[inline]
 fn string_to_bool(input: &str) -> bool {
 	return matches!(input, "true");
+}
+
+/// Helper function to make code more clean
+#[inline]
+fn process_paths(val: &OsStr) -> std::io::Result<PathBuf> {
+	return to_absolute(std::env::current_dir()?.as_path(), &val.as_ref());
 }
 
 /// Setup clap-arguments
 pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
-		out:             PathBuf::from(&cli_matches.value_of("out").unwrap()), // unwrap, because of a set default
-		tmp:             PathBuf::from(&cli_matches.value_of("tmp").unwrap()), // unwrap, because of a set default
-		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(), // unwrap, because "URL" is required
+		out:             process_paths(&cli_matches.value_of_os("out").unwrap())?, // unwrap, because of a set default
+		tmp:             process_paths(&cli_matches.value_of_os("tmp").unwrap())?, // unwrap, because of a set default
+		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(),     // unwrap, because "URL" is required
 		archive:         setup_archive(&cli_matches.value_of("archive").unwrap()), // unwrap, because of a set default
 		audio_only:      cli_matches.is_present("audio_only"),
 		debug:           cli_matches.is_present("debug"),
@@ -37,8 +47,6 @@ pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> 
 	}
 
 	args.extra_args.push("--write-thumbnail".to_owned());
-
-	args.tmp = args.tmp.canonicalize()?;
 
 	// its "3" because "/" is an ancestor and "tmp" is an ancestor
 	if args.tmp.ancestors().count() < 3 {
