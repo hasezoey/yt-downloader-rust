@@ -1,4 +1,3 @@
-use super::setup_archive::get_path;
 use super::utils::Arguments;
 use fs_extra::file::{
 	move_file,
@@ -16,7 +15,8 @@ use std::path::{
 
 pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	info!("Starting to move files");
-	let out_path = get_path(&args.out.to_str().expect("Converting OUT to str failed"));
+	let out_path =
+		PathBuf::from(shellexpand::tilde(&args.out.to_str().expect("Converting OUT to str failed")).as_ref());
 	std::fs::create_dir_all(&out_path).expect("Creating the OUT directory failed!");
 
 	let files: Vec<PathBuf> = {

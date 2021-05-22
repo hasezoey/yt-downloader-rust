@@ -12,16 +12,14 @@ use std::io::{
 	Seek,
 	SeekFrom,
 };
+use std::path::PathBuf;
 
 use super::archive_schema::{
 	Archive,
 	Provider,
 	Video,
 };
-use super::setup_archive::{
-	get_path,
-	setup_archive,
-};
+use super::setup_archive::setup_archive;
 use crate::unwrap_or_return;
 
 lazy_static! {
@@ -35,7 +33,7 @@ lazy_static! {
 }
 
 pub fn import_archive(sub_matches: &clap::ArgMatches, main_matches: &clap::ArgMatches) -> Result<Archive, ioError> {
-	let input_path = get_path(&sub_matches.value_of("input").unwrap());
+	let input_path = PathBuf::from(shellexpand::tilde(&sub_matches.value_of("input").unwrap()).as_ref());
 	if !input_path.exists() || !input_path.is_file() {
 		panic!("\"{}\" does not exist or is not an file!", input_path.display());
 	}

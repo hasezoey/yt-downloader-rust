@@ -1,3 +1,5 @@
+use crate::lib::paths::to_absolute;
+
 use super::archive_schema::Archive;
 
 use std::fs::{
@@ -11,19 +13,6 @@ use std::io::{
 };
 use std::path::PathBuf;
 
-pub fn get_path(val: &str) -> PathBuf {
-	return PathBuf::from(
-		val
-			// trim unwanted spaces
-			.trim()
-			// if the path contains "~", then replace it with the home directory
-			.replace(
-				"~",
-				&std::env::var("HOME").expect("Failed to get Home Directory from ENV"),
-			),
-	);
-}
-
 /// Setup Archive, if correct path
 /// Returns "None" if the path is invalid
 pub fn setup_archive(val: &str) -> Option<Archive> {
@@ -31,7 +20,8 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 		debug!("Archive Path length is 0, working without an Archive");
 		return None;
 	}
-	let mut path = get_path(&val);
+
+	let mut path = to_absolute(std::env::current_dir().ok()?.as_path(), &val.as_ref()).ok()?;
 
 	if path.is_dir() {
 		debug!("Provided Archive-Path was an directory");
@@ -55,8 +45,6 @@ pub fn setup_archive(val: &str) -> Option<Archive> {
 
 		return Some(default_archive);
 	}
-
-	path = path.canonicalize().expect("Normalizing the Archive Path failed");
 
 	debug!("Reading Archive File from \"{}\"", path.display());
 
