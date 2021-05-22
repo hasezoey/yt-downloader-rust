@@ -31,7 +31,6 @@ args:
       value_name: DIR
       help: Sets the input file to use
       takes_value: true
-      default_value: ~/Downloads/ytdl-out
       env: YTDL_OUT
   - tmp:
       long: tmp

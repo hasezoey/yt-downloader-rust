@@ -68,13 +68,33 @@ fn get_config_path(val: Option<&OsStr>) -> ioResult<Option<Archive>> {
 	return Ok(setup_archive(archive_path));
 }
 
+/// Process input to useable PathBuf for Output
+fn get_output_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
+	let mut ret_path = process_paths({
+		if let Some(path) = val {
+			PathBuf::from(path)
+		} else {
+			dirs_next::download_dir()
+				.expect("Could not find an Default Download Directory")
+				.join("ytdl-out")
+		}
+	})?;
+
+	if ret_path.exists() && !ret_path.is_dir() {
+		debug!("Output path exists, but is not an directory");
+		ret_path.pop();
+	}
+
+	return Ok(ret_path);
+}
+
 /// Setup clap-arguments
 pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
-		out:             process_paths(cli_matches.value_of_os("out").unwrap())?, // unwrap, because of a set default
-		tmp:             get_tmp_path(cli_matches.value_of_os("tmp"))?,           // unwrap, because of a set default
-		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(),    // unwrap, because "URL" is required
-		archive:         get_config_path(cli_matches.value_of_os("archive"))?,    // unwrap, because of a set default
+		out:             get_output_path(cli_matches.value_of_os("out"))?, // unwrap, because of a set default
+		tmp:             get_tmp_path(cli_matches.value_of_os("tmp"))?,    // unwrap, because of a set default
+		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(), // unwrap, because "URL" is required
+		archive:         get_config_path(cli_matches.value_of_os("archive"))?, // unwrap, because of a set default
 		audio_only:      cli_matches.is_present("audio_only"),
 		debug:           cli_matches.is_present("debug"),
 		disable_cleanup: cli_matches.is_present("disablecleanup"),
