@@ -1,3 +1,4 @@
+use shellexpand::tilde;
 use std::io::{
 	Error as ioError,
 	ErrorKind,
@@ -51,18 +52,33 @@ pub fn normalize_path(path: &Path) -> PathBuf {
 /// Convert `target` into an absolute path with `base` as a base.  
 /// If `target` is already absolute, it returns `target` as is.
 /// # Errors
-/// This Functions errors if `base` is not absolute with an [`ioError`]
+/// This Function errors if `base` is not absolute with an [`ioError`]  
+/// This Function also errors if the input paths are not an valid [`str`]
 pub fn to_absolute(base: &Path, target: &Path) -> ioResult<PathBuf> {
-	if target.is_absolute() {
-		debug!("Path is already absolute");
-		return Ok(PathBuf::from(target));
+	let base_fmt: PathBuf = tilde(
+		base.to_str()
+			.ok_or_else(|| return ioError::new(ErrorKind::InvalidData, "Base Path is not an valid str"))?,
+	)
+	.as_ref()
+	.into();
+	let target_fmt: PathBuf = tilde(
+		target
+			.to_str()
+			.ok_or_else(|| return ioError::new(ErrorKind::InvalidData, "Target Path is not an valid str"))?,
+	)
+	.as_ref()
+	.into();
+
+	if target_fmt.is_absolute() {
+		debug!("Target Path is already absolute");
+		return Ok(target_fmt);
 	}
 
-	if !base.is_absolute() {
+	if !base_fmt.is_absolute() {
 		return Err(ioError::new(ErrorKind::InvalidInput, "Base Path is not absolute!"));
 	}
 
-	return Ok(normalize_path(base.join(&target).as_ref()));
+	return Ok(normalize_path(base_fmt.join(&target_fmt).as_ref()));
 }
 
 #[cfg(test)]
@@ -81,6 +97,7 @@ mod test {
 		let test_target_empty = Path::new("");
 		let test_target_1 = Path::new("/absolute/target");
 		let test_target_2 = Path::new("../../path/to/somewhere/./else");
+		// TODO: add test for "to_absolute" and tilde ("~/home/dir") when using dirs-next
 
 		// should return "base_path" unmodified
 		assert_eq!(PathBuf::from(&base_path), to_absolute(&base_path, &test_target_empty)?);
