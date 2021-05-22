@@ -4,7 +4,11 @@ use super::utils::Arguments;
 
 use std::ffi::OsStr;
 use std::fs::create_dir_all;
-use std::io::Error as ioError;
+use std::io::{
+	Error as ioError,
+	Result as ioResult,
+};
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Helper function to make code more clean
@@ -15,17 +19,45 @@ fn string_to_bool(input: &str) -> bool {
 
 /// Helper function to make code more clean
 #[inline]
-fn process_paths(val: &OsStr) -> std::io::Result<PathBuf> {
+fn process_paths<T: AsRef<Path>>(val: T) -> ioResult<PathBuf> {
 	return to_absolute(std::env::current_dir()?.as_path(), &val.as_ref());
+}
+
+fn get_tmp_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
+	let mut ret_path = process_paths({
+		if let Some(path) = val {
+			PathBuf::from(path)
+		} else {
+			std::env::temp_dir()
+		}
+	})?;
+
+	if ret_path.exists() && !ret_path.is_dir() {
+		debug!("Temporary path exists, but is not an directory");
+		ret_path.pop();
+	}
+
+	// its "3" because "/" is an ancestor and "tmp" is an ancestor
+	if ret_path.ancestors().count() < 3 {
+		debug!(
+			"Adding another directory to YTDL_TMP, original: \"{}\"",
+			ret_path.display()
+		);
+		ret_path = ret_path.join("ytdl-rust");
+
+		create_dir_all(&ret_path)?;
+	}
+
+	return Ok(ret_path);
 }
 
 /// Setup clap-arguments
 pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
-		out:             process_paths(&cli_matches.value_of_os("out").unwrap())?, // unwrap, because of a set default
-		tmp:             process_paths(&cli_matches.value_of_os("tmp").unwrap())?, // unwrap, because of a set default
-		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(),     // unwrap, because "URL" is required
-		archive:         setup_archive(&cli_matches.value_of("archive").unwrap()), // unwrap, because of a set default
+		out:             process_paths(cli_matches.value_of_os("out").unwrap())?, // unwrap, because of a set default
+		tmp:             get_tmp_path(cli_matches.value_of_os("tmp"))?,           // unwrap, because of a set default
+		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(),    // unwrap, because "URL" is required
+		archive:         setup_archive(cli_matches.value_of("archive").unwrap()), // unwrap, because of a set default
 		audio_only:      cli_matches.is_present("audio_only"),
 		debug:           cli_matches.is_present("debug"),
 		disable_cleanup: cli_matches.is_present("disablecleanup"),
@@ -47,17 +79,6 @@ pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> 
 	}
 
 	args.extra_args.push("--write-thumbnail".to_owned());
-
-	// its "3" because "/" is an ancestor and "tmp" is an ancestor
-	if args.tmp.ancestors().count() < 3 {
-		debug!(
-			"Adding another directory to YTDL_TMP, original: \"{}\"",
-			args.tmp.display()
-		);
-		args.tmp = args.tmp.join("ytdl-rust");
-
-		create_dir_all(&args.tmp)?;
-	}
 
 	return Ok(args);
 }

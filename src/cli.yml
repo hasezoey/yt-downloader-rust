@@ -38,7 +38,6 @@ args:
       value_name: DIR
       help: Sets a custom temporary directory
       takes_value: true
-      default_value: /tmp/ytdl-rust
       env: YTDL_TMP
   - archive:
       long: archive
