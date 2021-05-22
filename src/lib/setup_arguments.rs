@@ -75,7 +75,7 @@ fn get_output_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 			PathBuf::from(path)
 		} else {
 			dirs_next::download_dir()
-				.expect("Could not find an Default Download Directory")
+				.unwrap_or_else(|| return PathBuf::from("."))
 				.join("ytdl-out")
 		}
 	})?;
@@ -134,7 +134,15 @@ mod test {
 
 		let arguments = setup_args(&cli_matches).unwrap();
 
-		assert_eq!(PathBuf::from("~/Downloads/ytdl-out"), arguments.out);
+		let download_dir = dirs_next::download_dir();
+
+		// this is because when used on desktop sessins, there is an download dir, while in something like ci there is not
+		if let Some(path) = download_dir {
+			assert_eq!(path.join("ytdl-out"), arguments.out);
+		} else {
+			assert_eq!(std::env::current_dir().unwrap().join("ytdl-out"), arguments.out);
+		}
+
 		assert_eq!(PathBuf::from("/tmp/ytdl-rust"), arguments.tmp);
 		assert_eq!("SomeURL", arguments.url);
 		assert!(arguments.extra_args.is_empty());
