@@ -24,6 +24,7 @@ fn process_paths<T: AsRef<Path>>(val: T) -> ioResult<PathBuf> {
 	return to_absolute(std::env::current_dir()?.as_path(), &val.as_ref());
 }
 
+/// Process input to useable PathBuf for temporary directory
 fn get_tmp_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 	let mut ret_path = process_paths({
 		if let Some(path) = val {
@@ -52,6 +53,7 @@ fn get_tmp_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 	return Ok(ret_path);
 }
 
+/// Process input to useable Archive
 fn get_config_path(val: Option<&OsStr>) -> ioResult<Option<Archive>> {
 	let archive_path = process_paths({
 		if let Some(path) = val {
