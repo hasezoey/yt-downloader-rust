@@ -91,10 +91,10 @@ fn get_output_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 /// Setup clap-arguments
 pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
-		out:             get_output_path(cli_matches.value_of_os("out"))?, // unwrap, because of a set default
-		tmp:             get_tmp_path(cli_matches.value_of_os("tmp"))?,    // unwrap, because of a set default
-		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(), // unwrap, because "URL" is required
-		archive:         get_config_path(cli_matches.value_of_os("archive"))?, // unwrap, because of a set default
+		out:             get_output_path(cli_matches.value_of_os("out"))?,
+		tmp:             get_tmp_path(cli_matches.value_of_os("tmp"))?,
+		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(),
+		archive:         get_config_path(cli_matches.value_of_os("archive"))?,
 		audio_only:      cli_matches.is_present("audio_only"),
 		debug:           cli_matches.is_present("debug"),
 		disable_cleanup: cli_matches.is_present("disablecleanup"),
