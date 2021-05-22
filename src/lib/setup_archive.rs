@@ -11,17 +11,21 @@ use std::io::{
 	Error as ioError,
 	Write,
 };
-use std::path::PathBuf;
+use std::path::{
+	Path,
+	PathBuf,
+};
 
 /// Setup Archive, if correct path
 /// Returns "None" if the path is invalid
-pub fn setup_archive(val: &str) -> Option<Archive> {
-	if val.is_empty() {
+pub fn setup_archive<T: AsRef<Path>>(val: T) -> Option<Archive> {
+	let input = val.as_ref();
+	if input.as_os_str().is_empty() {
 		debug!("Archive Path length is 0, working without an Archive");
 		return None;
 	}
 
-	let mut path = to_absolute(std::env::current_dir().ok()?.as_path(), &val.as_ref()).ok()?;
+	let mut path = to_absolute(std::env::current_dir().ok()?.as_path(), input).ok()?;
 
 	if path.is_dir() {
 		debug!("Provided Archive-Path was an directory");

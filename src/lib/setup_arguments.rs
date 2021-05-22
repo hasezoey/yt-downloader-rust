@@ -1,3 +1,4 @@
+use super::archive_schema::Archive;
 use super::paths::to_absolute;
 use super::setup_archive::setup_archive;
 use super::utils::Arguments;
@@ -51,13 +52,27 @@ fn get_tmp_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 	return Ok(ret_path);
 }
 
+fn get_config_path(val: Option<&OsStr>) -> ioResult<Option<Archive>> {
+	let archive_path = process_paths({
+		if let Some(path) = val {
+			PathBuf::from(path)
+		} else {
+			dirs_next::config_dir()
+				.expect("Could not find an Default Config Directory")
+				.join("ytdl_archive.json")
+		}
+	})?;
+
+	return Ok(setup_archive(archive_path));
+}
+
 /// Setup clap-arguments
 pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
 		out:             process_paths(cli_matches.value_of_os("out").unwrap())?, // unwrap, because of a set default
 		tmp:             get_tmp_path(cli_matches.value_of_os("tmp"))?,           // unwrap, because of a set default
 		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(),    // unwrap, because "URL" is required
-		archive:         setup_archive(cli_matches.value_of("archive").unwrap()), // unwrap, because of a set default
+		archive:         get_config_path(cli_matches.value_of_os("archive"))?,    // unwrap, because of a set default
 		audio_only:      cli_matches.is_present("audio_only"),
 		debug:           cli_matches.is_present("debug"),
 		disable_cleanup: cli_matches.is_present("disablecleanup"),

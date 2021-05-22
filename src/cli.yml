@@ -44,7 +44,6 @@ args:
       help: Sets the Archive location (Custom Archive) 
       value_name: FILE_PATH
       takes_value: true
-      default_value: "~/.config/ytdl_archive.json"
       env: YTDL_ARCHIVE
   - askedit:
       long: askedit
