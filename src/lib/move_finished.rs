@@ -13,6 +13,7 @@ use std::path::{
 	PathBuf,
 };
 
+/// Move all files from TMP to OUT
 pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	info!("Starting to move files");
 	let out_path =
@@ -85,6 +86,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	return Ok(());
 }
 
+/// Move files from "file" to "target" with logging
 pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	info!("Moving file from \"{}\" to \"{}\"\n", file.display(), target.display());
 
