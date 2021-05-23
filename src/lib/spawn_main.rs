@@ -308,17 +308,10 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 fn match_to_path(line: &str) -> Option<String> {
 	lazy_static! {
 		// 1. capture group is filename
-		static ref MATCH_DESTINATION: Regex = Regex::new(r"(?m)Destination:\s+(.+)").unwrap();
+		static ref MATCH_DESTINATION: Regex = Regex::new(r"(?m)Destination:\s+(?P<filename>.+)").unwrap();
 	}
 
-	let filenametmp = MATCH_DESTINATION.captures_iter(&line).next();
-	if let Some(filenametmp) = filenametmp {
-		return Some(((Path::new(&filenametmp[1].to_owned()).file_name()?).to_str()?).to_owned());
-		// return just the filename of the found path
-		// most-inner: create an Path of the regexed file path, get the file_name
-		// middle-nest: convert it to &str
-		// outer-nest: convert it to String
-	}
+	let filenametmp: &str = MATCH_DESTINATION.captures(&line)?.name("filename")?.as_str();
 
-	return None;
+	return Some(Path::new(filenametmp).file_name()?.to_str()?.to_string());
 }
