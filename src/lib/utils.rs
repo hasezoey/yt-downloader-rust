@@ -61,6 +61,7 @@ impl YTDLOutputs {
 			"download" => YTDLOutputs::Download,
 			"youtube" => YTDLOutputs::Youtube,
 			"youtube:playlist" => YTDLOutputs::Youtube,
+			"youtube:tab" => YTDLOutputs::Youtube,
 			_ => {
 				info!("unknown type: {:?}", &cap[1]);
 				debug!("unknown input: \"{}\"", input);
