@@ -263,7 +263,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 				bar.reset();
 				bar.set_prefix(prefix_format(&ffmpeg_video, &count_video, &current_id));
-				bar.set_position(99);
+				bar.set_position(50);
 				bar.set_message("FFMPEG Convertion");
 				bar.tick();
 			},
