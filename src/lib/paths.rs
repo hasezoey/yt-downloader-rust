@@ -70,7 +70,6 @@ pub fn to_absolute(base: &Path, target: &Path) -> ioResult<PathBuf> {
 	.into();
 
 	if target_fmt.is_absolute() {
-		debug!("Target Path is already absolute");
 		return Ok(target_fmt);
 	}
 
