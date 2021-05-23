@@ -210,20 +210,22 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				}
 
 				if DOWNLOAD100_MATCHER.is_match(&line) || ALREADY_IN_ARCHIVE.is_match(&line) {
-					bar.finish_and_clear();
-
 					if ALREADY_IN_ARCHIVE.is_match(&line) {
-						current_video += 1;
-						println!("{}", format!(
+						trace!(
 							"{} Download done (Already in Archive)",
 							prefix_format(&current_video, &count_video, &current_id).dimmed()
-						));
-					} else {
-						println!("{}", format!(
+						);
+						current_video += 1;
+						bar.set_prefix(prefix_format(&current_video, &count_video, &current_id));
+						bar.set_message("");
+					}
+					if DOWNLOAD100_MATCHER.is_match(&line) {
+						bar.finish_and_clear();
+						println!(
 							"{} Download done \"{}\"",
 							prefix_format(&current_video, &count_video, &current_id).dimmed(),
 							PathBuf::from(&current_filename).file_stem().unwrap_or_else(|| return std::ffi::OsStr::new("UNKOWN")).to_string_lossy()
-						));
+						);
 					}
 
 					if let Some(archive) = &mut args.archive {
@@ -251,7 +253,16 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					}
 				}
 
+				let ffmpeg_video: u32;
+
+				if current_video < count_video {
+					ffmpeg_video = current_video - 1;
+				} else {
+					ffmpeg_video = current_video;
+				}
+
 				bar.reset();
+				bar.set_prefix(prefix_format(&ffmpeg_video, &count_video, &current_id));
 				bar.set_position(99);
 				bar.set_message("FFMPEG Convertion");
 				bar.tick();
