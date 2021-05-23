@@ -82,11 +82,10 @@ macro_rules! unwrap_or_return {
 	};
 }
 
-/// to have a unified prefix
-macro_rules! prefix_format {
-	($cur:expr, $cou:expr, $id:expr) => {
-		format!("[{}/{}] ({})", $cur, $cou, $id)
-	};
+/// format the prefix
+#[inline]
+fn prefix_format<T: AsRef<str>>(current: &u32, count: &u32, id: T) -> String {
+	return format!("[{}/{}] ({})", &current, &count, id.as_ref());
 }
 
 /// Spawn the main Youtube-dl task
@@ -143,7 +142,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
 
-	bar.set_prefix(prefix_format!(current_video, count_video, "<none>"));
+	bar.set_prefix(prefix_format(&current_video, &count_video, "<none>"));
 
 	let thread = std::thread::spawn(move || {
 		// always print STDERR
@@ -189,7 +188,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 						archive.add_video(Video::new(&current_id, Provider::Youtube));
 					}
 					bar.reset();
-					bar.set_prefix(prefix_format!(current_video, count_video, &new_id));
+					bar.set_prefix(prefix_format(&current_video, &count_video, &new_id));
 				}
 			},
 			YTDLOutputs::Download => {
@@ -216,12 +215,12 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 						current_video += 1;
 						println!("{}", format!(
 							"{} Download done (Already in Archive)",
-							prefix_format!(current_video, count_video, current_id).dimmed()
+							prefix_format(&current_video, &count_video, &current_id).dimmed()
 						));
 					} else {
 						println!("{}", format!(
 							"{} Download done \"{}\"",
-							prefix_format!(current_video, count_video, current_id).dimmed(),
+							prefix_format(&current_video, &count_video, &current_id).dimmed(),
 							PathBuf::from(&current_filename).file_stem().unwrap_or_else(|| return std::ffi::OsStr::new("UNKOWN")).to_string_lossy()
 						));
 					}
