@@ -62,7 +62,8 @@ impl YTDLOutputs {
 			"youtube" => YTDLOutputs::Youtube,
 			"youtube:playlist" => YTDLOutputs::Youtube,
 			_ => {
-				println!("unkown: {:?}", &cap[1]);
+				info!("unknown type: {:?}", &cap[1]);
+				debug!("unknown input: \"{}\"", input);
 				YTDLOutputs::Unkown
 			},
 		});
