@@ -91,17 +91,17 @@ fn get_output_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 /// Setup clap-arguments
 pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
-		out:             get_output_path(cli_matches.value_of_os("out"))?,
-		tmp:             get_tmp_path(cli_matches.value_of_os("tmp"))?,
-		url:             cli_matches.value_of("URL").unwrap_or("").to_owned(),
-		archive:         get_config_path(cli_matches.value_of_os("archive"))?,
-		audio_only:      cli_matches.is_present("audio_only"),
-		debug:           cli_matches.is_present("debug"),
-		disable_cleanup: cli_matches.is_present("disablecleanup"),
-		d_e_thumbnail:   cli_matches.is_present("disableeditorthumbnail"),
-		askedit:         string_to_bool(cli_matches.value_of("askedit").unwrap()),
-		editor:          cli_matches.value_of("editor").unwrap().to_owned(),
-		extra_args:      cli_matches
+		out:                  get_output_path(cli_matches.value_of_os("out"))?,
+		tmp:                  get_tmp_path(cli_matches.value_of_os("tmp"))?,
+		url:                  cli_matches.value_of("URL").unwrap_or("").to_owned(),
+		archive:              get_config_path(cli_matches.value_of_os("archive"))?,
+		audio_only:           cli_matches.is_present("audio_only"),
+		debug:                cli_matches.is_present("debug"),
+		disable_cleanup:      cli_matches.is_present("disablecleanup"),
+		disable_re_thumbnail: cli_matches.is_present("disableeditorthumbnail"),
+		askedit:              string_to_bool(cli_matches.value_of("askedit").unwrap()),
+		editor:               cli_matches.value_of("editor").unwrap().to_owned(),
+		extra_args:           cli_matches
 			.values_of("ytdlargs") // get all values after "--"
 			.map(|v| return v.collect::<Vec<&str>>()) // because "clap::Values" is an iterator, collect it all as Vec<&str>
 			.unwrap_or_default() // unwrap the Option<Vec<&str>> or create a new Vec
@@ -149,7 +149,7 @@ mod test {
 		assert!(!arguments.audio_only);
 		assert!(!arguments.debug);
 		assert!(!arguments.disable_cleanup);
-		assert!(!arguments.d_e_thumbnail);
+		assert!(!arguments.disable_re_thumbnail);
 		assert!(arguments.archive.is_some());
 		assert!(arguments.askedit);
 		assert!(arguments.editor.is_empty());

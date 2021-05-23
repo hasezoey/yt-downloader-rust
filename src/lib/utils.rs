@@ -8,27 +8,27 @@ use std::path::PathBuf;
 /// Arguments for Youtube-DL
 pub struct Arguments {
 	/// Output directory
-	pub out:             PathBuf,
+	pub out:                  PathBuf,
 	/// Temporary Directory
-	pub tmp:             PathBuf,
+	pub tmp:                  PathBuf,
 	/// The URL to download
-	pub url:             String,
+	pub url:                  String,
 	/// Extra options passed to youtube-dl
-	pub extra_args:      Vec<String>,
+	pub extra_args:           Vec<String>,
 	/// Audio Only?
-	pub audio_only:      bool,
+	pub audio_only:           bool,
 	/// print youtube-dl stdout?
-	pub debug:           bool,
+	pub debug:                bool,
 	/// disable cleanup?
-	pub disable_cleanup: bool,
+	pub disable_cleanup:      bool,
 	/// disable re-adding the thumbnail after the editor closes
-	pub d_e_thumbnail:   bool,
+	pub disable_re_thumbnail: bool,
 	/// Archive location
-	pub archive:         Option<Archive>,
+	pub archive:              Option<Archive>,
 	/// Ask for Editing?
-	pub askedit:         bool,
+	pub askedit:              bool,
 	/// Editor to use
-	pub editor:          String,
+	pub editor:               String,
 }
 
 #[derive(Debug)]

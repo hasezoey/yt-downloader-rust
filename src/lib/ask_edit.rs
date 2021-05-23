@@ -108,7 +108,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 
 		video.set_edit_asked(true);
 
-		if !args.d_e_thumbnail {
+		if !args.disable_re_thumbnail {
 			edited.push(video_path);
 		}
 	}
