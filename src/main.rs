@@ -43,7 +43,10 @@ fn main() -> Result<(), ioError> {
 	let mut errcode = false;
 
 	spawn_main::spawn_ytdl(&mut args).unwrap_or_else(|err| {
-		println!("An Error Occured in spawn_ytdl (still saving archive):\n\t{}", err);
+		println!(
+			"An Error Occured in spawn_ytdl (still saving archive to tmp):\n\t{}",
+			err
+		);
 		errcode = true;
 	});
 
@@ -62,7 +65,12 @@ fn main() -> Result<(), ioError> {
 		move_finished::move_finished_files(&args)?;
 	}
 
-	if let Some(archive) = &args.archive {
+	if let Some(archive) = &mut args.archive {
+		if errcode {
+			debug!("An Error occured, writing archive to TMP location");
+			archive.path = args.tmp.join("ytdl_archive_ERR.json");
+		}
+
 		setup_archive::write_archive(&archive)?;
 	} else {
 		info!("No Archive, not writing");
