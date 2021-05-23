@@ -20,7 +20,8 @@ use lib::*;
 
 /// Main
 fn main() -> Result<(), ioError> {
-	builder().target(Target::Stderr).init();
+	// logging to stdout because nothing else is on there and to not interfere with the progress bars
+	builder().target(Target::Stdout).init();
 
 	let yml = load_yaml!("./cli.yml");
 	let cli_matches = App::from_yaml(yml).get_matches();
