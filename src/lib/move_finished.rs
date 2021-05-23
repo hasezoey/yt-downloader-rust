@@ -17,7 +17,18 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	info!("Starting to move files");
 	let out_path =
 		PathBuf::from(shellexpand::tilde(&args.out.to_str().expect("Converting OUT to str failed")).as_ref());
-	std::fs::create_dir_all(&out_path).expect("Creating the OUT directory failed!");
+	std::fs::create_dir_all(&out_path)
+		.or_else(|err| {
+			if let Some(raw_os_error) = err.raw_os_error() {
+				if raw_os_error == 17 {
+					trace!("create_dir_all failed, because path already exists");
+					return Ok(());
+				}
+			}
+
+			return Err(err);
+		})
+		.expect("Creating the OUT directory failed!");
 
 	let files: Vec<PathBuf> = {
 		// Convert "read_dir" to useable files, Steps:
