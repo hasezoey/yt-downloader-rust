@@ -189,6 +189,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					}
 					bar.reset();
 					bar.set_prefix(prefix_format(&current_video, &count_video, &new_id));
+					bar.tick();
 				}
 			},
 			YTDLOutputs::Download => {
@@ -237,6 +238,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				let position = unwrap_or_return!(DOWNLOAD_MATCHER.captures_iter(&line).next());
 				bar.set_position(position[1].parse::<u64>().unwrap_or(0));
 				bar.set_message("");
+				bar.tick();
 			},
 			YTDLOutputs::FFMPEG | YTDLOutputs::Generic => {
 				if let Some(filenametmp) = match_to_path(&line) {
@@ -252,6 +254,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				bar.reset();
 				bar.set_position(99);
 				bar.set_message("FFMPEG Convertion");
+				bar.tick();
 			},
 			_ => {},
 		}
