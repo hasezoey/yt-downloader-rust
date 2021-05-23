@@ -18,7 +18,7 @@ args:
       help: Audio Only?
   - debug:
       short: d
-      help: print youtube-dl stdout
+      help: Print Youtube-DL output (this is not enabled with RUST_LOG)
   - disablecleanup:
       short: c
       help: Disable cleanup (removing all files from the TMP location)
