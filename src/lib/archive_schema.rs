@@ -93,8 +93,8 @@ impl Archive {
 		return &mut self.videos;
 	}
 
-	pub fn set_filename(&mut self, id: &str, filename: &str) {
-		unwrap_or_return!(self.videos.iter_mut().find(|v| return v.id == id)).file_name = filename.to_string();
+	pub fn set_filename<T: Into<String>>(&mut self, id: &str, filename: T) {
+		unwrap_or_return!(self.videos.iter_mut().find(|v| return v.id == id)).file_name = filename.into();
 	}
 }
 
