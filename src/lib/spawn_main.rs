@@ -85,6 +85,10 @@ macro_rules! unwrap_or_return {
 /// format the prefix
 #[inline]
 fn prefix_format<T: AsRef<str>>(current: &u32, count: &u32, id: T) -> String {
+	if id.as_ref().is_empty() {
+		return format!("[{}/{}]", &current, &count);
+	}
+
 	return format!("[{}/{}] ({})", &current, &count, id.as_ref());
 }
 
@@ -142,7 +146,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
 
-	bar.set_prefix(prefix_format(&current_video, &count_video, "<none>"));
+	bar.set_prefix(prefix_format(&current_video, &count_video, ""));
 
 	let thread = std::thread::spawn(move || {
 		// always print STDERR
