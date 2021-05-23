@@ -67,7 +67,7 @@ fn count(args: &Arguments) -> Result<u32, ioError> {
 
 lazy_static! {
 	static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
-		.template("{prefix:.dim} [{elapsed_precise}] {bar:40.cyan/blue} {msg}")
+		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
 		.progress_chars("#>-");
 }
 
