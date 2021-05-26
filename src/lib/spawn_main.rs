@@ -158,7 +158,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			.lines()
 			.filter_map(|line| return line.ok())
 			.for_each(|line| {
-				println!("[STDERR] {}", line);
+				println!("youtube-dl [STDERR] {}", line);
 			});
 	});
 
@@ -169,7 +169,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	reader_stdout.lines().filter_map(|line| return line.ok()).for_each(|line| {
 		// only print STDOUT raw if debug is enabled
 		if args.debug {
-			bar.println(format!("[STDOUT] {}", line));
+			bar.println(format!("youtube-dl [STDOUT] {}", line));
 		}
 
 		let matched = match YTDLOutputs::try_match(&line) {
