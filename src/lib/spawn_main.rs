@@ -135,7 +135,11 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	ytdl.arg(&args.url);
 
-	let mut spawned = ytdl.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
+	let mut spawned = ytdl
+		.stdout(Stdio::piped())
+		.stderr(Stdio::piped())
+		.stdin(Stdio::null())
+		.spawn()?;
 
 	let reader_stdout = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of Youtube-DL"));
 	let reader_stderr = BufReader::new(spawned.stderr.take().expect("couldnt get stderr of Youtube-DL"));

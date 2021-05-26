@@ -85,7 +85,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		let mut editorcommand = Command::new(&args.editor);
 		editorcommand.arg(&video_path);
 
-		let mut spawned = editorcommand.stdout(Stdio::piped()).spawn()?;
+		let mut spawned = editorcommand.stdout(Stdio::piped()).stdin(Stdio::null()).spawn()?;
 
 		if args.debug {
 			// i dont know why this dosnt work in the "for_each" loop
@@ -162,7 +162,7 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 
 		ffmpeg.arg(&ffmpegout_path); // OUT Path
 
-		let mut spawned = ffmpeg.stdout(Stdio::piped()).spawn()?;
+		let mut spawned = ffmpeg.stdout(Stdio::piped()).stdin(Stdio::null()).spawn()?;
 
 		if args.debug {
 			// i dont know why this dosnt work in the "for_each" loop
