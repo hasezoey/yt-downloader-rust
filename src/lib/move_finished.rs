@@ -90,7 +90,10 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	info!("Moving file from \"{}\" to \"{}\"\n", file.display(), target.display());
 
-	move_file(file, target, &CopyOptions::new()).expect("Failed to move the file to target");
+	let mut options = CopyOptions::new();
+	options.overwrite = true; // for now it will always overwrite, see #3
+
+	move_file(file, target, &options).expect("Failed to move the file to target");
 
 	return Ok(());
 }
