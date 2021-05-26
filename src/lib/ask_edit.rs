@@ -15,6 +15,7 @@ use std::path::{
 	Path,
 	PathBuf,
 };
+use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -164,16 +165,20 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 
 		ffmpeg.arg(&ffmpegout_path); // OUT Path
 
-		let mut spawned = ffmpeg.stdout(Stdio::piped()).stdin(Stdio::null()).spawn()?;
+		let mut spawned: Child;
 
 		if args.debug {
-			// i dont know why this dosnt work in the "for_each" loop
-			let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of ffmpeg"));
-			reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
-				trace!("ffmpeg Output: {}", line);
-			});
+			spawned = ffmpeg
+				.stderr(Stdio::inherit())
+				.stdout(Stdio::inherit())
+				.stdin(Stdio::null())
+				.spawn()?;
 		} else {
-			spawned.stdout.take();
+			spawned = ffmpeg
+				.stderr(Stdio::null())
+				.stdout(Stdio::null())
+				.stdin(Stdio::null())
+				.spawn()?;
 		}
 
 		let exit_status = spawned
