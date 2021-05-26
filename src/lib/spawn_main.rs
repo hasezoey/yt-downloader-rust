@@ -135,14 +135,14 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	ytdl.arg(&args.url);
 
-	let mut spawned = ytdl
+	let mut spawned_ytdl = ytdl
 		.stdout(Stdio::piped())
 		.stderr(Stdio::piped())
 		.stdin(Stdio::null())
 		.spawn()?;
 
-	let reader_stdout = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of Youtube-DL"));
-	let reader_stderr = BufReader::new(spawned.stderr.take().expect("couldnt get stderr of Youtube-DL"));
+	let reader_stdout = BufReader::new(spawned_ytdl.stdout.take().expect("couldnt get stdout of Youtube-DL"));
+	let reader_stderr = BufReader::new(spawned_ytdl.stderr.take().expect("couldnt get stderr of Youtube-DL"));
 
 	// used to match against the parsed id (the prefix cannot be retrieved from the progress bar)
 	let mut current_id: String = String::default();
@@ -279,7 +279,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 		}
 	});
 
-	let exit_status = spawned
+	let exit_status = spawned_ytdl
 		.wait()
 		.expect("Something went wrong while waiting for youtube-dl to finish... (Did it even run?)");
 
