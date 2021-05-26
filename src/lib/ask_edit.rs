@@ -93,6 +93,8 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 			reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
 				println!("Editor Output: {}", line);
 			});
+		} else {
+			spawned.stdout.take();
 		}
 
 		let exit_status = spawned
