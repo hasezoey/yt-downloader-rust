@@ -151,13 +151,14 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 		let mut ffmpeg = Command::new("ffmpeg");
 		ffmpeg.arg("-i").arg(&video_path);
 		ffmpeg.arg("-i").arg(&thumbnail_path);
-		ffmpeg.arg("-map").arg("0:0");
-		ffmpeg.arg("-map").arg("1:0");
-		ffmpeg.arg("-c").arg("copy");
+		ffmpeg.arg("-map").arg("0:0"); // copy without editing from input to output
+		ffmpeg.arg("-map").arg("1:0"); // copy without editing from input to output
+		ffmpeg.arg("-c").arg("copy"); // copy without editing from input to output
 		ffmpeg.arg("-id3v2_version").arg("3");
-		ffmpeg.arg("-metadata:s:v").arg("title=\"Album cover\"");
-		ffmpeg.arg("-movflags").arg("use_metadata_tags");
-		ffmpeg.arg("-hide_banner");
+		ffmpeg.arg("-metadata:s:v").arg("title=\"Album cover\""); // set metadata for video track
+		ffmpeg.arg("-movflags").arg("use_metadata_tags"); // copy metadata
+		ffmpeg.arg("-hide_banner"); // dont print banner, its just unnecessary logs
+		ffmpeg.arg("-y"); // always overwrite output path
 
 		ffmpeg.arg(&ffmpegout_path); // OUT Path
 
