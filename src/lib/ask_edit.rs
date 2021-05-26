@@ -82,23 +82,23 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		let mut editorcommand = Command::new(&args.editor);
 		editorcommand.arg(&video_path);
 
-		let mut spawned: Child;
+		let mut spawned_editor: Child;
 
 		if args.debug {
-			spawned = editorcommand
+			spawned_editor = editorcommand
 				.stderr(Stdio::inherit())
 				.stdout(Stdio::inherit())
 				.stdin(Stdio::null())
 				.spawn()?;
 		} else {
-			spawned = editorcommand
+			spawned_editor = editorcommand
 				.stderr(Stdio::null())
 				.stdout(Stdio::null())
 				.stdin(Stdio::null())
 				.spawn()?;
 		}
 
-		let exit_status = spawned
+		let exit_status = spawned_editor
 			.wait()
 			.expect("Something went wrong while waiting for the Editor to finish... (Did it even run?)");
 
@@ -165,23 +165,23 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 
 		ffmpeg.arg(&ffmpegout_path); // OUT Path
 
-		let mut spawned: Child;
+		let mut spawned_ffmpeg: Child;
 
 		if args.debug {
-			spawned = ffmpeg
+			spawned_ffmpeg = ffmpeg
 				.stderr(Stdio::inherit())
 				.stdout(Stdio::inherit())
 				.stdin(Stdio::null())
 				.spawn()?;
 		} else {
-			spawned = ffmpeg
+			spawned_ffmpeg = ffmpeg
 				.stderr(Stdio::null())
 				.stdout(Stdio::null())
 				.stdin(Stdio::null())
 				.spawn()?;
 		}
 
-		let exit_status = spawned
+		let exit_status = spawned_ffmpeg
 			.wait()
 			.expect("Something went wrong while waiting for ffmpeg to finish... (Did it even run?)");
 
