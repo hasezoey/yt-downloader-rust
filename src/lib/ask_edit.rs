@@ -2,11 +2,7 @@ use super::archive_schema::Video;
 use super::move_finished::mv_handler;
 use super::utils::Arguments;
 use std::fs::metadata;
-use std::io::{
-	BufRead, // is needed because otherwise ".lines" does not exist????
-	BufReader,
-	ErrorKind,
-};
+use std::io::ErrorKind;
 use std::io::{
 	Error as ioError,
 	Write,
@@ -86,16 +82,20 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		let mut editorcommand = Command::new(&args.editor);
 		editorcommand.arg(&video_path);
 
-		let mut spawned = editorcommand.stdout(Stdio::piped()).stdin(Stdio::null()).spawn()?;
+		let mut spawned: Child;
 
 		if args.debug {
-			// i dont know why this dosnt work in the "for_each" loop
-			let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of the Editor"));
-			reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
-				println!("Editor Output: {}", line);
-			});
+			spawned = editorcommand
+				.stderr(Stdio::inherit())
+				.stdout(Stdio::inherit())
+				.stdin(Stdio::null())
+				.spawn()?;
 		} else {
-			spawned.stdout.take();
+			spawned = editorcommand
+				.stderr(Stdio::null())
+				.stdout(Stdio::null())
+				.stdin(Stdio::null())
+				.spawn()?;
 		}
 
 		let exit_status = spawned
