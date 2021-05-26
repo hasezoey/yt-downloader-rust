@@ -168,8 +168,10 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 			// i dont know why this dosnt work in the "for_each" loop
 			let reader = BufReader::new(spawned.stdout.take().expect("couldnt get stdout of ffmpeg"));
 			reader.lines().filter_map(|line| return line.ok()).for_each(|line| {
-				println!("ffmpeg Output: {}", line);
+				trace!("ffmpeg Output: {}", line);
 			});
+		} else {
+			spawned.stdout.take();
 		}
 
 		let exit_status = spawned
