@@ -65,6 +65,11 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 		tmp // return from block
 	};
 
+	// Early return in case nothing is found to save extra executing time
+	if files.is_empty() {
+		return Ok(());
+	}
+
 	let bar: ProgressBar = ProgressBar::new(files.len() as u64).with_style(
 		ProgressStyle::default_bar()
 			.template("[{pos}/{len}] [{elapsed_precise}] {bar:40.cyan/blue} {msg}")
