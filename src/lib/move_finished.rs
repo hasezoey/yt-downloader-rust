@@ -47,6 +47,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 			// 3. check if the file has an extension, when not skip it
 			let ext = (match file.extension() {
 				Some(v) => v,
+				// skip files that dont have an file extension
 				None => continue,
 			})
 			.to_str()
@@ -55,7 +56,8 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 
 			// 4. check the extension and filter
 			match ext.as_ref() {
-				"txt" | "jpg" | "png" => continue,
+				// skip files that have one of the following extensions
+				"txt" | "jpg" | "png" | "webp" | "json" | "yml" => continue,
 				_ => (),
 			}
 
@@ -80,6 +82,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 		bar.inc(1);
 
 		let file_name = PathBuf::from(file.file_name().expect("Couldnt get the filename"));
+		// skip files that either have no extension, or are one of the specified
 		let target = Path::new(&out_path).join(&file_name);
 
 		mv_handler(&file, &target)?;
