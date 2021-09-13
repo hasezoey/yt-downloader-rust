@@ -37,7 +37,7 @@ pub enum YTDLOutputs {
 	Download,
 	FFMPEG,
 	Generic,
-	Unkown,
+	Unknown,
 }
 
 impl YTDLOutputs {
@@ -65,7 +65,7 @@ impl YTDLOutputs {
 			_ => {
 				info!("unknown type: {:?}", &cap[1]);
 				debug!("unknown input: \"{}\"", input);
-				YTDLOutputs::Unkown
+				YTDLOutputs::Unknown
 			},
 		});
 	}
