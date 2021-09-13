@@ -189,6 +189,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 				let new_id = unwrap_or_return!(YOUTUBE_MATCHER.captures_iter(&line).next())[1].to_owned();
 				if current_id != new_id {
+					trace!("Found new Youtube Video ID (old \"{}\", new \"{}\")", &current_id, &new_id);
 					current_video += 1;
 					current_id = new_id.to_owned();
 					if let Some(archive) = &mut args.archive {
@@ -263,7 +264,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 				let ffmpeg_video: u32;
 
-				if current_video < count_video {
+				if current_video < count_video && current_video > 0 {
 					ffmpeg_video = current_video - 1;
 				} else {
 					ffmpeg_video = current_video;
@@ -275,7 +276,29 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				bar.set_message("FFMPEG Convertion");
 				bar.tick();
 			},
-			_ => {},
+			YTDLOutputs::Unknown(provider) => {
+				info!("line used \"YTDLOutputs::Unknown!\" (provider: \"{}\")", &provider);
+
+				// try to capture the id, if possible
+				lazy_static! {
+					// 1. capture group is the Video ID
+					static ref UNKNOWN_PROVIDER_ID_MATCHER: Regex = Regex::new(r"(?mi)^\[\w+]\s*([\w\-_]*):").unwrap();
+				}
+
+				let new_id = unwrap_or_return!(UNKNOWN_PROVIDER_ID_MATCHER.captures_iter(&line).next())[1].to_owned();
+				if current_id != new_id {
+					trace!("Found new Unknown ID (old \"{}\", new \"{}\")", &current_id, &new_id);
+					current_video += 1;
+					current_id = new_id.to_owned();
+					if let Some(archive) = &mut args.archive {
+						// add the video to the Archive with Provider::Other and dl_finished = false
+						archive.add_video(Video::new(&current_id, Provider::Other(provider)));
+					}
+					bar.reset();
+					bar.set_prefix(prefix_format(&current_video, &count_video, &new_id));
+					bar.tick();
+				}
+			},
 		}
 	});
 
