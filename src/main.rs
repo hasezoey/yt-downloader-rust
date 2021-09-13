@@ -26,6 +26,21 @@ fn main() -> Result<(), ioError> {
 	let yml = load_yaml!("./cli.yml");
 	let cli_matches = App::from_yaml(yml).get_matches();
 
+	if cli_matches.is_present("debugger") {
+		warn!("Requesting Debugger");
+		// Request VSCode to open a debugger for the current PID
+		let url = format!(
+			"vscode://vadimcn.vscode-lldb/launch/config?{{'request':'attach','pid':{}}}",
+			std::process::id()
+		);
+		std::process::Command::new("code")
+			.arg("--open-url")
+			.arg(url)
+			.output()
+			.unwrap();
+		std::thread::sleep(std::time::Duration::from_millis(1000)); // Wait for debugger to attach
+	}
+
 	// handle importing native youtube-dl archives
 	if let Some(sub_matches) = cli_matches.subcommand_matches("import") {
 		debug!("Subcommand \"import\" is given");

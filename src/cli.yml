@@ -25,6 +25,9 @@ args:
   - disableeditorthumbnail:
       short: t
       help: Disable reapplying the thumbnail after the editor finished
+  - debugger:
+      long: debugger
+      help: Request VSCode to open a debugger for the current PID
   # everything else
   - out:
       long: out
