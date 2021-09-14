@@ -147,6 +147,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	// used to match against the parsed id (the prefix cannot be retrieved from the progress bar)
 	let mut current_id: String = String::default();
 	let mut current_filename: String = String::default();
+	let mut current_provider: Provider = Provider::Unknown;
 
 	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
 
@@ -192,6 +193,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					trace!("Found new Youtube Video ID (old \"{}\", new \"{}\")", &current_id, &new_id);
 					current_video += 1;
 					current_id = new_id.to_owned();
+					current_provider = Provider::Youtube;
 					if let Some(archive) = &mut args.archive {
 						// add the video to the Archive with Provider Youtube and dl_finished = false
 						archive.add_video(Video::new(&current_id, Provider::Youtube));
@@ -224,7 +226,10 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 							"{} Download done (Already in Archive)",
 							prefix_format(&current_video, &count_video, &current_id).dimmed()
 						);
-						current_video += 1;
+						// only increase "current_video" for known providers, that do not output a id when "already being in archive"
+						if current_provider == Provider::Youtube {
+							current_video += 1;
+						}
 						bar.set_prefix(prefix_format(&current_video, &count_video, &current_id));
 						bar.set_message("");
 					}
@@ -290,6 +295,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					trace!("Found new Unknown ID (old \"{}\", new \"{}\")", &current_id, &new_id);
 					current_video += 1;
 					current_id = new_id.to_owned();
+					current_provider = Provider::Other(provider.clone());
 					if let Some(archive) = &mut args.archive {
 						// add the video to the Archive with Provider::Other and dl_finished = false
 						archive.add_video(Video::new(&current_id, Provider::Other(provider)));
