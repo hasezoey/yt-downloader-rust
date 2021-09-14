@@ -66,16 +66,17 @@ impl Archive {
 	/// Add a video to the Archive (with dl_finished = false)
 	pub fn add_video(&mut self, video: Video) {
 		// return if the id already exists in the Archive
-		if let Some(fvideo) = self.videos.iter_mut().find(|v| return v.id == video.id) {
-			// video already exists int archive.videos
-			if fvideo.provider != video.provider {
-				// if the providers dont match, re assign them
-				match fvideo.provider {
-					// assign  the new provider because the old was unknown
-					Provider::Unknown => fvideo.provider = video.provider,
+		// "avideo" = Archive Video
+		if let Some(avideo) = self.videos.iter_mut().find(|v| return v.id == video.id) {
+			// video already exists in archive.videos
+			if avideo.provider != video.provider {
+				// if the providers dont match, re-assign them
+				match avideo.provider {
+					// assign the new provider because the old was unknown
+					Provider::Unknown => avideo.provider = video.provider,
 					// just warn that the id already exists and is *not* added to the archive
 					_ => {
-						warn!("Video ID \"{}\" already exists, but providers dont match! old_provider: \"{}\", new_provider: \"{}\"\n", &video.id, fvideo.provider, video.provider);
+						warn!("Video ID \"{}\" already exists, but providers dont match! (old_provider: \"{}\", new_provider: \"{}\")", &video.id, avideo.provider, video.provider);
 					},
 				}
 			}
