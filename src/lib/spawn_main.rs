@@ -277,7 +277,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				bar.tick();
 			},
 			YTDLOutputs::Unknown(provider) => {
-				info!("line used \"YTDLOutputs::Unknown!\" (provider: \"{}\")", &provider);
+				info!("line used \"YTDLOutputs::Unknown\"! (provider: \"{}\")", &provider);
 
 				// try to capture the id, if possible
 				lazy_static! {
