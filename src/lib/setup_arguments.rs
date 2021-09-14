@@ -125,8 +125,8 @@ mod test {
 	use super::*;
 
 	#[test]
-	// TODO: Enable this test if discussion is resolved
-	#[ignore = "https://github.com/clap-rs/clap/discussions/2489"]
+	// TODO: Enable this test when upgrading to clap 3.x
+	#[ignore = "https://github.com/clap-rs/clap/issues/2491"]
 	fn test_everything_default() {
 		let args = vec!["bin", "SomeURL"];
 		let yml = clap::load_yaml!("../cli.yml");
