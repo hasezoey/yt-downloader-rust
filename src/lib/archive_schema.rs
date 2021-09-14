@@ -105,7 +105,7 @@ impl From<&Provider> for String {
 		return match provider {
 			Provider::Youtube => "Youtube".to_owned(),
 			Provider::Unknown => "Unknown".to_owned(),
-			Provider::Other(d) => format!("Other({})", d),
+			Provider::Other(d) => d.to_owned(),
 		};
 	}
 }
