@@ -233,7 +233,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 						println!(
 							"{} Download done \"{}\"",
 							prefix_format(&current_video, &count_video, &current_id).dimmed(),
-							PathBuf::from(&current_filename).file_stem().unwrap_or_else(|| return std::ffi::OsStr::new("UNKOWN")).to_string_lossy()
+							PathBuf::from(&current_filename).file_stem().unwrap_or_else(|| return std::ffi::OsStr::new("UNKNOWN")).to_string_lossy()
 						);
 					}
 
