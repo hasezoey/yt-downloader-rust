@@ -24,22 +24,19 @@ fn default_bool() -> bool {
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Archive {
 	#[serde(rename = "version", default = "default_version")]
-	version:   String,
-	#[serde(rename = "playlists", default)]
-	playlists: Vec<Playlist>,
+	version:  String,
 	#[serde(rename = "videos", default)]
-	videos:    Vec<Video>,
+	videos:   Vec<Video>,
 	#[serde(skip)]
-	pub path:  PathBuf,
+	pub path: PathBuf,
 }
 
 impl Default for Archive {
 	fn default() -> Archive {
 		return Archive {
-			version:   default_version(),
-			playlists: Vec::default(),
-			videos:    Vec::default(),
-			path:      PathBuf::from(""),
+			version: default_version(),
+			videos:  Vec::default(),
+			path:    PathBuf::from(""),
 		};
 	}
 }
@@ -95,24 +92,6 @@ impl Archive {
 		unwrap_or_return!(self.videos.iter_mut().find(|v| return v.id == id)).file_name = filename.into();
 	}
 }
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Playlist {
-	#[serde(rename = "url")]
-	url: String,
-
-	#[serde(rename = "finished")]
-	pub finished: bool,
-}
-
-// impl Playlist {
-// 	pub fn new(url: String) -> Self {
-// 		return Playlist {
-// 			url:      url,
-// 			finished: false,
-// 		};
-// 	}
-// }
 
 #[derive(Debug, PartialEq)]
 pub enum Provider {
