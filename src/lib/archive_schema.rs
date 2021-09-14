@@ -24,16 +24,13 @@ fn default_bool() -> bool {
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Archive {
 	#[serde(rename = "version", default = "default_version")]
-	version: String,
-
+	version:   String,
 	#[serde(rename = "playlists", default)]
 	playlists: Vec<Playlist>,
-
 	#[serde(rename = "videos", default)]
-	videos: Vec<Video>,
-
+	videos:    Vec<Video>,
 	#[serde(skip)]
-	pub path: PathBuf,
+	pub path:  PathBuf,
 }
 
 impl Default for Archive {
