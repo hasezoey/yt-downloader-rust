@@ -71,8 +71,8 @@ impl Archive {
 			if fvideo.provider != video.provider {
 				// if the providers dont match, re assign them
 				match fvideo.provider {
-					// assign  the new provider because the old was unkown
-					Provider::Unkown => fvideo.provider = video.provider,
+					// assign  the new provider because the old was unknown
+					Provider::Unknown => fvideo.provider = video.provider,
 					// just warn that the id already exists and is *not* added to the archive
 					_ => {
 						warn!("Video ID \"{}\" already exists, but providers dont match! old_provider: \"{}\", new_provider: \"{}\"\n", &video.id, fvideo.provider, video.provider);
@@ -119,7 +119,7 @@ pub struct Playlist {
 #[derive(Debug, PartialEq)]
 pub enum Provider {
 	Youtube,
-	Unkown,
+	Unknown,
 	Other(String),
 }
 
@@ -127,7 +127,7 @@ impl From<&Provider> for String {
 	fn from(provider: &Provider) -> Self {
 		return match provider {
 			Provider::Youtube => "Youtube".to_owned(),
-			Provider::Unkown => "Unkown".to_owned(),
+			Provider::Unknown => "Unknown".to_owned(),
 			Provider::Other(d) => format!("Other({})", d),
 		};
 	}
@@ -141,7 +141,7 @@ impl fmt::Display for Provider {
 
 impl Default for Provider {
 	fn default() -> Provider {
-		return Provider::Unkown;
+		return Provider::Unknown;
 	}
 }
 
@@ -152,7 +152,7 @@ impl Serialize for Provider {
 	{
 		// match self with Provider-Variants to output correct provider
 		return serializer.serialize_str(match self {
-			Provider::Unkown => "",
+			Provider::Unknown => "",
 			Provider::Other(v) => v,
 			Provider::Youtube => "youtube",
 		});
@@ -188,7 +188,7 @@ impl<'de> Deserialize<'de> for Provider {
 
 impl Provider {
 	/// Try to match "input" to the Provider-Variants
-	/// if empty: Provider::Unkown
+	/// if empty: Provider::Unknown
 	/// if not in variants: Provider::Other(String)
 	///
 	/// Mainly used for Serialization and Deserialization
@@ -197,7 +197,7 @@ impl Provider {
 
 		return match finput.as_ref() {
 			"youtube" => Provider::Youtube,
-			"" | "unkown" => Provider::Unkown,
+			"" | "unknown" => Provider::Unknown,
 			_ => Provider::Other(finput),
 		};
 	}
@@ -267,8 +267,8 @@ mod test {
 	#[test]
 	fn test_provider_try_match() {
 		assert_eq!(Provider::try_match("youtube"), Provider::Youtube);
-		assert_eq!(Provider::try_match(""), Provider::Unkown);
-		assert_eq!(Provider::try_match("unkown"), Provider::Unkown);
+		assert_eq!(Provider::try_match(""), Provider::Unknown);
+		assert_eq!(Provider::try_match("unknown"), Provider::Unknown);
 		assert_eq!(
 			Provider::try_match("Something Different"),
 			Provider::Other("Something Different".to_lowercase())
@@ -278,7 +278,7 @@ mod test {
 	#[test]
 	fn test_string_from_provider() {
 		assert_eq!(String::from(&Provider::Youtube), "Youtube".to_owned());
-		assert_eq!(String::from(&Provider::Unkown), "Unkown".to_owned());
+		assert_eq!(String::from(&Provider::Unknown), "Unknown".to_owned());
 		assert_eq!(
 			String::from(&Provider::Other("Hello".to_owned())),
 			"Other(Hello)".to_owned()
@@ -316,11 +316,11 @@ mod test {
 		let id2 = "SomeSecondID".to_owned();
 		let mut archive = Archive::default();
 		archive.add_video(Video::new(&id1, Provider::Youtube).set_dl_finished(true));
-		archive.add_video(Video::new(&id2, Provider::Unkown).set_dl_finished(true));
+		archive.add_video(Video::new(&id2, Provider::Unknown).set_dl_finished(true));
 
 		let mut should_archive: Vec<(StringProvider, &ID)> = Vec::new();
 		should_archive.push((String::from(&Provider::Youtube).to_lowercase(), &id1));
-		should_archive.push((String::from(&Provider::Unkown).to_lowercase(), &id2));
+		should_archive.push((String::from(&Provider::Unknown).to_lowercase(), &id2));
 
 		assert_eq!(archive.to_ytdl_archive(), should_archive);
 	}
