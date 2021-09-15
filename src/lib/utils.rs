@@ -31,7 +31,7 @@ pub struct Arguments {
 	pub editor:               String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LineTypes {
 	Youtube,
 	Download,
@@ -70,5 +70,42 @@ impl LineTypes {
 				LineTypes::Unknown(cap[1].to_string())
 			},
 		});
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn test_line_types_try_match() -> Result<(), GenericError> {
+		assert_eq!(
+			LineTypes::try_match("[ffmpeg] Merging formats into \"/tmp/rust-yt-dl.webm\"")?,
+			LineTypes::Ffmpeg
+		);
+		assert_eq!(
+			LineTypes::try_match("[download] Downloading playlist: test")?,
+			LineTypes::Download
+		);
+		assert_eq!(
+			LineTypes::try_match("[youtube] someID: Downloading webpage")?,
+			LineTypes::Youtube
+		);
+		// TODO: add actual line for "youtube:tab"
+		// assert_eq!(LineTypes::try_match("youtube:tab")?, LineTypes::Youtube);
+		assert_eq!(
+			LineTypes::try_match("[youtube:playlist] playlist test: Downloading 2 videos")?,
+			LineTypes::Youtube
+		);
+		assert_eq!(
+			LineTypes::try_match("[soundcloud] 0000000: Downloading JSON metadata")?,
+			LineTypes::Unknown("soundcloud".to_owned())
+		);
+		assert_eq!(
+			LineTypes::try_match("Deleting original file /tmp/rust-yt-dl.f303 (pass -k to keep)")?,
+			LineTypes::Generic
+		);
+
+		return Ok(());
 	}
 }
