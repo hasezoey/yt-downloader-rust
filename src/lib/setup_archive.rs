@@ -73,7 +73,7 @@ pub fn write_archive(archive: &Archive) -> Result<(), ioError> {
 		.expect("Recursivly creating directory(s) for Archive File Failed");
 	let writer = File::create(&archive.path)?;
 
-	write_archive_to_writer(&writer, &archive)?;
+	write_archive_to_writer(&writer, archive)?;
 
 	return Ok(());
 }
