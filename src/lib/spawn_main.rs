@@ -5,7 +5,7 @@ use super::archive_schema::{
 use super::spawn_multi_platform::*;
 use super::utils::{
 	Arguments,
-	YTDLOutputs,
+	LineTypes,
 };
 
 use colored::*;
@@ -173,7 +173,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			bar.println(format!("youtube-dl [STDOUT] {}", line));
 		}
 
-		let matched = match YTDLOutputs::try_match(&line) {
+		let matched = match LineTypes::try_match(&line) {
 			Ok(v) => v,
 			Err(err) => {
 				bar.println(format!("{}", err));
@@ -182,7 +182,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 		};
 
 		match matched {
-			YTDLOutputs::Youtube => {
+			LineTypes::Youtube => {
 				lazy_static! {
 					// 1. capture group is the Video ID
 					static ref YOUTUBE_MATCHER: Regex = Regex::new(r"(?mi)^\[youtube]\s*([\w\-_]*):").unwrap();
@@ -203,7 +203,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					bar.tick();
 				}
 			},
-			YTDLOutputs::Download => {
+			LineTypes::Download => {
 				lazy_static! {
 					// 1. capture group is percentage
 					// 2. capture group is of how much
@@ -256,7 +256,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				bar.set_message("");
 				bar.tick();
 			},
-			YTDLOutputs::Ffmpeg | YTDLOutputs::Generic => {
+			LineTypes::Ffmpeg | LineTypes::Generic => {
 				if let Some(filenametmp) = match_to_path(&line) {
 					current_filename = filenametmp;
 
@@ -281,7 +281,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				bar.set_message("FFMPEG Convertion");
 				bar.tick();
 			},
-			YTDLOutputs::Unknown(provider) => {
+			LineTypes::Unknown(provider) => {
 				info!("line used \"YTDLOutputs::Unknown\"! (provider: \"{}\")", &provider);
 
 				// try to capture the id, if possible

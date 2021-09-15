@@ -32,7 +32,7 @@ pub struct Arguments {
 }
 
 #[derive(Debug)]
-pub enum YTDLOutputs {
+pub enum LineTypes {
 	Youtube,
 	Download,
 	Ffmpeg,
@@ -40,15 +40,15 @@ pub enum YTDLOutputs {
 	Unknown(String),
 }
 
-impl YTDLOutputs {
-	pub fn try_match(input: &str) -> Result<YTDLOutputs, GenericError> {
+impl LineTypes {
+	pub fn try_match(input: &str) -> Result<LineTypes, GenericError> {
 		lazy_static! {
 			static ref YTDL_OUTPUT_MATCHER: Regex = Regex::new(r"(?mi)^\s*\[(ffmpeg|download|[\w:]*)\]").unwrap();
 			static ref YTDL_OUTPUT_GENERIC: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();
 		}
 
 		if YTDL_OUTPUT_GENERIC.is_match(input) {
-			return Ok(YTDLOutputs::Generic);
+			return Ok(LineTypes::Generic);
 		}
 
 		let cap = YTDL_OUTPUT_MATCHER
@@ -57,15 +57,15 @@ impl YTDLOutputs {
 			.ok_or_else(|| return GenericError::new(format!("Coudlnt parse type for \"{}\"", input)))?;
 
 		return Ok(match &cap[1] {
-			"ffmpeg" => YTDLOutputs::Ffmpeg,
-			"download" => YTDLOutputs::Download,
-			"youtube" => YTDLOutputs::Youtube,
-			"youtube:playlist" => YTDLOutputs::Youtube,
-			"youtube:tab" => YTDLOutputs::Youtube,
+			"ffmpeg" => LineTypes::Ffmpeg,
+			"download" => LineTypes::Download,
+			"youtube" => LineTypes::Youtube,
+			"youtube:playlist" => LineTypes::Youtube,
+			"youtube:tab" => LineTypes::Youtube,
 			_ => {
 				info!("unknown type: {:?}", &cap[1]);
 				debug!("unknown input: \"{}\"", input);
-				YTDLOutputs::Unknown(cap[1].to_string())
+				LineTypes::Unknown(cap[1].to_string())
 			},
 		});
 	}
