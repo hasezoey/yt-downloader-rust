@@ -44,10 +44,10 @@ impl LineTypes {
 	pub fn try_match(input: &str) -> Result<LineTypes, GenericError> {
 		lazy_static! {
 			static ref YTDL_OUTPUT_MATCHER: Regex = Regex::new(r"(?mi)^\s*\[(ffmpeg|download|[\w:]*)\]").unwrap();
-			static ref YTDL_OUTPUT_GENERIC: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();
+			static ref YTDL_SELF_OUTPUT_REGEX: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();
 		}
 
-		if YTDL_OUTPUT_GENERIC.is_match(input) {
+		if YTDL_SELF_OUTPUT_REGEX.is_match(input) {
 			return Ok(LineTypes::Generic);
 		}
 
