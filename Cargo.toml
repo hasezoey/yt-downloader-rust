@@ -7,7 +7,7 @@ license = "MIT"
 
 [dependencies]
 clap = { version = "2.33.3", features = ["yaml", "wrap_help"] }
-serde = { version = "1.0.126", features = ["derive"] }
+serde = { version = "1.0.130", features = ["derive"] }
 regex = "1.5.4"
 lazy_static = "1.4.0"
 indicatif = "0.16.0"
