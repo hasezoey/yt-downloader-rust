@@ -94,7 +94,7 @@ fn prefix_format<T: AsRef<str>>(current: &u32, count: &u32, id: T) -> String {
 
 /// Spawn the main Youtube-dl task
 pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
-	let count_video = count(&args)?;
+	let count_video = count(args)?;
 	let mut current_video: u32 = 0;
 
 	let mut ytdl = spawn_command();
@@ -344,7 +344,7 @@ fn match_to_path(line: &str) -> Option<String> {
 		static ref MATCH_DESTINATION: Regex = Regex::new(r"(?m)Destination:\s+(?P<filename>.+)").unwrap();
 	}
 
-	let filenametmp: &str = MATCH_DESTINATION.captures(&line)?.name("filename")?.as_str();
+	let filenametmp: &str = MATCH_DESTINATION.captures(line)?.name("filename")?.as_str();
 
 	return Some(Path::new(filenametmp).file_name()?.to_str()?.to_string());
 }
