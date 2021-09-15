@@ -43,7 +43,9 @@ pub enum LineTypes {
 impl LineTypes {
 	pub fn try_match(input: &str) -> Result<LineTypes, GenericError> {
 		lazy_static! {
+			// Try to match for the current provider that is used by "youtube-dl"
 			static ref YTDL_PROVIDER_REGEX: Regex = Regex::new(r"(?mi)^\s*\[(ffmpeg|download|[\w:]*)\]").unwrap();
+			// Try to match for "youtube-dl" output itself (no provider)
 			static ref YTDL_SELF_OUTPUT_REGEX: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();
 		}
 
