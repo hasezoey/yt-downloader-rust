@@ -43,7 +43,7 @@ pub enum LineTypes {
 impl LineTypes {
 	pub fn try_match(input: &str) -> Result<LineTypes, GenericError> {
 		lazy_static! {
-			static ref YTDL_OUTPUT_MATCHER: Regex = Regex::new(r"(?mi)^\s*\[(ffmpeg|download|[\w:]*)\]").unwrap();
+			static ref YTDL_PROVIDER_REGEX: Regex = Regex::new(r"(?mi)^\s*\[(ffmpeg|download|[\w:]*)\]").unwrap();
 			static ref YTDL_SELF_OUTPUT_REGEX: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();
 		}
 
@@ -51,7 +51,7 @@ impl LineTypes {
 			return Ok(LineTypes::Generic);
 		}
 
-		let cap = YTDL_OUTPUT_MATCHER
+		let cap = YTDL_PROVIDER_REGEX
 			.captures_iter(input)
 			.next()
 			.ok_or_else(|| return GenericError::new(format!("Coudlnt parse type for \"{}\"", input)))?;
