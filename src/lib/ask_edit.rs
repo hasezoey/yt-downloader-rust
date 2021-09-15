@@ -65,7 +65,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 			continue;
 		}
 
-		if ask_edit(&video)? == YesNo::No {
+		if ask_edit(video)? == YesNo::No {
 			video.set_edit_asked(true);
 			continue;
 		}
@@ -118,7 +118,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 
 	for video_path in edited {
 		// this is needed, otherwise "&args" would be borrowed mutable and immutable
-		re_thumbnail(&args, &video_path)?;
+		re_thumbnail(args, &video_path)?;
 	}
 
 	return Ok(());
@@ -192,7 +192,7 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 			));
 		}
 
-		mv_handler(&ffmpegout_path, &video_path)?;
+		mv_handler(&ffmpegout_path, video_path)?;
 	}
 
 	info!("Finished Reapplying for \"{}\"", &video_path.display());
