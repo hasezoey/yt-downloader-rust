@@ -23,7 +23,7 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt
-      - run: cargo fmt --all -- --check
+      - run: sh ./fmt.sh
 
   # Check clippy.  This doesn't check ARM though.
   clippy:
@@ -36,7 +36,7 @@ jobs:
           toolchain: nightly
           override: true
           components: clippy
-      - run: bash ./clippy.sh
+      - run: sh ./clippy.sh
 
   tests:
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
         if: github.event.inputs.git-ref != ''
         with:
           ref: ${{ github.event.inputs.git-ref }}
-      - name: Install latest Toolchain
+      - name: Install Toolchain
         uses: actions-rs/toolchain@v1
         with:
             profile: minimal
@@ -73,12 +73,28 @@ jobs:
           args: --workspace --all-features --no-fail-fast
         env:
           RUST_BACKTRACE: full
-      #   env:
-      #     CARGO_INCREMENTAL: '0'
-      #     RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-      #     RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-      # - name: Generate Coverage report
-      #   uses: actions-rs/grcov@v0.1
-      # - name: Send Coverage report to codecov
-      #   if: matrix.toolchain == 'nightly'
-      #   uses: codecov/codecov-action@v1
+  # publish:
+  #   if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta'
+  #   needs: [tests, clippy, rustfmt]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Use Node.js 16
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: 16.x
+  #     - name: Install node_modules
+  #       run: yarn install
+  #     - name: Install Toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #           profile: minimal
+  #           toolchain: stable
+  #           override: true
+  #     - name: install extra cargo modules
+  #       run: cargo install semantic-release-rust --version 1.0.0-alpha.8 # TODO: update version when it becomes available
+  #     - name: Semantic Release (publish to npm)
+  #       run: yarn semantic-release
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
