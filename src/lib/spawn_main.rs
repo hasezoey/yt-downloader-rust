@@ -256,7 +256,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				bar.set_message("");
 				bar.tick();
 			},
-			YTDLOutputs::FFMPEG | YTDLOutputs::Generic => {
+			YTDLOutputs::Ffmpeg | YTDLOutputs::Generic => {
 				if let Some(filenametmp) = match_to_path(&line) {
 					current_filename = filenametmp;
 

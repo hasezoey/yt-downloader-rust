@@ -35,7 +35,7 @@ pub struct Arguments {
 pub enum YTDLOutputs {
 	Youtube,
 	Download,
-	FFMPEG,
+	Ffmpeg,
 	Generic,
 	Unknown(String),
 }
@@ -57,7 +57,7 @@ impl YTDLOutputs {
 			.ok_or_else(|| return GenericError::new(format!("Coudlnt parse type for \"{}\"", input)))?;
 
 		return Ok(match &cap[1] {
-			"ffmpeg" => YTDLOutputs::FFMPEG,
+			"ffmpeg" => YTDLOutputs::Ffmpeg,
 			"download" => YTDLOutputs::Download,
 			"youtube" => YTDLOutputs::Youtube,
 			"youtube:playlist" => YTDLOutputs::Youtube,
