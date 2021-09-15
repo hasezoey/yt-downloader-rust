@@ -44,7 +44,7 @@ fn main() -> Result<(), ioError> {
 	// handle importing native youtube-dl archives
 	if let Some(sub_matches) = cli_matches.subcommand_matches("import") {
 		debug!("Subcommand \"import\" is given");
-		let archive = import_archive::import_archive(&sub_matches, &cli_matches)?;
+		let archive = import_archive::import_archive(sub_matches, &cli_matches)?;
 
 		setup_archive::write_archive(&archive)?;
 
@@ -86,7 +86,7 @@ fn main() -> Result<(), ioError> {
 			archive.path = args.tmp.join("ytdl_archive_ERR.json");
 		}
 
-		setup_archive::write_archive(&archive)?;
+		setup_archive::write_archive(archive)?;
 	} else {
 		info!("No Archive, not writing");
 	}
