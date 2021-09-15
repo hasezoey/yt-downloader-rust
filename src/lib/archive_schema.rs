@@ -256,10 +256,7 @@ mod test {
 	fn test_string_from_provider() {
 		assert_eq!(String::from(&Provider::Youtube), "Youtube".to_owned());
 		assert_eq!(String::from(&Provider::Unknown), "Unknown".to_owned());
-		assert_eq!(
-			String::from(&Provider::Other("Hello".to_owned())),
-			"Other(Hello)".to_owned()
-		);
+		assert_eq!(String::from(&Provider::Other("Hello".to_owned())), "Hello".to_owned());
 	}
 
 	#[test]
