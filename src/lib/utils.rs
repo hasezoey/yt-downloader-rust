@@ -1,5 +1,4 @@
 use super::archive_schema::Archive;
-use super::errors::GenericError;
 
 use regex::Regex;
 use std::path::PathBuf;
@@ -40,8 +39,8 @@ pub enum LineTypes {
 	Unknown(String),
 }
 
-impl LineTypes {
-	pub fn try_match(input: &str) -> Result<LineTypes, GenericError> {
+impl From<&str> for LineTypes {
+	fn from(input: &str) -> Self {
 		lazy_static! {
 			// Try to match for the current provider that is used by "youtube-dl"
 			static ref YTDL_PROVIDER_REGEX: Regex = Regex::new(r"(?mi)^\s*\[([\w:]*)\]").unwrap();
@@ -50,26 +49,25 @@ impl LineTypes {
 		}
 
 		if YTDL_SELF_OUTPUT_REGEX.is_match(input) {
-			return Ok(LineTypes::Generic);
+			return LineTypes::Generic;
 		}
 
-		let cap = YTDL_PROVIDER_REGEX
-			.captures_iter(input)
-			.next()
-			.ok_or_else(|| return GenericError::new(format!("Coudlnt parse type for \"{}\"", input)))?;
+		if let Some(cap) = YTDL_PROVIDER_REGEX.captures_iter(input).next() {
+			return match &cap[1] {
+				"ffmpeg" => LineTypes::Ffmpeg,
+				"download" => LineTypes::Download,
+				"youtube" => LineTypes::Youtube,
+				"youtube:playlist" => LineTypes::Youtube,
+				"youtube:tab" => LineTypes::Youtube,
+				_ => {
+					info!("unknown type: {:?}", &cap[1]);
+					debug!("unknown input: \"{}\"", input);
+					LineTypes::Unknown(cap[1].to_string())
+				},
+			};
+		}
 
-		return Ok(match &cap[1] {
-			"ffmpeg" => LineTypes::Ffmpeg,
-			"download" => LineTypes::Download,
-			"youtube" => LineTypes::Youtube,
-			"youtube:playlist" => LineTypes::Youtube,
-			"youtube:tab" => LineTypes::Youtube,
-			_ => {
-				info!("unknown type: {:?}", &cap[1]);
-				debug!("unknown input: \"{}\"", input);
-				LineTypes::Unknown(cap[1].to_string())
-			},
-		});
+		return LineTypes::Generic;
 	}
 }
 
@@ -78,34 +76,33 @@ mod test {
 	use super::*;
 
 	#[test]
-	fn test_line_types_try_match() -> Result<(), GenericError> {
+	fn test_line_types_from() {
 		assert_eq!(
-			LineTypes::try_match("[ffmpeg] Merging formats into \"/tmp/rust-yt-dl.webm\"")?,
+			LineTypes::from("[ffmpeg] Merging formats into \"/tmp/rust-yt-dl.webm\""),
 			LineTypes::Ffmpeg
 		);
 		assert_eq!(
-			LineTypes::try_match("[download] Downloading playlist: test")?,
+			LineTypes::from("[download] Downloading playlist: test"),
 			LineTypes::Download
 		);
 		assert_eq!(
-			LineTypes::try_match("[youtube] someID: Downloading webpage")?,
+			LineTypes::from("[youtube] someID: Downloading webpage"),
 			LineTypes::Youtube
 		);
 		// TODO: add actual line for "youtube:tab"
-		// assert_eq!(LineTypes::try_match("youtube:tab")?, LineTypes::Youtube);
+		// assert_eq!(LineTypes::from("youtube:tab"), LineTypes::Youtube);
 		assert_eq!(
-			LineTypes::try_match("[youtube:playlist] playlist test: Downloading 2 videos")?,
+			LineTypes::from("[youtube:playlist] playlist test: Downloading 2 videos"),
 			LineTypes::Youtube
 		);
 		assert_eq!(
-			LineTypes::try_match("[soundcloud] 0000000: Downloading JSON metadata")?,
+			LineTypes::from("[soundcloud] 0000000: Downloading JSON metadata"),
 			LineTypes::Unknown("soundcloud".to_owned())
 		);
 		assert_eq!(
-			LineTypes::try_match("Deleting original file /tmp/rust-yt-dl.f303 (pass -k to keep)")?,
+			LineTypes::from("Deleting original file /tmp/rust-yt-dl.f303 (pass -k to keep)"),
 			LineTypes::Generic
 		);
-
-		return Ok(());
+		assert_eq!(LineTypes::from("should not match"), LineTypes::Generic);
 	}
 }

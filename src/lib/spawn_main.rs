@@ -173,15 +173,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			bar.println(format!("youtube-dl [STDOUT] {}", line));
 		}
 
-		let matched = match LineTypes::try_match(&line) {
-			Ok(v) => v,
-			Err(err) => {
-				bar.println(format!("{}", err));
-				return;
-			},
-		};
-
-		match matched {
+		match LineTypes::from(line.as_ref()) {
 			LineTypes::Youtube => {
 				lazy_static! {
 					// 1. capture group is the Video ID
