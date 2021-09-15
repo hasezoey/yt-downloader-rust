@@ -15,20 +15,21 @@
 
 Parameters:
 
-| Short |   Long    | Environment Variable |            Default            | Description                                                |
-| :---: | :-------: | :------------------: | :---------------------------: | :--------------------------------------------------------- |
-|  -a   |           |                      |                               | Output files will be audio-only                            |
-|  -h   |  --help   |                      |                               | List the help (basically this table)                       |
-|  -d   |           |                      |                               | Enable Command Verbose output (youtube-dl, ffmpeg)         |
-|  -c   |           |                      |                               | Disable Cleanup after successful run                       |
-|  -t   |           |                      |                               | Disable re-applying the thumbnail after running the editor |
-|       |   --out   |       YTDL_OUT       |    `~/Downloads/ytdl-out`     | Set the Output Directory                                   |
-|       |   --tmp   |       YTDL_TMP       |       `/tmp/ytdl-rust`        | Set the Temporary Directory to use                         |
-|       | --archive |     YTDL_ARCHIVE     | `~/.config/ytdl_archive.json` | Set the Archive file path                                  |
-|       | --askedit |     YTDL_ASKEDIT     |            `true`             | Ask for edit or directly move to Output Directory          |
-|       | --editor  |     YTDL_EDITOR      |                               | Set what editor to use on an file                          |
-|       |           |                      |                               | URL to download                                            |
-|       |    --     |                      |                               | Extra youtube-dl parameters                                |
+| Short |    Long    | Environment Variable |            Default            | Description                                                |
+| :---: | :--------: | :------------------: | :---------------------------: | :--------------------------------------------------------- |
+|  -a   |            |                      |                               | Output files will be audio-only                            |
+|  -h   |   --help   |                      |                               | List the help (basically this table)                       |
+|  -d   |            |                      |                               | Enable Command Verbose output (youtube-dl, ffmpeg)         |
+|  -c   |            |                      |                               | Disable Cleanup after successful run                       |
+|  -t   |            |                      |                               | Disable re-applying the thumbnail after running the editor |
+|       |   --out    |       YTDL_OUT       |    `~/Downloads/ytdl-out`     | Set the Output Directory                                   |
+|       |   --tmp    |       YTDL_TMP       |       `/tmp/ytdl-rust`        | Set the Temporary Directory to use                         |
+|       | --archive  |     YTDL_ARCHIVE     | `~/.config/ytdl_archive.json` | Set the Archive file path                                  |
+|       | --askedit  |     YTDL_ASKEDIT     |            `true`             | Ask for edit or directly move to Output Directory          |
+|       |  --editor  |     YTDL_EDITOR      |                               | Set what editor to use on an file                          |
+|       | --debugger |                      |            `false`            | Request to start the CodeLLDB Debugger in vscode           |
+|       |            |                      |                               | URL to download                                            |
+|       |     --     |                      |                               | Extra youtube-dl parameters                                |
 
 ### Import youtube-dl archive
 
