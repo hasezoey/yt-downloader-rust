@@ -21,7 +21,7 @@ fn string_to_bool(input: &str) -> bool {
 /// Helper function to make code more clean
 #[inline]
 fn process_paths<T: AsRef<Path>>(val: T) -> ioResult<PathBuf> {
-	return to_absolute(std::env::current_dir()?.as_path(), &val.as_ref());
+	return to_absolute(std::env::current_dir()?.as_path(), val.as_ref());
 }
 
 /// Process input to useable PathBuf for temporary directory
