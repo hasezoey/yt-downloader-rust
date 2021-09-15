@@ -54,7 +54,7 @@ pub fn import_archive(sub_matches: &clap::ArgMatches, main_matches: &clap::ArgMa
 			bar.inc(1);
 			let tmp = unwrap_or_return!(ARCHIVE_REGEX.captures_iter(&line).next());
 
-			archive.add_video(Video::new(&tmp[2].to_owned(), Provider::try_match(&tmp[1])).set_dl_finished(true));
+			archive.add_video(Video::new(&tmp[2].to_owned(), Provider::from(&tmp[1])).set_dl_finished(true));
 		});
 
 	bar.finish_with_message("Import Finished");

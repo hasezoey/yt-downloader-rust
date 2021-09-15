@@ -149,7 +149,7 @@ impl<'de> Deserialize<'de> for Provider {
 
 			// {"provider": "something"} will always result in an str
 			fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-				return Ok(Provider::try_match(v));
+				return Ok(Provider::from(v));
 			}
 
 			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -163,14 +163,10 @@ impl<'de> Deserialize<'de> for Provider {
 	}
 }
 
-impl Provider {
-	/// Try to match "input" to the Provider-Variants
-	/// if empty: Provider::Unknown
-	/// if not in variants: Provider::Other(String)
-	///
-	/// Mainly used for Serialization and Deserialization
-	pub fn try_match<I: AsRef<str>>(input: I) -> Provider {
-		let finput = input.as_ref().trim().to_lowercase();
+impl From<&str> for Provider {
+	/// Match "input" to the Provider-Variants
+	fn from(input: &str) -> Self {
+		let finput = input.trim().to_lowercase();
 
 		return match finput.as_ref() {
 			"youtube" => Provider::Youtube,
@@ -243,11 +239,11 @@ mod test {
 
 	#[test]
 	fn test_provider_try_match() {
-		assert_eq!(Provider::try_match("youtube"), Provider::Youtube);
-		assert_eq!(Provider::try_match(""), Provider::Unknown);
-		assert_eq!(Provider::try_match("unknown"), Provider::Unknown);
+		assert_eq!(Provider::from("youtube"), Provider::Youtube);
+		assert_eq!(Provider::from(""), Provider::Unknown);
+		assert_eq!(Provider::from("unknown"), Provider::Unknown);
 		assert_eq!(
-			Provider::try_match("Something Different"),
+			Provider::from("Something Different"),
 			Provider::Other("Something Different".to_lowercase())
 		);
 	}
