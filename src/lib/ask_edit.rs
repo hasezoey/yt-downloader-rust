@@ -42,7 +42,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		std::io::stdin().read_line(&mut input)?;
 		trim_newline(&mut input); // trim the newline at the end
 		args.editor = input.trim().to_owned();
-		debug!("Editor entered: {}", args.editor);
+		debug!("Editor entered: \"{}\"", args.editor);
 
 		if args.editor.is_empty() {
 			// if it is still empty, just dont ask for edits
