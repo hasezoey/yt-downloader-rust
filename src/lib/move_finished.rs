@@ -78,6 +78,10 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 			.progress_chars("#>-"),
 	);
 
+	if args.debug {
+		bar.set_draw_target(indicatif::ProgressDrawTarget::hidden())
+	}
+
 	for file in files {
 		bar.inc(1);
 
