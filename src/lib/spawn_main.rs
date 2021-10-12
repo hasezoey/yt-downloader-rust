@@ -102,6 +102,8 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let tmpdir = Path::new(&args.tmp).join("%(title)s.%(ext)s");
 
 	if args.audio_only {
+		ytdl.arg("-f");
+		ytdl.arg("bestaudio/best");
 		ytdl.arg("-x");
 		ytdl.arg("--audio-format");
 		ytdl.arg("mp3");
@@ -127,6 +129,16 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	}
 
 	ytdl.arg("--newline"); // to make parsing easier
+
+	// yt-dlp argument to always print in a specific format when available
+	ytdl.arg("--print");
+	ytdl.arg("PARSE '%(extractor)s' '%(id)s' %(title)s");
+
+	// always enable printing progress
+	ytdl.arg("--progress");
+
+	// always disable "simulate" from enabling
+	ytdl.arg("--no-simulate");
 
 	ytdl.arg("-o").arg(tmpdir);
 	for arg in args.extra_args.iter() {
@@ -248,6 +260,16 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				bar.set_position(position[1].parse::<u64>().unwrap_or(0));
 				bar.set_message("");
 				bar.tick();
+			},
+			LineTypes::Information(provider, id, file) => {
+				info!("Found PARSE Output, id: \"{}\", title: \"{}\"", &id, &file);
+
+				current_id = id;
+				current_filename = file;
+
+				if let Some(archive) = &mut args.archive {
+					archive.add_video(Video::new(&current_id, Provider::from(provider.as_str())).with_filename(&current_filename))
+				}
 			},
 			LineTypes::Ffmpeg | LineTypes::Generic => {
 				if let Some(filenametmp) = match_to_path(&line) {

@@ -36,29 +36,45 @@ pub enum LineTypes {
 	Download,
 	Ffmpeg,
 	Generic,
+	/// Specific Information parsed from PARSE (--print), Format:
+	/// Extractor, ID, Title
+	Information(String, String, String),
 	Unknown(String),
 }
 
 impl From<&str> for LineTypes {
 	fn from(input: &str) -> Self {
 		lazy_static! {
-			// Try to match for the current provider that is used by "youtube-dl"
-			static ref YTDL_PROVIDER_REGEX: Regex = Regex::new(r"(?mi)^\s*\[([\w:]*)\]").unwrap();
-			// Try to match for "youtube-dl" output itself (no provider)
+			/// Try to match for the current provider that is used by "youtube-dl"
+			static ref YTDL_PROVIDER_REGEX: Regex = Regex::new(r"(?mi)\[([\w:]*)\] ").unwrap();
+			/// Try to match for "youtube-dl" output itself (no provider)
 			static ref YTDL_SELF_OUTPUT_REGEX: Regex = Regex::new(r"(?mi)^\s*Deleting\soriginal").unwrap();
+			/// Try to match "PARSE" output (given with "--print TEMPLATE")
+			static ref YTDL_PARSE_OUTPUT: Regex = Regex::new(r"(?mi)^PARSE '(.+?)' '([a-zA-Z0-9_-]{11})' (.+)$").unwrap();
 		}
 
 		if YTDL_SELF_OUTPUT_REGEX.is_match(input) {
-			return LineTypes::Generic;
+			return Self::Generic;
 		}
 
-		if let Some(cap) = YTDL_PROVIDER_REGEX.captures_iter(input).next() {
+		if let Some(cap) = YTDL_PARSE_OUTPUT.captures_iter(&input).next() {
+			let mut tmpfile = cap[3].to_owned();
+			tmpfile.push_str(".mp3");
+			return Self::Information(cap[1].to_owned(), cap[2].to_owned(), tmpfile);
+		}
+
+		if let Some(cap) = YTDL_PROVIDER_REGEX.captures_iter(&input).next() {
 			return match &cap[1] {
-				"ffmpeg" => LineTypes::Ffmpeg,
-				"download" => LineTypes::Download,
-				"youtube" => LineTypes::Youtube,
-				"youtube:playlist" => LineTypes::Youtube,
-				"youtube:tab" => LineTypes::Youtube,
+				"ffmpeg" => Self::Ffmpeg,
+				"download" => Self::Download,
+				"youtube" => Self::Youtube,
+				"youtube:playlist" => Self::Youtube,
+				"youtube:tab" => Self::Youtube,
+				"info" => Self::Generic,
+				"Merger" => Self::Generic,
+				"Metadata" => Self::Generic,
+				"ThumbnailsConvertor" => Self::Generic,
+				"EmbedThumbnail" => Self::Generic,
 				_ => {
 					info!("unknown type: {:?}", &cap[1]);
 					debug!("unknown input: \"{}\"", input);
