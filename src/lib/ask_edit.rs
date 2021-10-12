@@ -51,10 +51,18 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		}
 	}
 
+	if archive.videos_is_empty() {
+		debug!("Archive Videos is empty!");
+
+		return Ok(());
+	}
+
 	debug!("Starting Edit ask loop");
 	let mut edited: Vec<PathBuf> = Vec::new();
 	for video in archive.get_mut_videos() {
 		if video.edit_asked {
+			trace!("Video \"{}\" has already been asked to edit", video.get_id());
+
 			continue;
 		}
 
