@@ -91,6 +91,10 @@ impl Archive {
 	pub fn set_filename<T: Into<String>>(&mut self, id: &str, filename: T) {
 		unwrap_or_return!(self.videos.iter_mut().find(|v| return v.id == id)).file_name = filename.into();
 	}
+
+	pub fn videos_is_empty(&self) -> bool {
+		return self.videos.len() == 0;
+	}
 }
 
 #[derive(Debug, PartialEq)]
@@ -195,7 +199,7 @@ pub struct Video {
 }
 
 impl Video {
-	pub fn new(id: &str, provider: Provider) -> Video {
+	pub fn new(id: &str, provider: Provider) -> Self {
 		return Video {
 			id: id.to_string(),
 			provider,
@@ -203,6 +207,12 @@ impl Video {
 			edit_asked: false,
 			file_name: String::default(),
 		};
+	}
+
+	pub fn with_filename<T: Into<String>>(mut self, filename: T) -> Self {
+		self.file_name = filename.into();
+
+		return self;
 	}
 
 	/// Used to set "dl_finished" for builder
@@ -214,6 +224,10 @@ impl Video {
 
 	pub fn set_edit_asked(&mut self, b: bool) {
 		self.edit_asked = b;
+	}
+
+	pub fn get_id(&self) -> &str {
+		return &self.id;
 	}
 }
 
