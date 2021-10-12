@@ -165,6 +165,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	if args.debug {
 		bar.println("Printing YTDL raw-Output");
+		bar.set_draw_target(indicatif::ProgressDrawTarget::hidden())
 	}
 
 	reader_stdout.lines().filter_map(|line| return line.ok()).for_each(|line| {
