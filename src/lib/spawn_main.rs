@@ -136,6 +136,8 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	// always enable printing progress
 	ytdl.arg("--progress");
+	// ensure progress gets printed and recieved properly
+	ytdl.arg("--newline");
 
 	// always disable "simulate" from enabling
 	ytdl.arg("--no-simulate");
@@ -181,10 +183,13 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			});
 	});
 
+	// indicate if a "[download]" happened
+	let mut no_download = true;
+
 	reader_stdout.lines().filter_map(|line| return line.ok()).for_each(|line| {
 		// only print STDOUT raw if debug is enabled
 		if args.debug {
-			bar.println(format!("youtube-dl [STDOUT] {}", line));
+			trace!("youtube-dl [STDOUT] \"{}\"", line);
 		}
 
 		match LineTypes::from(line.as_ref()) {
@@ -221,6 +226,8 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 					static ref ALREADY_IN_ARCHIVE: Regex = Regex::new(r"(?mi)has already been recorded in archive").unwrap();
 				}
+
+				no_download = false;
 
 				if let Some(filenametmp) = match_to_path(&line) {
 					current_filename = filenametmp;
@@ -265,6 +272,14 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			LineTypes::Information(provider, id, file) => {
 				info!("Found PARSE Output, id: \"{}\", title: \"{}\"", &id, &file);
 
+				if no_download {
+					if let Some(archive) = &mut args.archive {
+						// mark "dl_finished" for current_id (old) if archive is used, because no "already in archive" is printed when using "--print" in yt-dlp
+						archive.mark_dl_finished(&current_id);
+					}
+				}
+
+				no_download = true;
 				current_id = id;
 				current_filename = file;
 
@@ -323,6 +338,16 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			},
 		}
 	});
+
+	// do it also after the lines have been processed, because "--print" will always be before the "download"
+	// so it can happen that all ids are already in the archive (not printed), but the last one not already being marked as finished downloading
+	// so it will be marked here
+	if no_download {
+		if let Some(archive) = &mut args.archive {
+			// mark "dl_finished" for current_id (old) if archive is used, because no "already in archive" is printed when using "--print" in yt-dlp
+			archive.mark_dl_finished(&current_id);
+		}
+	}
 
 	let exit_status = spawned_ytdl
 		.wait()
