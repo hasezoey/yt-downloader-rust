@@ -7,7 +7,10 @@ use indicatif::{
 	ProgressBar,
 	ProgressStyle,
 };
-use std::io::Error as ioError;
+use std::io::{
+	Error as ioError,
+	Write,
+};
 use std::path::{
 	Path,
 	PathBuf,
@@ -101,11 +104,48 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 /// Move files from "file" to "target" with logging
 pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	info!("Moving file from \"{}\" to \"{}\"\n", file.display(), target.display());
-
 	let mut options = CopyOptions::new();
-	options.overwrite = true; // for now it will always overwrite, see #3
+
+	if target.exists() {
+		match ask_overwrite(&target) {
+			Ok(answer) => match answer {
+				YesNo::Yes => options.overwrite = true, // for now it will always overwrite, see #3
+				YesNo::No => return Ok(()),             // return "OK" to continue program flow
+			},
+			Err(err) => return Err(err),
+		}
+	}
 
 	move_file(file, target, &options).expect("Failed to move the file to target");
 
 	return Ok(());
+}
+
+#[derive(PartialEq)]
+enum YesNo {
+	Yes,
+	No,
+}
+
+/// Repeat to ask Yes or No until valid
+fn ask_overwrite(file: &Path) -> Result<YesNo, ioError> {
+	println!("Do you want to overwrite \"{}\"?", file.to_string_lossy());
+	loop {
+		print!("[Y/n]: ");
+
+		std::io::stdout().flush()?; // ensure the print is printed
+		let mut input = String::new();
+		std::io::stdin().read_line(&mut input)?;
+		crate::ask_edit::trim_newline(&mut input); // trim the newline at the end
+		let input = input.trim().to_lowercase();
+
+		match input.as_ref() {
+			"y" | "" | "yes" => return Ok(YesNo::Yes),
+			"n" | "no" => return Ok(YesNo::No),
+			_ => {
+				println!("Wrong Character, please use either Y or N");
+				continue;
+			},
+		}
+	}
 }

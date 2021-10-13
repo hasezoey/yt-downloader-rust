@@ -18,7 +18,7 @@ use std::process::{
 	ExitStatus,
 };
 
-fn trim_newline(s: &mut String) {
+pub fn trim_newline(s: &mut String) {
 	if s.ends_with('\n') {
 		s.pop();
 		if s.ends_with('\r') {
