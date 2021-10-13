@@ -147,6 +147,14 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 
 	ytdl.arg(&args.url);
 
+	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
+
+	if args.debug {
+		bar.println("Printing YTDL raw-Output");
+		bar.set_draw_target(indicatif::ProgressDrawTarget::hidden());
+		bar.tick();
+	}
+
 	let mut spawned_ytdl = ytdl
 		.stdout(Stdio::piped())
 		.stderr(Stdio::piped())
@@ -161,8 +169,6 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let mut current_filename: String = String::default();
 	let mut current_provider: Provider = Provider::Unknown;
 
-	let bar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
-
 	bar.set_prefix(prefix_format(&current_video, &count_video, ""));
 
 	let thread = std::thread::spawn(move || {
@@ -171,14 +177,9 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 			.lines()
 			.filter_map(|line| return line.ok())
 			.for_each(|line| {
-				println!("youtube-dl [STDERR] {}", line);
+				warn!("youtube-dl [STDERR] {}", line);
 			});
 	});
-
-	if args.debug {
-		bar.println("Printing YTDL raw-Output");
-		bar.set_draw_target(indicatif::ProgressDrawTarget::hidden())
-	}
 
 	reader_stdout.lines().filter_map(|line| return line.ok()).for_each(|line| {
 		// only print STDOUT raw if debug is enabled
