@@ -11,9 +11,12 @@ use std::path::{
 	Path,
 	PathBuf,
 };
-use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
+use std::process::{
+	Child,
+	ExitStatus,
+};
 
 fn trim_newline(s: &mut String) {
 	if s.ends_with('\n') {
@@ -28,6 +31,12 @@ fn trim_newline(s: &mut String) {
 enum YesNo {
 	Yes,
 	No,
+}
+
+enum Continue {
+	Retry,
+	Continue,
+	Abort,
 }
 
 /// Ask for edits on donwloaded files
@@ -59,6 +68,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 
 	debug!("Starting Edit ask loop");
 	let mut edited: Vec<PathBuf> = Vec::new();
+	// TODO: Reformat (get_mut_videos) to use iterators
 	for video in archive.get_mut_videos() {
 		if video.edit_asked {
 			trace!("Video \"{}\" has already been asked to edit", video.get_id());
@@ -87,34 +97,36 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 			continue;
 		}
 
-		let mut editorcommand = Command::new(&args.editor);
-		editorcommand.arg(&video_path);
+		// a loop to make it easier to re-try if the editor somehow crashed
+		loop {
+			match spawn_editor(&args.editor, &video_path, args.debug) {
+				Ok(exit_status) => {
+					// early return for performance
+					if exit_status.success() {
+						break;
+					}
 
-		let mut spawned_editor: Child;
-
-		if args.debug {
-			spawned_editor = editorcommand
-				.stderr(Stdio::inherit())
-				.stdout(Stdio::inherit())
-				.stdin(Stdio::null())
-				.spawn()?;
-		} else {
-			spawned_editor = editorcommand
-				.stderr(Stdio::null())
-				.stdout(Stdio::null())
-				.stdin(Stdio::null())
-				.spawn()?;
-		}
-
-		let exit_status = spawned_editor
-			.wait()
-			.expect("Something went wrong while waiting for the Editor to finish... (Did it even run?)");
-
-		if !exit_status.success() {
-			return Err(ioError::new(
-				ErrorKind::Other,
-				"The Editor exited with a non-zero status, Stopping YT-DL-Rust",
-			));
+					warn!(
+						"The Editor Failed with a non-zero exist code! (code: \"{}\")",
+						exit_status
+					);
+					match ask_continue(video)? {
+						// continue loop (re-try spawning editor)
+						Continue::Retry => continue,
+						// abort loop and return a (graceful) error, with proper tmp archive writing
+						Continue::Abort => {
+							return Err(ioError::new(
+								ErrorKind::Other,
+								"The Editor exited with a non-zero status, Stopping YT-DL-Rust",
+							))
+						},
+						// handle as if normal exit (no retry)
+						Continue::Continue => break,
+					}
+				},
+				// unrecoverable error happend (like not being able to spawn process), dont ask user because it can not be easily recovered from
+				Err(err) => return Err(err),
+			}
 		}
 
 		video.set_edit_asked(true);
@@ -130,6 +142,31 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 	}
 
 	return Ok(());
+}
+
+fn spawn_editor(editor: &str, filepath: &PathBuf, debug: bool) -> Result<ExitStatus, ioError> {
+	let mut editorcommand = Command::new(editor);
+	editorcommand.arg(filepath);
+
+	let mut spawned_editor: Child;
+
+	if debug {
+		spawned_editor = editorcommand
+			.stderr(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stdin(Stdio::null())
+			.spawn()?;
+	} else {
+		spawned_editor = editorcommand
+			.stderr(Stdio::null())
+			.stdout(Stdio::null())
+			.stdin(Stdio::null())
+			.spawn()?;
+	}
+
+	return Ok(spawned_editor
+		.wait()
+		.expect("Something went wrong while waiting for the Editor to finish... (Did it even run?)"));
 }
 
 /// Reapply the thumbnail after the video has been edited
@@ -225,6 +262,33 @@ fn ask_edit(video: &Video) -> Result<YesNo, ioError> {
 			"n" | "no" => return Ok(YesNo::No),
 			_ => {
 				println!("Wrong Character, please use either Y or N");
+				continue;
+			},
+		}
+	}
+}
+
+/// Ask if a action should be retried or just continue or full abort
+fn ask_continue(video: &Video) -> Result<Continue, ioError> {
+	println!(
+		"Do you want to [R]etry or [C]ontinue or [A]bort \"{}\"?",
+		video.file_name
+	);
+	loop {
+		print!("[R/c/a]: ");
+
+		std::io::stdout().flush()?; // ensure the print is printed
+		let mut input = String::new();
+		std::io::stdin().read_line(&mut input)?;
+		trim_newline(&mut input); // trim the newline at the end
+		let input = input.trim().to_lowercase();
+
+		match input.as_ref() {
+			"r" | "retry" => return Ok(Continue::Retry),
+			"c" | "continue" => return Ok(Continue::Continue),
+			"a" | "abort" => return Ok(Continue::Abort),
+			_ => {
+				println!("Wrong Character, please use R or C or A");
 				continue;
 			},
 		}
