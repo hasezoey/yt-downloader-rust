@@ -107,7 +107,7 @@ pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	let mut options = CopyOptions::new();
 
 	if target.exists() {
-		match ask_overwrite(&target) {
+		match ask_overwrite(target) {
 			Ok(answer) => match answer {
 				YesNo::Yes => options.overwrite = true, // for now it will always overwrite, see #3
 				YesNo::No => return Ok(()),             // return "OK" to continue program flow
