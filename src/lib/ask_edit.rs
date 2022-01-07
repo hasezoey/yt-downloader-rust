@@ -148,21 +148,19 @@ fn spawn_editor(editor: &str, filepath: &PathBuf, debug: bool) -> Result<ExitSta
 	let mut editorcommand = Command::new(editor);
 	editorcommand.arg(filepath);
 
-	let mut spawned_editor: Child;
-
-	if debug {
-		spawned_editor = editorcommand
+	let mut spawned_editor: Child = if debug {
+		editorcommand
 			.stderr(Stdio::inherit())
 			.stdout(Stdio::inherit())
 			.stdin(Stdio::null())
-			.spawn()?;
+			.spawn()?
 	} else {
-		spawned_editor = editorcommand
+		editorcommand
 			.stderr(Stdio::null())
 			.stdout(Stdio::null())
 			.stdin(Stdio::null())
-			.spawn()?;
-	}
+			.spawn()?
+	};
 
 	return Ok(spawned_editor
 		.wait()
@@ -210,21 +208,19 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 
 		ffmpeg.arg(&ffmpegout_path); // OUT Path
 
-		let mut spawned_ffmpeg: Child;
-
-		if args.debug {
-			spawned_ffmpeg = ffmpeg
+		let mut spawned_ffmpeg: Child = if args.debug {
+			ffmpeg
 				.stderr(Stdio::inherit())
 				.stdout(Stdio::inherit())
 				.stdin(Stdio::null())
-				.spawn()?;
+				.spawn()?
 		} else {
-			spawned_ffmpeg = ffmpeg
+			ffmpeg
 				.stderr(Stdio::null())
 				.stdout(Stdio::null())
 				.stdin(Stdio::null())
-				.spawn()?;
-		}
+				.spawn()?
+		};
 
 		let exit_status = spawned_ffmpeg
 			.wait()
