@@ -209,6 +209,8 @@ impl Video {
 		};
 	}
 
+	/// Used to set the "filename" for builder
+	#[must_use]
 	pub fn with_filename<T: Into<String>>(mut self, filename: T) -> Self {
 		self.file_name = filename.into();
 
