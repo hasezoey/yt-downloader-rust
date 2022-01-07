@@ -10,7 +10,7 @@ use std::path::{
 	PathBuf,
 };
 
-/// This Function is copied from Cargo https://github.com/rust-lang/cargo/blob/070e459c2d8b79c5b2ac5218064e7603329c92ae/crates/cargo-util/src/paths.rs  
+/// This Function is copied from Cargo [paths.rs](https://github.com/rust-lang/cargo/blob/070e459c2d8b79c5b2ac5218064e7603329c92ae/crates/cargo-util/src/paths.rs)  
 /// The project might be licended under MIT  
 /// TODO: replace with official implementation when available  
 ///
