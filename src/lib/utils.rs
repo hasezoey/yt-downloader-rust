@@ -57,13 +57,13 @@ impl From<&str> for LineTypes {
 			return Self::Generic;
 		}
 
-		if let Some(cap) = YTDL_PARSE_OUTPUT.captures_iter(&input).next() {
+		if let Some(cap) = YTDL_PARSE_OUTPUT.captures_iter(input).next() {
 			let mut tmpfile = cap[3].to_owned();
 			tmpfile.push_str(".mp3");
 			return Self::Information(cap[1].to_owned(), cap[2].to_owned(), tmpfile);
 		}
 
-		if let Some(cap) = YTDL_PROVIDER_REGEX.captures_iter(&input).next() {
+		if let Some(cap) = YTDL_PROVIDER_REGEX.captures_iter(input).next() {
 			return match &cap[1] {
 				"ffmpeg" => Self::Ffmpeg,
 				"download" => Self::Download,
