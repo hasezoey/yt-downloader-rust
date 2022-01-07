@@ -93,7 +93,7 @@ impl Archive {
 	}
 
 	pub fn videos_is_empty(&self) -> bool {
-		return self.videos.len() == 0;
+		return self.videos.is_empty();
 	}
 }
 
