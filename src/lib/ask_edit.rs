@@ -144,7 +144,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 	return Ok(());
 }
 
-fn spawn_editor(editor: &str, filepath: &PathBuf, debug: bool) -> Result<ExitStatus, ioError> {
+fn spawn_editor(editor: &str, filepath: &Path, debug: bool) -> Result<ExitStatus, ioError> {
 	let mut editorcommand = Command::new(editor);
 	editorcommand.arg(filepath);
 
