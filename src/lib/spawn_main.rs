@@ -298,13 +298,11 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					}
 				}
 
-				let ffmpeg_video: u32;
-
-				if current_video < count_video && current_video > 0 {
-					ffmpeg_video = current_video - 1;
+				let ffmpeg_video: u32 = if current_video < count_video && current_video > 0 {
+					current_video - 1
 				} else {
-					ffmpeg_video = current_video;
-				}
+					current_video
+				};
 
 				bar.reset();
 				bar.set_prefix(prefix_format(&ffmpeg_video, &count_video, &current_id));
