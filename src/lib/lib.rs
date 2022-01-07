@@ -1,3 +1,11 @@
+#![allow(clippy::needless_return)]
+#![warn(clippy::implicit_return)]
+
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
+
 pub mod archive_schema;
 pub mod ask_edit;
 pub mod file_cleanup;

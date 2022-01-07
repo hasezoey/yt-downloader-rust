@@ -19,3 +19,11 @@ serde_json = "1.0.68"
 fs_extra = "1.2.0"
 shellexpand = "2.1.0"
 dirs-next = "2.0.0"
+
+[lib]
+name = "libytdlr"
+path = "src/lib/lib.rs"
+
+[[bin]]
+name = "ytdlr"
+path = "src/main.rs"

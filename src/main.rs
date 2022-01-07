@@ -2,8 +2,6 @@
 #![warn(clippy::implicit_return)]
 
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate log;
 
 use clap::load_yaml;
@@ -14,9 +12,7 @@ use env_logger::{
 };
 use std::io::Error as ioError;
 
-mod lib;
-
-use lib::*;
+use libytdlr::*;
 
 /// Main
 fn main() -> Result<(), ioError> {

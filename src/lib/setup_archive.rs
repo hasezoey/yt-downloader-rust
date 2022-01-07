@@ -1,4 +1,4 @@
-use crate::lib::paths::to_absolute;
+use crate::paths::to_absolute;
 
 use super::archive_schema::Archive;
 
