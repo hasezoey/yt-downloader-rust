@@ -28,12 +28,12 @@ pub fn trim_newline(s: &mut String) {
 }
 
 #[derive(PartialEq)]
-enum YesNo {
+enum ResponseYesNo {
 	Yes,
 	No,
 }
 
-enum Continue {
+enum ResponseContinue {
 	Retry,
 	Continue,
 	Abort,
@@ -83,7 +83,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 			continue;
 		}
 
-		if ask_edit(video)? == YesNo::No {
+		if ask_edit(video)? == ResponseYesNo::No {
 			video.set_edit_asked(true);
 			continue;
 		}
@@ -112,16 +112,16 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 					);
 					match ask_continue(video)? {
 						// continue loop (re-try spawning editor)
-						Continue::Retry => continue,
+						ResponseContinue::Retry => continue,
 						// abort loop and return a (graceful) error, with proper tmp archive writing
-						Continue::Abort => {
+						ResponseContinue::Abort => {
 							return Err(ioError::new(
 								ErrorKind::Other,
 								"The Editor exited with a non-zero status, Stopping YT-DL-Rust",
 							))
 						},
 						// handle as if normal exit (no retry)
-						Continue::Continue => break,
+						ResponseContinue::Continue => break,
 					}
 				},
 				// unrecoverable error happend (like not being able to spawn process), dont ask user because it can not be easily recovered from
@@ -242,7 +242,7 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 }
 
 /// Repeat to ask Yes or No until valid
-fn ask_edit(video: &Video) -> Result<YesNo, ioError> {
+fn ask_edit(video: &Video) -> Result<ResponseYesNo, ioError> {
 	println!("Do you want to edit \"{}\"?", video.file_name);
 	loop {
 		print!("[Y/n]: ");
@@ -254,8 +254,8 @@ fn ask_edit(video: &Video) -> Result<YesNo, ioError> {
 		let input = input.trim().to_lowercase();
 
 		match input.as_ref() {
-			"y" | "" | "yes" => return Ok(YesNo::Yes),
-			"n" | "no" => return Ok(YesNo::No),
+			"y" | "" | "yes" => return Ok(ResponseYesNo::Yes),
+			"n" | "no" => return Ok(ResponseYesNo::No),
 			_ => {
 				println!("Wrong Character, please use either Y or N");
 				continue;
@@ -265,7 +265,7 @@ fn ask_edit(video: &Video) -> Result<YesNo, ioError> {
 }
 
 /// Ask if a action should be retried or just continue or full abort
-fn ask_continue(video: &Video) -> Result<Continue, ioError> {
+fn ask_continue(video: &Video) -> Result<ResponseContinue, ioError> {
 	println!(
 		"Do you want to [R]etry or [C]ontinue or [A]bort \"{}\"?",
 		video.file_name
@@ -280,9 +280,9 @@ fn ask_continue(video: &Video) -> Result<Continue, ioError> {
 		let input = input.trim().to_lowercase();
 
 		match input.as_ref() {
-			"r" | "retry" => return Ok(Continue::Retry),
-			"c" | "continue" => return Ok(Continue::Continue),
-			"a" | "abort" => return Ok(Continue::Abort),
+			"r" | "retry" => return Ok(ResponseContinue::Retry),
+			"c" | "continue" => return Ok(ResponseContinue::Continue),
+			"a" | "abort" => return Ok(ResponseContinue::Abort),
 			_ => {
 				println!("Wrong Character, please use R or C or A");
 				continue;
