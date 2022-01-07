@@ -216,6 +216,7 @@ impl Video {
 	}
 
 	/// Used to set "dl_finished" for builder
+	#[must_use]
 	pub fn set_dl_finished(mut self, b: bool) -> Self {
 		self.dl_finished = b;
 
