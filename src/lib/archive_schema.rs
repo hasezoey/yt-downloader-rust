@@ -98,6 +98,7 @@ impl Archive {
 }
 
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Provider {
 	Youtube,
 	Unknown,
