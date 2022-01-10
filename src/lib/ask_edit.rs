@@ -11,7 +11,6 @@ use std::path::{
 	Path,
 	PathBuf,
 };
-use std::process::Command;
 use std::process::Stdio;
 use std::process::{
 	Child,
@@ -145,8 +144,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 }
 
 fn spawn_editor(editor: &str, filepath: &Path, debug: bool) -> Result<ExitStatus, ioError> {
-	let mut editorcommand = Command::new(editor);
-	editorcommand.arg(filepath);
+	let mut editorcommand = crate::spawn::editor::base_editor(editor, filepath);
 
 	let mut spawned_editor: Child = if debug {
 		editorcommand
@@ -194,7 +192,7 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 	}
 
 	{
-		let mut ffmpeg = Command::new("ffmpeg");
+		let mut ffmpeg = crate::spawn::ffmpeg::base_ffmpeg(true);
 		ffmpeg.arg("-i").arg(&video_path);
 		ffmpeg.arg("-i").arg(&thumbnail_path);
 		ffmpeg.arg("-map").arg("0:0"); // copy without editing from input to output
@@ -203,8 +201,6 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 		ffmpeg.arg("-id3v2_version").arg("3");
 		ffmpeg.arg("-metadata:s:v").arg("title=\"Album cover\""); // set metadata for video track
 		ffmpeg.arg("-movflags").arg("use_metadata_tags"); // copy metadata
-		ffmpeg.arg("-hide_banner"); // dont print banner, its just unnecessary logs
-		ffmpeg.arg("-y"); // always overwrite output path
 
 		ffmpeg.arg(&ffmpegout_path); // OUT Path
 

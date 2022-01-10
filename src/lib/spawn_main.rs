@@ -2,7 +2,6 @@ use super::archive_schema::{
 	Provider,
 	Video,
 };
-use super::spawn_multi_platform::*;
 use super::utils::{
 	Arguments,
 	LineTypes,
@@ -34,7 +33,7 @@ lazy_static! {
 
 /// Count all videos in the playlist or single video
 fn count(args: &Arguments) -> Result<u32, ioError> {
-	let mut ytdl = spawn_command();
+	let mut ytdl = crate::spawn::ytdl::base_ytdl();
 	ytdl.arg("-s").arg("--flat-playlist").arg("--get-id");
 	ytdl.arg(&args.url);
 
@@ -97,7 +96,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let count_video = count(args)?;
 	let mut current_video: u32 = 0;
 
-	let mut ytdl = spawn_command();
+	let mut ytdl = crate::spawn::ytdl::base_ytdl();
 	// it needs to be a string, otherwise the returns would complain about not living long enough
 	let tmpdir = Path::new(&args.tmp).join("%(title)s.%(ext)s");
 
