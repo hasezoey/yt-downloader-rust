@@ -32,6 +32,7 @@ enum ResponseYesNo {
 	No,
 }
 
+#[non_exhaustive]
 enum ResponseContinue {
 	Retry,
 	Continue,
