@@ -129,7 +129,7 @@ mod test {
 	#[ignore = "https://github.com/clap-rs/clap/issues/2491"]
 	fn test_everything_default() {
 		let args = vec!["bin", "SomeURL"];
-		let yml = clap::load_yaml!("../cli.yml");
+		let yml = clap::load_yaml!("../../cli.yml");
 		let cli_matches = clap::App::from_yaml(yml).get_matches_from(args);
 
 		let arguments = setup_args(&cli_matches).unwrap();
