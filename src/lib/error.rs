@@ -1,3 +1,4 @@
+/// Error type for "yt-downloader-rust", implements all Error types that could happen in this lib
 pub enum Error {
 	IoError(std::io::Error),
 	FromStringUTF8Error(std::string::FromUtf8Error),
