@@ -158,7 +158,7 @@ mod test {
 	#[test]
 	fn test_arguments_tmp_add_ancestor() {
 		let args = vec!["bin", "--tmp", "/tmp", "SomeURL"];
-		let yml = clap::load_yaml!("../cli.yml");
+		let yml = clap::load_yaml!("../../cli.yml");
 		let cli_matches = clap::App::from_yaml(yml).get_matches_from(args);
 
 		let archive = setup_args(&cli_matches).unwrap();
