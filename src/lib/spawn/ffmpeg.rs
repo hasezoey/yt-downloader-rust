@@ -88,6 +88,7 @@ libpostproc    55.  9.100 / 55.  9.100
 	}
 
 	#[test]
+	#[ignore = "CI Install not present currently"]
 	pub fn test_ffmpeg_spawn() -> () {
 		assert!(ffmpeg_version().is_ok());
 	}

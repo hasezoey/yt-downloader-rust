@@ -71,6 +71,7 @@ mod test {
 	}
 
 	#[test]
+	#[ignore = "CI Install not present currently"]
 	pub fn test_ytdl_spawn() -> () {
 		assert!(ytdl_version().is_ok());
 	}
