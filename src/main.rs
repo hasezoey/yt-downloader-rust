@@ -24,17 +24,15 @@ fn main() -> Result<(), ioError> {
 
 	if cli_matches.is_present("debugger") {
 		warn!("Requesting Debugger");
-		// Request VSCode to open a debugger for the current PID
-		let url = format!(
-			"vscode://vadimcn.vscode-lldb/launch/config?{{'request':'attach','pid':{}}}",
-			std::process::id()
-		);
-		std::process::Command::new("code")
-			.arg("--open-url")
-			.arg(url)
-			.output()
-			.unwrap();
-		std::thread::sleep(std::time::Duration::from_millis(1000)); // Wait for debugger to attach
+
+		#[cfg(debug_assertions)]
+		{
+			invoke_vscode_debugger();
+		}
+		#[cfg(not(debug_assertions))]
+		{
+			println!("Debugger Invokation only available in Debug Target");
+		}
 	}
 
 	// handle importing native youtube-dl archives
