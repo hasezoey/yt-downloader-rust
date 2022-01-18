@@ -2,7 +2,7 @@
 name = "yt-downloader-rust"
 version = "0.4.0"
 authors = ["hasezoey <hasezoey@gmail.com>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 
 [dependencies]
