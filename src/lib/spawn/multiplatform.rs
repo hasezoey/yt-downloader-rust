@@ -1,30 +1,18 @@
 use std::process::Command;
 
-/// Spawn "youtube-dl" from PATH
-#[cfg(target_os = "linux")]
+// This file still exists and is seperated for future quick changes
+
+/// Spawn "youtube-dl" in non-windows / DOS systems
+#[cfg(not(target_os = "windows"))]
 #[inline]
 pub fn spawn_command(binary_name: &str) -> Command {
 	return Command::new(binary_name);
 }
 
-/// Spawn "youtube-dl" for non-linux systems
-#[cfg(not(target_os = "linux"))]
+/// Spawn "youtube-dl" for windows / DOS systems
+/// Apparently, rust automatically adds a extensions (".exe") if none is specified
+/// Also, rust automatically searches all the paths, including the ytdl-rust binary path
+#[cfg(target_os = "windows")]
 pub fn spawn_command(binary_name: &str) -> Command {
-	use std::env::current_exe;
-	use std::path::{
-		Path,
-		PathBuf,
-	};
-
-	let current_binary_path: PathBuf =
-		current_exe().expect("Current Exectuable path not found, how does this even run?");
-	let current_binary_directory: &Path = current_binary_path.parent().expect("invalid executable folder");
-
-	let binary = if cfg!(windows) {
-		current_binary_directory.join(format!("{}.exe", binary_name))
-	} else {
-		current_binary_directory.join(binary_name)
-	};
-
 	return Command::new(binary);
 }
