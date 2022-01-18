@@ -9,7 +9,6 @@ about: Download <EDIT ME>
 settings: 
   - ArgRequiredElseHelp # show help if no args are given
   - StrictUtf8 # only allow valid UTF-8
-  - VersionlessSubcommands # disable versions for subcommands
 
 args:
   # flags
@@ -67,10 +66,6 @@ args:
   - URL:
       index: 1
       help: Sets the URL to download from
-  - ytdlargs:
-      help: Passthrough Args to Youtube-Download
-      last: true
-      multiple: true
 
 subcommands:
   - import:
