@@ -9,6 +9,7 @@ extern crate log;
 mod error;
 mod old;
 mod spawn;
+pub mod utils;
 pub use error::Error;
 pub use old::*;
 
