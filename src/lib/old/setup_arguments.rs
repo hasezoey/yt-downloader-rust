@@ -14,18 +14,12 @@ use std::path::PathBuf;
 
 /// Helper function to make code more clean
 #[inline]
-fn string_to_bool(input: &str) -> bool {
-	return matches!(input, "true");
-}
-
-/// Helper function to make code more clean
-#[inline]
 fn process_paths<T: AsRef<Path>>(val: T) -> ioResult<PathBuf> {
 	return to_absolute(std::env::current_dir()?.as_path(), val.as_ref());
 }
 
 /// Process input to useable PathBuf for temporary directory
-fn get_tmp_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
+fn get_tmp_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
 	let mut ret_path = process_paths({
 		if let Some(path) = val {
 			PathBuf::from(path)
@@ -54,7 +48,7 @@ fn get_tmp_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 }
 
 /// Process input to useable Archive
-fn get_config_path(val: Option<&OsStr>) -> ioResult<Option<Archive>> {
+fn get_config_path(val: Option<PathBuf>) -> ioResult<Option<Archive>> {
 	let archive_path = process_paths({
 		if let Some(path) = val {
 			PathBuf::from(path)
@@ -69,7 +63,7 @@ fn get_config_path(val: Option<&OsStr>) -> ioResult<Option<Archive>> {
 }
 
 /// Process input to useable PathBuf for Output
-fn get_output_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
+fn get_output_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
 	let mut ret_path = process_paths({
 		if let Some(path) = val {
 			PathBuf::from(path)
@@ -88,26 +82,35 @@ fn get_output_path(val: Option<&OsStr>) -> ioResult<PathBuf> {
 	return Ok(ret_path);
 }
 
+/// Wrapper for [`setup_args`] arguments
+#[derive(Debug)]
+pub struct SetupArgs {
+	pub out:                  Option<PathBuf>,
+	pub tmp:                  Option<PathBuf>,
+	pub url:                  String,
+	pub archive:              Option<PathBuf>,
+	pub audio_only:           bool,
+	pub debug:                bool,
+	pub disable_cleanup:      bool,
+	pub disable_re_thumbnail: bool,
+	pub askedit:              bool,
+	pub editor:               String,
+}
+
 /// Setup clap-arguments
-pub fn setup_args(cli_matches: &clap::ArgMatches) -> Result<Arguments, ioError> {
+pub fn setup_args(input: SetupArgs) -> Result<Arguments, ioError> {
 	let mut args = Arguments {
-		out:                  get_output_path(cli_matches.value_of_os("out"))?,
-		tmp:                  get_tmp_path(cli_matches.value_of_os("tmp"))?,
-		url:                  cli_matches.value_of("URL").unwrap_or("").to_owned(),
-		archive:              get_config_path(cli_matches.value_of_os("archive"))?,
-		audio_only:           cli_matches.is_present("audio_only"),
-		debug:                cli_matches.is_present("debug"),
-		disable_cleanup:      cli_matches.is_present("disablecleanup"),
-		disable_re_thumbnail: cli_matches.is_present("disableeditorthumbnail"),
-		askedit:              string_to_bool(cli_matches.value_of("askedit").unwrap()),
-		editor:               cli_matches.value_of("editor").unwrap().to_owned(),
-		extra_args:           cli_matches
-			.values_of("ytdlargs") // get all values after "--"
-			.map(|v| return v.collect::<Vec<&str>>()) // because "clap::Values" is an iterator, collect it all as Vec<&str>
-			.unwrap_or_default() // unwrap the Option<Vec<&str>> or create a new Vec
-			.iter() // Convert the Vec<&str> to an iterator
-			.map(|v| return String::from(*v)) // Map every value to String (de-referencing because otherwise it would be "&&str")
-			.collect(), // Collect it again as Vec<String>
+		out:                  get_output_path(input.out)?,
+		tmp:                  get_tmp_path(input.tmp)?,
+		url:                  input.url,
+		archive:              get_config_path(input.archive)?,
+		audio_only:           input.audio_only,
+		debug:                input.debug,
+		disable_cleanup:      input.disable_cleanup,
+		disable_re_thumbnail: input.disable_re_thumbnail,
+		askedit:              input.askedit,
+		editor:               input.editor,
+		extra_args:           Vec::new(),
 	};
 
 	if args.url.is_empty() {
@@ -125,44 +128,53 @@ mod test {
 	use super::*;
 
 	#[test]
-	// TODO: Enable this test when upgrading to clap 3.x
-	#[ignore = "https://github.com/clap-rs/clap/issues/2491"]
 	fn test_everything_default() {
-		let args = vec!["bin", "SomeURL"];
-		let yml = clap::load_yaml!("../../cli.yml");
-		let cli_matches = clap::App::from_yaml(yml).get_matches_from(args);
+		let arguments = setup_args(SetupArgs {
+			archive:              None,
+			askedit:              false,
+			audio_only:           false,
+			disable_cleanup:      false,
+			disable_re_thumbnail: false,
+			debug:                false,
+			editor:               String::from(""),
+			url:                  "SomeURL".to_owned(),
+			out:                  None,
+			tmp:                  None,
+		})
+		.unwrap();
 
-		let arguments = setup_args(&cli_matches).unwrap();
+		let download_dir = dirs_next::download_dir().expect("Expected to have a downloaddir");
 
-		let download_dir = dirs_next::download_dir();
-
-		// this is because when used on desktop sessins, there is an download dir, while in something like ci there is not
-		if let Some(path) = download_dir {
-			assert_eq!(path.join("ytdl-out"), arguments.out);
-		} else {
-			assert_eq!(std::env::current_dir().unwrap().join("ytdl-out"), arguments.out);
-		}
+		assert_eq!(download_dir.join("ytdl-out"), arguments.out);
 
 		assert_eq!(PathBuf::from("/tmp/ytdl-rust"), arguments.tmp);
 		assert_eq!("SomeURL", arguments.url);
-		assert!(arguments.extra_args.is_empty());
+		assert_eq!(1, arguments.extra_args.len());
 		assert!(!arguments.audio_only);
 		assert!(!arguments.debug);
 		assert!(!arguments.disable_cleanup);
 		assert!(!arguments.disable_re_thumbnail);
 		assert!(arguments.archive.is_some());
-		assert!(arguments.askedit);
+		assert!(!arguments.askedit);
 		assert!(arguments.editor.is_empty());
 	}
 
 	#[test]
 	#[ignore = "somehow, updating to clap 3.x something here is not allowed anymore - ignoring until moving away from yaml"]
 	fn test_arguments_tmp_add_ancestor() {
-		let args = vec!["bin", "--tmp", "/tmp", "SomeURL"];
-		let yml = clap::load_yaml!("../../cli.yml");
-		let cli_matches = clap::App::from_yaml(yml).get_matches_from(args);
-
-		let archive = setup_args(&cli_matches).unwrap();
+		let archive = setup_args(SetupArgs {
+			out:                  None,
+			tmp:                  Some(PathBuf::from("/tmp")),
+			url:                  "SomeURL".to_owned(),
+			archive:              None,
+			audio_only:           false,
+			debug:                false,
+			disable_cleanup:      false,
+			disable_re_thumbnail: false,
+			askedit:              false,
+			editor:               String::from(""),
+		})
+		.unwrap();
 
 		assert_eq!(PathBuf::from("/tmp/ytdl-rust"), archive.tmp);
 	}

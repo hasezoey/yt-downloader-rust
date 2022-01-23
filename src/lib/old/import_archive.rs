@@ -32,13 +32,20 @@ lazy_static! {
 	static ref ARCHIVE_REGEX: Regex = Regex::new(r"(?mi)^(\w+)\s+([\w\-_]+)$").unwrap();
 }
 
-pub fn import_archive(sub_matches: &clap::ArgMatches, main_matches: &clap::ArgMatches) -> Result<Archive, ioError> {
-	let input_path = PathBuf::from(shellexpand::tilde(&sub_matches.value_of("input").unwrap()).as_ref());
+/// Wrapper for [`import_archive`] arguments
+#[derive(Debug)]
+pub struct CommandImport {
+	pub input:   PathBuf,
+	pub archive: PathBuf,
+}
+
+pub fn import_archive(input: CommandImport) -> Result<Archive, ioError> {
+	let input_path = PathBuf::from(shellexpand::tilde(&input.input.to_string_lossy()).as_ref());
 	if !input_path.exists() || !input_path.is_file() {
 		panic!("\"{}\" does not exist or is not an file!", input_path.display());
 	}
 
-	let mut archive = setup_archive(&main_matches.value_of("archive").unwrap()).expect("Setting up the Archive failed");
+	let mut archive = setup_archive(input.archive).expect("Setting up the Archive failed");
 	let mut reader = BufReader::new(File::open(input_path)?);
 
 	let bar: ProgressBar = ProgressBar::new(reader.by_ref().lines().count() as u64).with_style(IMPORT_STYLE.clone());

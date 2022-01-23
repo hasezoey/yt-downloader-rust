@@ -1,3 +1,7 @@
+# the Clap yaml API got deprecated, and the api in this project also got moved, but needs
+# refactoring, so for now i will keep this for future reference
+
+
 name: yt-downloader
 version: "0.1.0"
 author: hasezoey <hasezoey@gmail.com>
