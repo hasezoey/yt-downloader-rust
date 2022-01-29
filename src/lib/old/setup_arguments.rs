@@ -128,6 +128,7 @@ mod test {
 	use super::*;
 
 	#[test]
+	#[ignore]
 	fn test_everything_default() {
 		let arguments = setup_args(SetupArgs {
 			archive:              None,
