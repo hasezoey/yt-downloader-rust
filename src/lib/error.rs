@@ -3,9 +3,13 @@ use std::fmt::Display;
 /// Error type for "yt-downloader-rust", implements all Error types that could happen in this lib
 #[derive(Debug)]
 pub enum Error {
+	/// Wrapper Variant for [`std::io::Error`]
 	IoError(std::io::Error),
+	/// Wrapper Variant for [`std::string::FromUtf8Error`]
 	FromStringUTF8Error(std::string::FromUtf8Error),
+	/// Variant for when a spawned command was not successfull
 	CommandNotSuccesfull(String),
+	/// Variant for when no regex captures have been found
 	NoCapturesFound(String),
 }
 
