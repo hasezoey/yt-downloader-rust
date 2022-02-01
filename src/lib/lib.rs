@@ -8,6 +8,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+pub mod data;
 mod error;
 mod old;
 mod spawn;
