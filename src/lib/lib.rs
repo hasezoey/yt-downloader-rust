@@ -1,3 +1,5 @@
+//! Library of "YTLD-R", contains all the logic needed for the binary
+
 #![allow(clippy::needless_return)]
 #![warn(clippy::implicit_return)]
 

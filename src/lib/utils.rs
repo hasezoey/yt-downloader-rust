@@ -1,9 +1,9 @@
+//! Module for utility functions, that may be used in various other modules
+
 use std::path::{
 	Path,
 	PathBuf,
 };
-
-// Utils file, may contain various small helper functions
 
 /// Simple helper to resolve "~"
 pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {

@@ -1,3 +1,4 @@
+//! Module for the Error type this library uses
 use std::fmt::Display;
 
 /// Error type for "yt-downloader-rust", implements all Error types that could happen in this lib

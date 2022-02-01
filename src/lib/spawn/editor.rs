@@ -1,3 +1,4 @@
+//! Module that contains all logic for spawning the "editor" command
 use std::path::Path;
 use std::process::Command;
 
