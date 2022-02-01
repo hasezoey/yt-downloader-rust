@@ -1,11 +1,9 @@
-use super::archive_schema::{
-	Provider,
-	Video,
-};
+use super::archive_schema::Video;
 use super::utils::{
 	Arguments,
 	LineTypes,
 };
+use crate::data::provider::Provider;
 
 use colored::*;
 use indicatif::{

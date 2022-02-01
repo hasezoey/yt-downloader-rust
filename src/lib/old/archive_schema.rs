@@ -2,14 +2,13 @@ use crate::unwrap_or_return;
 
 use serde::{
 	Deserialize,
-	Deserializer,
 	Serialize,
-	Serializer,
-	*,
 };
 use std::default::Default;
 use std::fmt;
 use std::path::PathBuf;
+
+use crate::data::provider::Provider;
 
 /// used for serde default
 fn default_version() -> String {
@@ -97,90 +96,6 @@ impl Archive {
 	}
 }
 
-#[derive(Debug, PartialEq)]
-#[non_exhaustive]
-pub enum Provider {
-	Youtube,
-	Unknown,
-	Other(String),
-}
-
-impl From<&Provider> for String {
-	fn from(provider: &Provider) -> Self {
-		return match provider {
-			Provider::Youtube => "Youtube".to_owned(),
-			Provider::Unknown => "Unknown".to_owned(),
-			Provider::Other(d) => d.to_owned(),
-		};
-	}
-}
-
-impl fmt::Display for Provider {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		return write!(f, "{}", String::from(self));
-	}
-}
-
-impl Default for Provider {
-	fn default() -> Provider {
-		return Provider::Unknown;
-	}
-}
-
-impl Serialize for Provider {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: Serializer,
-	{
-		// match self with Provider-Variants to output correct provider
-		return serializer.serialize_str(match self {
-			Provider::Unknown => "",
-			Provider::Other(v) => v,
-			Provider::Youtube => "youtube",
-		});
-	}
-}
-
-impl<'de> Deserialize<'de> for Provider {
-	fn deserialize<D>(deserializer: D) -> Result<Provider, D::Error>
-	where
-		D: Deserializer<'de>,
-	{
-		struct ProviderVisitor;
-
-		// not implementing other visit_* functions, because only str is expected
-		impl<'de> de::Visitor<'de> for ProviderVisitor {
-			type Value = Provider;
-
-			// {"provider": "something"} will always result in an str
-			fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-				return Ok(Provider::from(v));
-			}
-
-			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-				write!(formatter, "an String to be parsed into an Provider-Variant")?;
-
-				return Ok(());
-			}
-		}
-
-		return deserializer.deserialize_str(ProviderVisitor);
-	}
-}
-
-impl From<&str> for Provider {
-	/// Match "input" to the Provider-Variants
-	fn from(input: &str) -> Self {
-		let finput = input.trim().to_lowercase();
-
-		return match finput.as_ref() {
-			"youtube" => Provider::Youtube,
-			"" | "unknown" => Provider::Unknown,
-			_ => Provider::Other(finput),
-		};
-	}
-}
-
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Video {
 	#[serde(rename = "id")]
@@ -253,24 +168,6 @@ mod test {
 			Video::new(&"SomeID".to_owned(), Provider::Youtube).set_dl_finished(true),
 			to_assert
 		);
-	}
-
-	#[test]
-	fn test_provider_try_match() {
-		assert_eq!(Provider::from("youtube"), Provider::Youtube);
-		assert_eq!(Provider::from(""), Provider::Unknown);
-		assert_eq!(Provider::from("unknown"), Provider::Unknown);
-		assert_eq!(
-			Provider::from("Something Different"),
-			Provider::Other("Something Different".to_lowercase())
-		);
-	}
-
-	#[test]
-	fn test_string_from_provider() {
-		assert_eq!(String::from(&Provider::Youtube), "Youtube".to_owned());
-		assert_eq!(String::from(&Provider::Unknown), "Unknown".to_owned());
-		assert_eq!(String::from(&Provider::Other("Hello".to_owned())), "Hello".to_owned());
 	}
 
 	#[test]

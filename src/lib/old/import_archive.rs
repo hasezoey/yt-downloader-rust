@@ -16,10 +16,10 @@ use std::path::PathBuf;
 
 use super::archive_schema::{
 	Archive,
-	Provider,
 	Video,
 };
 use super::setup_archive::setup_archive;
+use crate::data::provider::Provider;
 use crate::unwrap_or_return;
 
 lazy_static! {
