@@ -3,7 +3,6 @@ use super::paths::to_absolute;
 use super::setup_archive::setup_archive;
 use super::utils::Arguments;
 
-use std::ffi::OsStr;
 use std::fs::create_dir_all;
 use std::io::{
 	Error as ioError,
