@@ -20,6 +20,9 @@ fs_extra = "1.2.0"
 shellexpand = "2.1.0"
 dirs-next = "2.0.0"
 
+[dev-dependencies]
+serde_test = "1.0.117"
+
 [lib]
 name = "libytdlr"
 path = "src/lib/lib.rs"
