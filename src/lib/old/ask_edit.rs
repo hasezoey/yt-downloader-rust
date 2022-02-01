@@ -1,6 +1,6 @@
-use super::archive_schema::Video;
 use super::move_finished::mv_handler;
 use super::utils::Arguments;
+use crate::data::video::Video;
 use std::fs::metadata;
 use std::io::ErrorKind;
 use std::io::{
@@ -70,14 +70,14 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 	let mut edited: Vec<PathBuf> = Vec::new();
 	// TODO: Reformat (get_mut_videos) to use iterators
 	for video in archive.get_mut_videos() {
-		if video.edit_asked {
-			trace!("Video \"{}\" has already been asked to edit", video.get_id());
+		if video.edit_asked() {
+			trace!("Video \"{}\" has already been asked to edit", video.id());
 
 			continue;
 		}
 
 		// Skip the video if the filename is empty
-		if video.file_name.is_empty() {
+		if video.file_name().is_empty() {
 			info!("{} does not have an filename!", video);
 			video.set_edit_asked(true);
 			continue;
@@ -88,7 +88,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 			continue;
 		}
 
-		let video_path = Path::new(&args.tmp).join(&video.file_name);
+		let video_path = Path::new(&args.tmp).join(&video.file_name());
 
 		// test if the video file can even still be found in the tmp directory
 		if let Err(err) = metadata(&video_path) {
@@ -240,7 +240,7 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 
 /// Repeat to ask Yes or No until valid
 fn ask_edit(video: &Video) -> Result<ResponseYesNo, ioError> {
-	println!("Do you want to edit \"{}\"?", video.file_name);
+	println!("Do you want to edit \"{}\"?", video.file_name());
 	loop {
 		print!("[Y/n]: ");
 
@@ -265,7 +265,7 @@ fn ask_edit(video: &Video) -> Result<ResponseYesNo, ioError> {
 fn ask_continue(video: &Video) -> Result<ResponseContinue, ioError> {
 	println!(
 		"Do you want to [R]etry or [C]ontinue or [A]bort \"{}\"?",
-		video.file_name
+		video.file_name()
 	);
 	loop {
 		print!("[R/c/a]: ");

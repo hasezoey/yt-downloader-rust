@@ -14,12 +14,12 @@ use std::io::{
 };
 use std::path::PathBuf;
 
-use super::archive_schema::{
-	Archive,
-	Video,
-};
+use super::archive_schema::Archive;
 use super::setup_archive::setup_archive;
-use crate::data::provider::Provider;
+use crate::data::{
+	provider::Provider,
+	video::Video,
+};
 use crate::unwrap_or_return;
 
 lazy_static! {
@@ -61,7 +61,7 @@ pub fn import_archive(input: CommandImport) -> Result<Archive, ioError> {
 			bar.inc(1);
 			let tmp = unwrap_or_return!(ARCHIVE_REGEX.captures_iter(&line).next());
 
-			archive.add_video(Video::new(&tmp[2].to_owned(), Provider::from(&tmp[1])).set_dl_finished(true));
+			archive.add_video(Video::new(&tmp[2].to_owned(), Provider::from(&tmp[1])).with_dl_finished(true));
 		});
 
 	bar.finish_with_message("Import Finished");
