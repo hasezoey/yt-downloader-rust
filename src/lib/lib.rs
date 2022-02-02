@@ -2,6 +2,7 @@
 
 #![allow(clippy::needless_return)]
 #![warn(clippy::implicit_return)]
+// #![deny(missing_docs)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -10,8 +11,10 @@ extern crate log;
 
 pub mod data;
 mod error;
+mod main_functionality;
 mod old;
 mod spawn;
+pub use main_functionality::*;
 pub mod traits;
 pub mod utils;
 pub use error::Error;
