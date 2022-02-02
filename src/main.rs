@@ -4,85 +4,16 @@
 #[macro_use]
 extern crate log;
 
-use clap::{
-	AppSettings,
-	Parser,
-};
 use env_logger::{
 	builder,
 	Target,
 };
 use std::io::Error as ioError;
-use std::path::PathBuf;
 
 use libytdlr::*;
 
-#[derive(Debug, Parser)]
-#[clap(author, version, about, long_about = None)]
-#[clap(bin_name("ytdlr"))]
-#[clap(global_setting(AppSettings::AllArgsOverrideSelf))] // specifying a argument multiple times overwrites the earlier ones
-#[clap(global_setting(AppSettings::DisableHelpSubcommand))] // Disable subcommand "help", only "-h --help" should be used
-#[clap(global_setting(AppSettings::SubcommandsNegateReqs))]
-pub struct CliDerive {
-	#[clap(short, long, parse(from_os_str), env = "YTDL_OUT")]
-	pub output:               Option<PathBuf>,
-	#[clap(long, parse(from_os_str), env = "YTDL_TMP")]
-	pub tmp:                  Option<PathBuf>,
-	#[clap(short = 'a')]
-	pub audio_only:           bool,
-	#[clap(short, long)]
-	pub debug:                bool,
-	#[clap(long)]
-	pub debugger:             bool,
-	#[clap(short = 'c')]
-	pub disable_cleanup:      bool,
-	#[clap(short = 't')]
-	pub disable_re_thumbnail: bool,
-	#[clap(long, parse(from_os_str), env = "YTDL_ARCHIVE")]
-	pub archive:              Option<PathBuf>,
-	#[clap(short = 'e')]
-	pub disable_askedit:      bool,
-	#[clap(long, env = "YTDL_EDITOR")]
-	pub editor:               Option<String>,
-
-	// #[clap(subcommand)]
-	// pub subcommands: SubCommands,
-
-	// #[clap(last = true)]
-	pub url: String,
-}
-
-impl CliDerive {
-	pub fn custom_parse() -> Self {
-		let parsed = Self::parse();
-
-		if parsed.editor.is_none() {
-			panic!("Editor needs to be set!");
-		}
-
-		return parsed;
-	}
-}
-
-// #[derive(Debug, Subcommand)]
-// pub enum SubCommands {
-// 	Import(CommandImport),
-// }
-
-// impl SubCommands {
-// 	pub fn get_import(&self) -> Option<&CommandImport> {
-// 		return match &self {
-// 			Self::Import(v) => Some(&v),
-// 			_ => None,
-// 		};
-// 	}
-// }
-
-// #[derive(Debug, Parser)]
-// pub struct CommandImport {
-// 	#[clap(parse(from_os_str))]
-// 	pub input: PathBuf,
-// }
+mod clap_conf;
+use clap_conf::*;
 
 /// Main
 fn main() -> Result<(), ioError> {
