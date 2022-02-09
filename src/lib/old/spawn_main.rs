@@ -283,7 +283,9 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 				current_filename = file;
 
 				if let Some(archive) = &mut args.archive {
-					archive.add_video(Video::new(&current_id, Provider::from(provider.as_str())).with_filename(&current_filename))
+					archive.add_video(Video::new(&current_id, Provider::from(provider.as_str())).with_filename(&current_filename));
+
+					return ();
 				}
 			},
 			LineTypes::Ffmpeg | LineTypes::Generic => {
