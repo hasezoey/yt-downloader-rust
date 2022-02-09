@@ -8,7 +8,7 @@ use std::fmt;
 
 use super::provider;
 
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct Video {
 	/// The "id" of the video, as provided by "yt-dl"
 	id: String,
@@ -338,6 +338,16 @@ mod test {
 		assert_eq!(
 			Video::new("id", provider::Provider::Unknown).with_filename("Hello"),
 			video1
+		);
+	}
+
+	#[test]
+	fn test_clone() {
+		let video1 = Video::new("id1", provider::Provider::Other("SomethingElse".to_owned()));
+
+		assert_eq!(
+			Video::new("id1", provider::Provider::Other("SomethingElse".to_owned())),
+			video1.clone()
 		);
 	}
 
