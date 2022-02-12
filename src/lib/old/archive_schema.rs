@@ -91,6 +91,22 @@ impl Archive {
 	pub fn videos_is_empty(&self) -> bool {
 		return self.videos.is_empty();
 	}
+
+	/// Run [`Video::check_all`] on each video
+	/// Returns "true" if at least one check returned "true", otherwise "false"
+	pub fn check_all_videos(&mut self) -> bool {
+		let mut changed = false;
+
+		for video in self.get_mut_videos() {
+			let change = video.check_all();
+
+			if !changed && change {
+				changed = true;
+			}
+		}
+
+		return changed;
+	}
 }
 
 #[cfg(test)]
@@ -135,5 +151,39 @@ mod test {
 		should_archive.push((String::from(&Provider::Unknown).to_lowercase(), &id2));
 
 		assert_eq!(archive.to_ytdl_archive(), should_archive);
+	}
+
+	#[test]
+	fn test_check_video_all() {
+		// test that "check_all_videos" returns the correct value
+
+		let mut archive0 = {
+			let mut archive = Archive::default();
+			archive.add_video(Video::new("someID", Provider::Youtube));
+
+			archive
+		};
+
+		assert_eq!(false, archive0.check_all_videos());
+
+		let mut archive1 = {
+			let mut archive = Archive::default();
+			archive.add_video(Video::generate_invalid_options());
+
+			archive
+		};
+
+		assert_eq!(true, archive1.check_all_videos());
+
+		let mut archive2 = {
+			let mut archive = Archive::default();
+			archive.add_video(Video::new("someID1", Provider::Youtube));
+			archive.add_video(Video::generate_invalid_options());
+			archive.add_video(Video::new("someID2", Provider::Youtube));
+
+			archive
+		};
+
+		assert_eq!(true, archive2.check_all_videos());
 	}
 }
