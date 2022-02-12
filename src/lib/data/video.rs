@@ -134,6 +134,33 @@ impl Video {
 	pub fn set_file_name<T: Into<String>>(&mut self, to: T) {
 		self.file_name = to.into();
 	}
+
+	/// Check the Video if all the options are set correctly
+	/// Returns "true" if something was changed and "false" if not
+	#[inline]
+	pub fn check_all(&mut self) -> bool {
+		let mut changed = false;
+
+		// check that "edit_asked" is "false" when "dl_finished" is not "true"
+		if !self.dl_finished && self.edit_asked {
+			self.edit_asked = false;
+			changed = true;
+		}
+
+		return changed;
+	}
+
+	/// Generate a [`Video`] with invalid options (like from a serde parse)
+	#[cfg(test)]
+	pub fn generate_invalid_options() -> Self {
+		return Video {
+			dl_finished: false,
+			edit_asked:  true,
+			file_name:   "".to_owned(),
+			id:          "someID".to_owned(),
+			provider:    provider::Provider::Youtube,
+		};
+	}
 }
 
 impl fmt::Display for Video {
@@ -221,6 +248,40 @@ mod test {
 				.with_dl_finished(true)
 				.with_edit_asked(true)
 		);
+	}
+
+	#[test]
+	fn test_check() {
+		// test that the ".check" function works and returns the correct values
+
+		// check that both are false and does not change anything
+		let mut video0 = Video::new("someID", provider::Provider::Youtube);
+		assert!(!video0.dl_finished);
+		assert!(!video0.edit_asked);
+
+		assert_eq!(false, video0.check_all());
+		assert!(!video0.dl_finished);
+		assert!(!video0.edit_asked);
+
+		// check that both are true and does not change anything
+		let mut video1 = Video::new("someID", provider::Provider::Youtube)
+			.with_dl_finished(true)
+			.with_edit_asked(true);
+		assert!(video1.dl_finished);
+		assert!(video1.edit_asked);
+
+		assert_eq!(false, video1.check_all());
+		assert!(video1.dl_finished);
+		assert!(video1.edit_asked);
+
+		// check that both are false and change to false
+		let mut video2 = Video::generate_invalid_options();
+		assert!(!video2.dl_finished);
+		assert!(video2.edit_asked);
+
+		assert_eq!(true, video2.check_all());
+		assert!(!video2.dl_finished);
+		assert!(!video2.edit_asked);
 	}
 
 	#[test]
