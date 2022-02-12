@@ -92,7 +92,10 @@ pub enum SubCommands {
 // }
 
 #[derive(Debug, Parser)]
-pub struct CommandImport {}
+pub struct CommandImport {
+	#[clap(parse(from_os_str))]
+	pub file: PathBuf,
+}
 
 #[derive(Debug, Parser)]
 pub struct CommandDownload {}
