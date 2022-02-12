@@ -24,15 +24,15 @@ pub enum Error {
 impl PartialEq for Error {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
-			(Self::IoError(l0), Self::IoError(r0)) => l0.kind() == r0.kind(),
-			(Self::FromStringUTF8Error(l0), Self::FromStringUTF8Error(r0)) => l0 == r0,
-			(Self::CommandNotSuccesfull(l0), Self::CommandNotSuccesfull(r0)) => l0 == r0,
-			(Self::NoCapturesFound(l0), Self::NoCapturesFound(r0)) => l0 == r0,
-			(Self::Other(l0), Self::Other(r0)) => l0 == r0,
-			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => l0 == r0,
+			(Self::IoError(l0), Self::IoError(r0)) => return l0.kind() == r0.kind(),
+			(Self::FromStringUTF8Error(l0), Self::FromStringUTF8Error(r0)) => return l0 == r0,
+			(Self::CommandNotSuccesfull(l0), Self::CommandNotSuccesfull(r0)) => return l0 == r0,
+			(Self::NoCapturesFound(l0), Self::NoCapturesFound(r0)) => return l0 == r0,
+			(Self::Other(l0), Self::Other(r0)) => return l0 == r0,
+			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
 			// Always return "false" for a serde_json::Error
-			(Self::SerdeJSONError(_l0), Self::SerdeJSONError(_r0)) => false,
-			(_, _) => false,
+			(Self::SerdeJSONError(_l0), Self::SerdeJSONError(_r0)) => return false,
+			(_, _) => return false,
 		}
 	}
 }
@@ -63,7 +63,7 @@ impl From<Error> for std::io::Error {
 
 impl Display for Error {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(
+		return write!(
 			f,
 			"{}",
 			match &self {

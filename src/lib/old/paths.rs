@@ -87,7 +87,7 @@ mod test {
 	#[test]
 	fn test_normalize_path() {
 		let input_path = Path::new("hello/./../hello2/something");
-		assert_eq!(PathBuf::from("hello2/something"), normalize_path(&input_path));
+		assert_eq!(PathBuf::from("hello2/something"), normalize_path(input_path));
 	}
 
 	#[test]
@@ -99,18 +99,18 @@ mod test {
 		// TODO: add test for "to_absolute" and tilde ("~/home/dir") when using dirs-next
 
 		// should return "base_path" unmodified
-		assert_eq!(PathBuf::from(&base_path), to_absolute(&base_path, &test_target_empty)?);
+		assert_eq!(PathBuf::from(&base_path), to_absolute(base_path, test_target_empty)?);
 		// should return "target" without "base_path" because its absolute
-		assert_eq!(PathBuf::from(&test_target_1), to_absolute(&base_path, &test_target_1)?);
+		assert_eq!(PathBuf::from(&test_target_1), to_absolute(base_path, test_target_1)?);
 		// should return combined "base_path" and "target"
 		assert_eq!(
 			PathBuf::from("/root/path/to/somewhere/else"),
-			to_absolute(&base_path, &test_target_2)?
+			to_absolute(base_path, test_target_2)?
 		);
 
 		// should return an Error because base is not absolute
 		{
-			let returned = to_absolute(&test_target_2, &test_target_empty).unwrap_err();
+			let returned = to_absolute(test_target_2, test_target_empty).unwrap_err();
 			assert_eq!(ErrorKind::InvalidInput, returned.kind());
 			assert_eq!("Base Path is not absolute!", returned.to_string());
 		}

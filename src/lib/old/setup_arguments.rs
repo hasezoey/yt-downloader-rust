@@ -21,7 +21,7 @@ fn process_paths<T: AsRef<Path>>(val: T) -> ioResult<PathBuf> {
 fn get_tmp_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
 	let mut ret_path = process_paths({
 		if let Some(path) = val {
-			PathBuf::from(path)
+			path
 		} else {
 			std::env::temp_dir()
 		}
@@ -50,7 +50,7 @@ fn get_tmp_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
 fn get_config_path(val: Option<PathBuf>) -> ioResult<Option<Archive>> {
 	let archive_path = process_paths({
 		if let Some(path) = val {
-			PathBuf::from(path)
+			path
 		} else {
 			dirs_next::config_dir()
 				.expect("Could not find an Default Config Directory")
@@ -65,7 +65,7 @@ fn get_config_path(val: Option<PathBuf>) -> ioResult<Option<Archive>> {
 fn get_output_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
 	let mut ret_path = process_paths({
 		if let Some(path) = val {
-			PathBuf::from(path)
+			path
 		} else {
 			dirs_next::download_dir()
 				.unwrap_or_else(|| return PathBuf::from("."))

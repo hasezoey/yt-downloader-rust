@@ -44,7 +44,7 @@ pub fn ytdl_version() -> Result<String, crate::Error> {
 #[inline]
 fn ytdl_parse_version(input: &str) -> Result<String, crate::Error> {
 	return Ok(YTDL_VERSION_REGEX
-		.captures_iter(&input)
+		.captures_iter(input)
 		.next()
 		.ok_or_else(|| return crate::Error::NoCapturesFound("YTDL Version could not be determined".to_owned()))?[1]
 		.to_owned());
@@ -55,7 +55,7 @@ mod test {
 	use super::ytdl_version;
 
 	#[test]
-	pub fn test_ytdl_parse_version_invalid_input() -> () {
+	pub fn test_ytdl_parse_version_invalid_input() {
 		assert_eq!(
 			super::ytdl_parse_version("hello"),
 			Err(crate::Error::NoCapturesFound(
@@ -65,15 +65,15 @@ mod test {
 	}
 
 	#[test]
-	pub fn test_ytdl_parse_version_valid_static_input() -> () {
+	pub fn test_ytdl_parse_version_valid_static_input() {
 		let ytdl_output = "2021.12.27";
 
-		assert_eq!(super::ytdl_parse_version(&ytdl_output), Ok("2021.12.27".to_owned()));
+		assert_eq!(super::ytdl_parse_version(ytdl_output), Ok("2021.12.27".to_owned()));
 	}
 
 	#[test]
 	#[ignore = "CI Install not present currently"]
-	pub fn test_ytdl_spawn() -> () {
+	pub fn test_ytdl_spawn() {
 		assert!(ytdl_version().is_ok());
 	}
 }
