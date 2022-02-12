@@ -7,10 +7,7 @@ use serde::{
 use std::default::Default;
 use std::path::PathBuf;
 
-use crate::data::{
-	provider::Provider,
-	video::Video,
-};
+use crate::data::video::Video;
 
 /// used for serde default
 fn default_version() -> String {
@@ -54,25 +51,18 @@ impl Archive {
 	}
 
 	/// Add a video to the Archive (with dl_finished = false)
-	pub fn add_video(&mut self, video: Video) {
+	/// Returns `true` if `video` was successfully inserted
+	/// Returns `false` if `video` was no inserted
+	pub fn add_video(&mut self, video: Video) -> bool {
 		// return if the id already exists in the Archive
 		// "avideo" = Archive Video
-		if let Some(avideo) = self.videos.iter_mut().find(|v| return v.id() == video.id()) {
+		if let Some(_avideo) = self.videos.iter_mut().find(|v| return v.id() == video.id()) {
 			// video already exists in archive.videos
-			if avideo.provider() != video.provider() {
-				// if the providers dont match, re-assign them
-				match avideo.provider() {
-					// assign the new provider because the old was unknown
-					Provider::Unknown => avideo.set_provider(video.provider().clone()),
-					// just warn that the id already exists and is *not* added to the archive
-					_ => {
-						warn!("Video ID \"{}\" already exists, but providers dont match! (old_provider: \"{}\", new_provider: \"{}\")", &video.id(), avideo.provider(), video.provider());
-					},
-				}
-			}
-			return;
+			return false;
 		}
 		self.videos.push(video);
+
+		return true;
 	}
 
 	/// Find the the id in the videos vec and set dl_finished to true
@@ -90,6 +80,10 @@ impl Archive {
 
 	pub fn videos_is_empty(&self) -> bool {
 		return self.videos.is_empty();
+	}
+
+	pub fn get_videos(&self) -> &Vec<Video> {
+		return self.videos.as_ref();
 	}
 
 	/// Run [`Video::check_all`] on each video
@@ -112,15 +106,20 @@ impl Archive {
 #[cfg(test)]
 mod test {
 	use super::*;
+	use crate::data::provider::Provider;
 
 	#[test]
 	fn test_archive_add_video() {
 		let id = "SomeID".to_owned();
 		let mut archive = Archive::default();
-		archive.add_video(Video::new(&id, Provider::Youtube));
+		assert_eq!(true, archive.add_video(Video::new(&id, Provider::Youtube)));
 
 		let mut should_archive: Vec<Video> = Vec::new();
 		should_archive.push(Video::new(&id, Provider::Youtube));
+
+		assert_eq!(archive.videos, should_archive);
+
+		assert_eq!(false, archive.add_video(Video::new(&id, Provider::Unknown)));
 
 		assert_eq!(archive.videos, should_archive);
 	}
