@@ -12,6 +12,12 @@ pub enum Error {
 	CommandNotSuccesfull(String),
 	/// Variant for when no regex captures have been found
 	NoCapturesFound(String),
+	/// Variant for when a Unexpected EOF happened (like in import)
+	UnexpectedEOF(String),
+	/// Variant for serde-json Errors
+	SerdeJSONError(serde_json::Error),
+	/// Variant for Other messages
+	Other(String),
 }
 
 // this is custom, because "std::io::Error" does not implement "PartialEq", but "std::io::ErrorKind" does
@@ -22,6 +28,10 @@ impl PartialEq for Error {
 			(Self::FromStringUTF8Error(l0), Self::FromStringUTF8Error(r0)) => l0 == r0,
 			(Self::CommandNotSuccesfull(l0), Self::CommandNotSuccesfull(r0)) => l0 == r0,
 			(Self::NoCapturesFound(l0), Self::NoCapturesFound(r0)) => l0 == r0,
+			(Self::Other(l0), Self::Other(r0)) => l0 == r0,
+			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => l0 == r0,
+			// Always return "false" for a serde_json::Error
+			(Self::SerdeJSONError(_l0), Self::SerdeJSONError(_r0)) => false,
 			(_, _) => false,
 		}
 	}
@@ -39,6 +49,12 @@ impl From<std::string::FromUtf8Error> for Error {
 	}
 }
 
+impl From<serde_json::Error> for Error {
+	fn from(err: serde_json::Error) -> Self {
+		return Self::SerdeJSONError(err);
+	}
+}
+
 impl Display for Error {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(
@@ -49,6 +65,9 @@ impl Display for Error {
 				Self::NoCapturesFound(s) => format!("NoCapturesFound: {}", s),
 				Self::FromStringUTF8Error(v) => format!("FromStringUTF8Error: {}", v),
 				Self::IoError(v) => format!("IoError: {}", v),
+				Self::UnexpectedEOF(v) => format!("UnexpectedEOF: {}", v),
+				Self::SerdeJSONError(v) => format!("SerdeJSONError: {}", v),
+				Self::Other(v) => format!("Other: {}", v),
 			}
 		)
 	}
