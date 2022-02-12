@@ -4,7 +4,6 @@ use serde::{
 	Deserialize,
 	Serialize,
 };
-use std::default::Default;
 use std::path::PathBuf;
 
 use crate::data::video::Video;
@@ -24,7 +23,7 @@ pub struct Archive {
 	pub path: PathBuf,
 }
 
-impl Default for Archive {
+impl std::default::Default for Archive {
 	fn default() -> Archive {
 		return Archive {
 			version: default_version(),
