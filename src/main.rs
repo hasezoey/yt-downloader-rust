@@ -8,7 +8,13 @@ use env_logger::{
 	builder,
 	Target,
 };
-use std::io::Error as ioError;
+use std::{
+	fs::File,
+	io::{
+		BufReader,
+		Error as ioError,
+	},
+};
 
 use libytdlr::*;
 
@@ -115,5 +121,54 @@ fn main() -> Result<(), ioError> {
 		warn!("Existing with non-zero code, because of an previous Error");
 		std::process::exit(1);
 	}
+	return Ok(());
+}
+
+fn command_import(main_args: CliDerive, sub_args: CommandImport) -> Result<(), ioError> {
+	use indicatif::{
+		ProgressBar,
+		ProgressStyle,
+	};
+	println!("Importing Archive from \"{}\"", sub_args.file.to_string_lossy());
+
+	let input_path = sub_args.file;
+
+	if main_args.archive.is_none() {
+		return Err(ioError::new(
+			std::io::ErrorKind::Other,
+			"Archive is required for Import!",
+		));
+	}
+
+	let archive_path = main_args
+		.archive
+		.expect("Expected archive check to have already returned");
+
+	lazy_static::lazy_static! {
+		static ref IMPORT_STYLE: ProgressStyle = ProgressStyle::default_bar()
+			.template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+			.progress_chars("#>-");
+	}
+
+	let bar: ProgressBar = ProgressBar::new(0).with_style(IMPORT_STYLE.clone());
+
+	let mut archive = if let Some(archive) = libytdlr::setup_archive::setup_archive(archive_path) {
+		archive
+	} else {
+		return Err(ioError::new(std::io::ErrorKind::Other, "Reading Archive failed!"));
+	};
+
+	let mut reader = BufReader::new(File::open(input_path)?);
+
+	let pgcb = |imp| match imp {
+		ImportProgress::Starting => todo!(),
+		ImportProgress::SizeHint(v) => bar.set_length(v.try_into().expect("Failed to convert usize to u64")),
+		ImportProgress::Increase(c, _i) => bar.inc(c.try_into().expect("Failed to convert usize to u64")),
+		ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Importing {} elements", v)),
+		_ => (),
+	};
+
+	libytdlr::import_any_archive(&mut reader, &mut archive, pgcb)?;
+
 	return Ok(());
 }
