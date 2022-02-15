@@ -62,10 +62,6 @@ jobs:
         with:
           command: check
           args: --workspace
-      - name: Clean (for coverage safety)
-        uses: actions-rs/cargo@v1
-        with:
-          command: clean
       - name: Tests
         uses: actions-rs/cargo@v1
         with:
