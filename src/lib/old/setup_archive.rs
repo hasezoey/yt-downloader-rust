@@ -1,5 +1,3 @@
-use crate::paths::to_absolute;
-
 use super::archive_schema::Archive;
 
 use std::fs::{
@@ -25,7 +23,7 @@ pub fn setup_archive<T: AsRef<Path>>(val: T) -> Option<Archive> {
 		return None;
 	}
 
-	let mut path = to_absolute(std::env::current_dir().ok()?.as_path(), input).ok()?;
+	let mut path = crate::utils::to_absolute(input).ok()?;
 
 	if path.is_dir() {
 		debug!("Provided Archive-Path was an directory");

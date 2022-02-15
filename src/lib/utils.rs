@@ -5,6 +5,8 @@ use std::path::{
 	PathBuf,
 };
 
+use path_absolutize::Absolutize;
+
 /// Simple helper to resolve "~"
 pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 	let path = input.as_ref();
@@ -32,4 +34,68 @@ pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 			v
 		};
 	});
+}
+
+/// Convert input path to a absolute path, without hitting the filesystem
+///
+/// If the start is not absolute, CWD will be used
+pub fn to_absolute<P: AsRef<Path>>(input: P) -> std::io::Result<PathBuf> {
+	let converted = match expand_tidle(input) {
+		Some(v) => v,
+		None => {
+			return Err(std::io::Error::new(
+				std::io::ErrorKind::InvalidInput,
+				"Could not resolve \"~\"",
+			))
+		},
+	};
+
+	return converted.absolutize().map(|v| v.to_path_buf());
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	mod expand_tidle {
+		use super::*;
+	}
+
+	mod to_absolute {
+		use super::*;
+
+		#[test]
+		fn basic_func() {
+			// fake home
+			std::env::set_var("HOME", "/custom/home");
+
+			// should not modify the input
+			let absolue_path = PathBuf::from("/absolute/to/path");
+			assert_eq!(
+				absolue_path,
+				to_absolute(&absolue_path).expect("Expected to return a OK value")
+			);
+
+			// should modify the input, but not the base
+			let absolue_containing_relative = PathBuf::from("/absolute/to/inner/../path");
+			assert_eq!(
+				absolue_path,
+				to_absolute(&absolue_containing_relative).expect("Expected to return a OK value")
+			);
+
+			// should add CWD as a base
+			let relative_path = PathBuf::from("./inner/path");
+			assert_eq!(
+				Path::join(&std::env::current_dir().expect("Expected to have a CWD"), "inner/path"),
+				to_absolute(&relative_path).expect("Expected to return a OK value")
+			);
+
+			// should resolve a "~"
+			let relative_home = PathBuf::from("~/inner/path");
+			assert_eq!(
+				Path::join(&dirs_next::home_dir().expect("Expected to have HOME"), "inner/path"),
+				to_absolute(relative_home).expect("Expected to return a OK value")
+			);
+		}
+	}
 }

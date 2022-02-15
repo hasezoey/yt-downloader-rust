@@ -1,5 +1,4 @@
 use super::archive_schema::Archive;
-use super::paths::to_absolute;
 use super::setup_archive::setup_archive;
 use super::utils::Arguments;
 
@@ -14,7 +13,7 @@ use std::path::PathBuf;
 /// Helper function to make code more clean
 #[inline]
 fn process_paths<T: AsRef<Path>>(val: T) -> ioResult<PathBuf> {
-	return to_absolute(std::env::current_dir()?.as_path(), val.as_ref());
+	return crate::utils::to_absolute(val);
 }
 
 /// Process input to useable PathBuf for temporary directory
