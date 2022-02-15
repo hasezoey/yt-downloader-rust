@@ -58,6 +58,50 @@ mod test {
 
 	mod expand_tidle {
 		use super::*;
+
+		#[test]
+		fn basic_func() {
+			// fake home
+			std::env::set_var("HOME", "/custom/home");
+
+			// should not modify a absolute path
+			let absolue_path = PathBuf::from("/absolute/to/path");
+			assert_eq!(
+				absolue_path,
+				expand_tidle(&absolue_path).expect("Expected to return a SOME value")
+			);
+
+			// should not modify a relative path
+			let relative_path = PathBuf::from("./inner/path");
+			assert_eq!(
+				relative_path,
+				expand_tidle(&relative_path).expect("Expected to return a SOME value")
+			);
+
+			// should resolve "~" without extra paths
+			let home_no_extensions = PathBuf::from("~");
+			assert_eq!(
+				dirs_next::home_dir().expect("Expected to return a SOME value"),
+				expand_tidle(home_no_extensions).expect("Expected to return a SOME value")
+			);
+
+			// should resolve "~" with extra paths
+			let home_with_extensions = PathBuf::from("~/some/path");
+			assert_eq!(
+				Path::join(
+					&dirs_next::home_dir().expect("Expected to return a SOME value"),
+					"some/path"
+				),
+				expand_tidle(home_with_extensions).expect("Expected to return a SOME value")
+			);
+
+			// should return weird path "~user"
+			let weird_path = PathBuf::from("~user");
+			assert_eq!(
+				weird_path,
+				expand_tidle(&weird_path).expect("Expected to return a SOME value")
+			);
+		}
 	}
 
 	mod to_absolute {
