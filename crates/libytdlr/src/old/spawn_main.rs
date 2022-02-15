@@ -7,7 +7,7 @@ use crate::data::{
 	video::Video,
 };
 
-use colored::*;
+use colored::Colorize;
 use indicatif::{
 	ProgressBar,
 	ProgressStyle,

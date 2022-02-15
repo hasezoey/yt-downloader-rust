@@ -1,32 +1,5 @@
-[package]
-name = "yt-downloader-rust"
-version = "0.4.0"
-authors = ["hasezoey <hasezoey@gmail.com>"]
-edition = "2021"
-license = "MIT"
+[workspace]
 
-[dependencies]
-clap = { version = "3.0.9", features = ["derive", "wrap_help", "env"] }
-serde = { version = "1.0.133", features = ["derive"] }
-regex = "1.5.4"
-lazy_static = "1.4.0"
-indicatif = "0.16.2"
-colored = "2.0.0"
-# semver = "1.0.4"
-log = "0.4.14"
-env_logger = "0.9.0"
-serde_json = "1.0.74"
-fs_extra = "1.2.0"
-dirs-next = "2.0.0"
-path-absolutize = "3.0" # Replace with official implementation, RFC: https://github.com/rust-lang/rfcs/issues/2208
-
-[dev-dependencies]
-serde_test = "1.0.117"
-
-[lib]
-name = "libytdlr"
-path = "src/lib/lib.rs"
-
-[[bin]]
-name = "ytdlr"
-path = "src/main.rs"
+members = [
+	"crates/*"
+]
