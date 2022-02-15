@@ -75,6 +75,6 @@ impl Display for Error {
 				Self::SerdeJSONError(v) => format!("SerdeJSONError: {}", v),
 				Self::Other(v) => format!("Other: {}", v),
 			}
-		)
+		);
 	}
 }
