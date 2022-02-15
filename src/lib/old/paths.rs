@@ -12,7 +12,7 @@ use std::path::{
 
 /// This Function is copied from Cargo [paths.rs](https://github.com/rust-lang/cargo/blob/070e459c2d8b79c5b2ac5218064e7603329c92ae/crates/cargo-util/src/paths.rs)  
 /// The project might be licended under MIT  
-/// TODO: replace with official implementation when available  
+/// TODO: replace with official implementation when available, see https://github.com/rust-lang/rfcs/issues/2208  
 ///
 /// Normalize a path, removing things like `.` and `..`.
 ///
