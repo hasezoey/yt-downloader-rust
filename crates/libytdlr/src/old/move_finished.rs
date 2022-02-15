@@ -20,7 +20,7 @@ use std::path::{
 pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	info!("Starting to move files");
 	let out_path = crate::utils::expand_tidle(&args.out)
-		.ok_or_else(|| ioError::new(std::io::ErrorKind::InvalidInput, "Failed to Expand \"~\""))?;
+		.ok_or_else(|| return ioError::new(std::io::ErrorKind::InvalidInput, "Failed to Expand \"~\""))?;
 
 	std::fs::create_dir_all(&out_path)
 		.or_else(|err| {

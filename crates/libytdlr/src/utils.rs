@@ -49,7 +49,7 @@ pub fn to_absolute<P: AsRef<Path>>(input: P) -> std::io::Result<PathBuf> {
 		},
 	};
 
-	return converted.absolutize().map(|v| v.to_path_buf());
+	return converted.absolutize().map(|v| return v.to_path_buf());
 }
 
 #[cfg(test)]
