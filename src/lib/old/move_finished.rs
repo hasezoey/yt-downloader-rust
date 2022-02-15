@@ -19,8 +19,9 @@ use std::path::{
 /// Move all files from TMP to OUT
 pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 	info!("Starting to move files");
-	let out_path =
-		PathBuf::from(shellexpand::tilde(&args.out.to_str().expect("Converting OUT to str failed")).as_ref());
+	let out_path = crate::utils::expand_tidle(&args.out)
+		.ok_or_else(|| ioError::new(std::io::ErrorKind::InvalidInput, "Failed to Expand \"~\""))?;
+
 	std::fs::create_dir_all(&out_path)
 		.or_else(|err| {
 			if let Some(raw_os_error) = err.raw_os_error() {
