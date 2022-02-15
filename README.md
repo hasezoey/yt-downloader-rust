@@ -1,5 +1,7 @@
 # YT-Downloader RUST
 
+**The Project is currently being restructured, and the README is not up-to-date**
+
 ## Requirements
 
 - Linux / Mac - build with POSIX system paths in mind (Windows *might* work)
