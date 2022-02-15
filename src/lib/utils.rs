@@ -19,8 +19,7 @@ pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 	}
 	// dont support "~user" syntax
 	if !path.starts_with("~/") {
-		warn!("Tilde(~) can only be used without usernames");
-		return None;
+		unreachable!("This should never occur, because \"path.starts_with\" should have already returned");
 	}
 
 	return dirs_next::home_dir().map(|mut v| {
