@@ -124,6 +124,9 @@ fn main() -> Result<(), ioError> {
 	return Ok(());
 }
 
+/// Handler function for the "import" subcommand
+/// This function is mainly to keep the code structured and sorted
+#[inline]
 fn command_import(main_args: CliDerive, sub_args: CommandImport) -> Result<(), ioError> {
 	use indicatif::{
 		ProgressBar,
