@@ -7,7 +7,8 @@ use std::path::{
 
 use path_absolutize::Absolutize;
 
-/// Simple helper to resolve "~"
+/// Simple helper to resolve "~" to the Home directory
+/// System agnostic as long as [`dirs_next::home_dir`] support's it
 pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 	let path = input.as_ref();
 
