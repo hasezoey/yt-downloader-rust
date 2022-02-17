@@ -18,6 +18,8 @@ pub enum Error {
 	SerdeJSONError(serde_json::Error),
 	/// Variant for Other messages
 	Other(String),
+	/// Variant for a Unexpected Process Exit (like when ytdl fails to spawn)
+	UnexpectedProcessExit(String),
 }
 
 // this is custom, because "std::io::Error" does not implement "PartialEq", but "std::io::ErrorKind" does
@@ -32,6 +34,8 @@ impl PartialEq for Error {
 			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
 			// Always return "false" for a serde_json::Error
 			(Self::SerdeJSONError(_l0), Self::SerdeJSONError(_r0)) => return false,
+			// Always return "false" for a Unexpected Process Exit
+			(Self::UnexpectedProcessExit(_l0), Self::UnexpectedProcessExit(_r0)) => return false,
 			(_, _) => return false,
 		}
 	}
@@ -73,6 +77,7 @@ impl Display for Error {
 				Self::IoError(v) => format!("IoError: {}", v),
 				Self::UnexpectedEOF(v) => format!("UnexpectedEOF: {}", v),
 				Self::SerdeJSONError(v) => format!("SerdeJSONError: {}", v),
+				Self::UnexpectedProcessExit(v) => format!("UnexpectedProcessExit: {}", v),
 				Self::Other(v) => format!("Other: {}", v),
 			}
 		);
