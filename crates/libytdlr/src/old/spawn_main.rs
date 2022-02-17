@@ -31,39 +31,6 @@ lazy_static! {
 	static ref YTDL_ERROR: Regex = Regex::new(r"(?mi)^ERROR").unwrap();
 }
 
-/// Count all videos in the playlist or single video
-fn count(args: &Arguments) -> Result<u32, ioError> {
-	let mut ytdl = crate::spawn::ytdl::base_ytdl();
-	ytdl.arg("-s").arg("--flat-playlist").arg("--get-id");
-	ytdl.arg(&args.url);
-
-	let mut spawned = ytdl.stdout(Stdio::piped()).spawn()?;
-
-	let reader = BufReader::new(
-		spawned
-			.stdout
-			.take()
-			.expect("couldnt get stdout of Youtube-DL (counter)"),
-	);
-
-	let mut count: u32 = 0;
-
-	reader.lines().filter_map(|line| return line.ok()).for_each(|_| {
-		count += 1;
-	});
-
-	let exit_status = spawned.wait().expect("youtube-dl (counter) wasnt running??");
-
-	if !exit_status.success() {
-		return Err(ioError::new(
-			ErrorKind::Other,
-			"Youtube-DL exited with a non-zero status (Counter), Stopping YT-DL-Rust",
-		));
-	}
-
-	return Ok(count);
-}
-
 lazy_static! {
 	static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
 		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
@@ -83,7 +50,7 @@ macro_rules! unwrap_or_return {
 
 /// format the prefix
 #[inline]
-fn prefix_format<T: AsRef<str>>(current: &u32, count: &u32, id: T) -> String {
+fn prefix_format<T: AsRef<str>>(current: &usize, count: &usize, id: T) -> String {
 	if id.as_ref().is_empty() {
 		return format!("[{}/{}]", &current, &count);
 	}
@@ -93,8 +60,10 @@ fn prefix_format<T: AsRef<str>>(current: &u32, count: &u32, id: T) -> String {
 
 /// Spawn the main Youtube-dl task
 pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
-	let count_video = count(args)?;
-	let mut current_video: u32 = 0;
+	let count_video = crate::main_functionality::count(&args.url)
+		.map_err(|err| std::io::Error::new(ErrorKind::Other, format!("{}", err)))?
+		.len();
+	let mut current_video: usize = 0;
 
 	let mut ytdl = crate::spawn::ytdl::base_ytdl();
 	// it needs to be a string, otherwise the returns would complain about not living long enough
@@ -299,7 +268,7 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 					}
 				}
 
-				let ffmpeg_video: u32 = if current_video < count_video && current_video > 0 {
+				let ffmpeg_video: usize = if current_video < count_video && current_video > 0 {
 					current_video - 1
 				} else {
 					current_video
