@@ -1,4 +1,4 @@
-//! Library of "YTLD-R", contains all the logic needed for the binary
+//! Library of "YTLD-Rust", contains all the logic needed for the binary
 
 #![allow(clippy::needless_return)]
 #![warn(clippy::implicit_return)]
@@ -21,6 +21,7 @@ pub use error::Error;
 pub use old::*;
 
 /// Debug function to start vscode-lldb debugger from external console
+/// Only compiled when the target is "debug"
 #[cfg(debug_assertions)]
 pub fn invoke_vscode_debugger() {
 	println!("Requesting Debugger");
