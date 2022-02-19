@@ -25,6 +25,13 @@ impl CountVideo {
 	}
 }
 
+// Implemented for easy casting, if needed
+impl From<CountVideo> for crate::data::video::Video {
+	fn from(val: CountVideo) -> Self {
+		return Self::new(val.id, crate::data::provider::Provider::Unknown).with_filename(val.title);
+	}
+}
+
 /// Spawn ytdl and parse the output into a collection of [`CountVideo`]
 /// Wrapper for [`count_with_command`] with [`crate::spawn::ytdl::base_ytdl`]
 pub fn count<T: AsRef<str>>(url: T) -> Result<Vec<CountVideo>, crate::Error> {
@@ -137,6 +144,19 @@ mod test {
 				title: "HelloTitle".to_owned(),
 			},
 			CountVideo::new("HelloId".to_owned(), "HelloTitle".to_owned())
+		);
+	}
+
+	#[test]
+	fn test_countvideo_into_video() {
+		use crate::data::{
+			provider::Provider,
+			video::Video,
+		};
+
+		assert_eq!(
+			Video::new("helloId1", Provider::Unknown).with_filename("HelloTitle1"),
+			CountVideo::new("helloId1".to_owned(), "HelloTitle1".to_owned()).into()
 		);
 	}
 
