@@ -61,7 +61,7 @@ fn prefix_format<T: AsRef<str>>(current: &usize, count: &usize, id: T) -> String
 /// Spawn the main Youtube-dl task
 pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 	let count_video = crate::main_functionality::count(&args.url)
-		.map_err(|err| std::io::Error::new(ErrorKind::Other, format!("{}", err)))?
+		.map_err(|err| return std::io::Error::new(ErrorKind::Other, format!("{}", err)))?
 		.len();
 	let mut current_video: usize = 0;
 
