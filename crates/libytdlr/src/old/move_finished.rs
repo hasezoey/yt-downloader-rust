@@ -137,7 +137,6 @@ fn ask_overwrite(file: &Path) -> Result<YesNo, ioError> {
 		std::io::stdout().flush()?; // ensure the print is printed
 		let mut input = String::new();
 		std::io::stdin().read_line(&mut input)?;
-		crate::ask_edit::trim_newline(&mut input); // trim the newline at the end
 		let input = input.trim().to_lowercase();
 
 		match input.as_ref() {

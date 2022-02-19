@@ -17,15 +17,6 @@ use std::process::{
 	ExitStatus,
 };
 
-pub fn trim_newline(s: &mut String) {
-	if s.ends_with('\n') {
-		s.pop();
-		if s.ends_with('\r') {
-			s.pop();
-		}
-	}
-}
-
 #[derive(PartialEq)]
 enum ResponseYesNo {
 	Yes,
@@ -49,7 +40,6 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		std::io::stdout().flush()?; // ensure the print is printed
 		let mut input = String::new();
 		std::io::stdin().read_line(&mut input)?;
-		trim_newline(&mut input); // trim the newline at the end
 		args.editor = input.trim().to_owned();
 		debug!("Editor entered: \"{}\"", args.editor);
 
@@ -247,7 +237,6 @@ fn ask_edit(video: &Video) -> Result<ResponseYesNo, ioError> {
 		std::io::stdout().flush()?; // ensure the print is printed
 		let mut input = String::new();
 		std::io::stdin().read_line(&mut input)?;
-		trim_newline(&mut input); // trim the newline at the end
 		let input = input.trim().to_lowercase();
 
 		match input.as_ref() {
@@ -273,7 +262,6 @@ fn ask_continue(video: &Video) -> Result<ResponseContinue, ioError> {
 		std::io::stdout().flush()?; // ensure the print is printed
 		let mut input = String::new();
 		std::io::stdin().read_line(&mut input)?;
-		trim_newline(&mut input); // trim the newline at the end
 		let input = input.trim().to_lowercase();
 
 		match input.as_ref() {
