@@ -32,9 +32,9 @@ pub struct Video {
 impl Video {
 	#[must_use]
 	/// Return a new instance of "Video" with all required values and other defaults
-	pub fn new(id: &str, provider: provider::Provider) -> Self {
+	pub fn new<T: Into<String>>(id: T, provider: provider::Provider) -> Self {
 		return Self {
-			id: id.to_owned(),
+			id: id.into(),
 			provider,
 			dl_finished: false,
 			edit_asked: false,
@@ -179,16 +179,29 @@ mod test {
 
 	#[test]
 	fn test_new() {
+		// Test basic, with &str
 		assert_eq!(
 			Video {
 				dl_finished: false,
 				edit_asked:  false,
 				file_name:   String::from(""),
-				id:          String::from("helloid"),
+				id:          String::from("helloid1"),
 				provider:    provider::Provider::Unknown,
 			},
-			Video::new("helloid", provider::Provider::Unknown)
-		)
+			Video::new("helloid1", provider::Provider::Unknown)
+		);
+
+		// Test basic, with String
+		assert_eq!(
+			Video {
+				dl_finished: false,
+				edit_asked:  false,
+				file_name:   String::from(""),
+				id:          String::from("helloid2"),
+				provider:    provider::Provider::Unknown,
+			},
+			Video::new("helloid2".to_owned(), provider::Provider::Unknown)
+		);
 	}
 
 	#[test]
