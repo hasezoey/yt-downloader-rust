@@ -87,7 +87,7 @@ pub fn count_with_command(mut cmd: std::process::Command) -> Result<Vec<CountVid
 			None => return Ok(()),
 		};
 
-		// ignore empty lines, like a last line
+		// ignore empty lines, like the last line being a EOF
 		if line.is_empty() {
 			return Ok(());
 		}
@@ -97,6 +97,8 @@ pub fn count_with_command(mut cmd: std::process::Command) -> Result<Vec<CountVid
 		// ytdl(p) line format is:
 		// odd: title
 		// even: id
+		//
+		// this cannot be easily parsed to be correct, so we have to just assume that it is odd/even
 
 		// if line is odd
 		if (index % 2) != 0 {
