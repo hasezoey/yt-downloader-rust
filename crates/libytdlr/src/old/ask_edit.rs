@@ -50,7 +50,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 		}
 	}
 
-	if archive.videos_is_empty() {
+	if archive.get_videos().is_empty() {
 		debug!("Archive Videos is empty!");
 
 		return Ok(());

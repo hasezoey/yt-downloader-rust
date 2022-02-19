@@ -74,10 +74,6 @@ impl Archive {
 		unwrap_or_return!(self.videos.iter_mut().find(|v| return v.id() == id)).set_file_name(filename.into());
 	}
 
-	pub fn videos_is_empty(&self) -> bool {
-		return self.videos.is_empty();
-	}
-
 	pub fn get_videos(&self) -> &Vec<Video> {
 		return self.videos.as_ref();
 	}
