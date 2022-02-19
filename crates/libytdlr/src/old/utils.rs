@@ -87,6 +87,19 @@ impl From<&str> for LineTypes {
 	}
 }
 
+#[derive(PartialEq)]
+pub enum ResponseYesNo {
+	Yes,
+	No,
+}
+
+#[non_exhaustive]
+pub enum ResponseContinue {
+	Retry,
+	Continue,
+	Abort,
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;

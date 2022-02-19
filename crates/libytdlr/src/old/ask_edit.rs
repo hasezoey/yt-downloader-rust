@@ -1,6 +1,10 @@
 use super::move_finished::mv_handler;
 use super::utils::Arguments;
 use crate::data::video::Video;
+use crate::old::utils::{
+	ResponseContinue,
+	ResponseYesNo,
+};
 use std::fs::metadata;
 use std::io::ErrorKind;
 use std::io::{
@@ -16,19 +20,6 @@ use std::process::{
 	Child,
 	ExitStatus,
 };
-
-#[derive(PartialEq)]
-enum ResponseYesNo {
-	Yes,
-	No,
-}
-
-#[non_exhaustive]
-enum ResponseContinue {
-	Retry,
-	Continue,
-	Abort,
-}
 
 /// Ask for edits on donwloaded files
 pub fn edits(args: &mut Arguments) -> Result<(), ioError> {

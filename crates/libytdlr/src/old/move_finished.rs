@@ -1,4 +1,5 @@
 use super::utils::Arguments;
+use crate::old::utils::ResponseYesNo;
 use fs_extra::file::{
 	move_file,
 	CopyOptions,
@@ -110,8 +111,8 @@ pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	if target.exists() {
 		match ask_overwrite(target) {
 			Ok(answer) => match answer {
-				YesNo::Yes => options.overwrite = true, // for now it will always overwrite, see #3
-				YesNo::No => return Ok(()),             // return "OK" to continue program flow
+				ResponseYesNo::Yes => options.overwrite = true, // for now it will always overwrite, see #3
+				ResponseYesNo::No => return Ok(()),             // return "OK" to continue program flow
 			},
 			Err(err) => return Err(err),
 		}
@@ -122,14 +123,8 @@ pub fn mv_handler(file: &Path, target: &Path) -> Result<(), ioError> {
 	return Ok(());
 }
 
-#[derive(PartialEq)]
-enum YesNo {
-	Yes,
-	No,
-}
-
 /// Repeat to ask Yes or No until valid
-fn ask_overwrite(file: &Path) -> Result<YesNo, ioError> {
+fn ask_overwrite(file: &Path) -> Result<ResponseYesNo, ioError> {
 	println!("Do you want to overwrite \"{}\"?", file.to_string_lossy());
 	loop {
 		print!("[Y/n]: ");
@@ -140,8 +135,8 @@ fn ask_overwrite(file: &Path) -> Result<YesNo, ioError> {
 		let input = input.trim().to_lowercase();
 
 		match input.as_ref() {
-			"y" | "" | "yes" => return Ok(YesNo::Yes),
-			"n" | "no" => return Ok(YesNo::No),
+			"y" | "" | "yes" => return Ok(ResponseYesNo::Yes),
+			"n" | "no" => return Ok(ResponseYesNo::No),
 			_ => {
 				println!("Wrong Character, please use either Y or N");
 				continue;
