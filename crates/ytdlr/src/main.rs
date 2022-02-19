@@ -113,7 +113,7 @@ fn main() -> Result<(), ioError> {
 	}
 
 	if !errcode && !args.disable_cleanup {
-		file_cleanup::file_cleanup(&args)?;
+		std::fs::remove_dir_all(&args.tmp)?;
 	}
 
 	// if an error happened, exit with an non-zero error code
