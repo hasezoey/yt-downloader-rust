@@ -13,6 +13,7 @@ pub fn spawn_command(binary_name: &str) -> Command {
 /// Apparently, rust automatically adds a extensions (".exe") if none is specified
 /// Also, rust automatically searches all the paths, including the ytdl-rust binary path
 #[cfg(target_os = "windows")]
+#[inline]
 pub fn spawn_command(binary_name: &str) -> Command {
 	return Command::new(binary);
 }
