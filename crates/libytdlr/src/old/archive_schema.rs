@@ -33,12 +33,9 @@ impl std::default::Default for Archive {
 	}
 }
 
-type StringProvider = String;
-type ID = str;
-
 impl Archive {
 	/// convert Archive.videos to an youtube-dl archive, but only if the download was already finished
-	pub fn to_ytdl_archive(&self) -> Vec<(StringProvider, &ID)> {
+	pub fn to_ytdl_archive(&self) -> Vec<(String, &str)> {
 		let mut ret = Vec::new();
 		for video in &self.videos {
 			if video.dl_finished() {
@@ -144,7 +141,7 @@ mod test {
 		archive.add_video(Video::new(&id1, Provider::Youtube).with_dl_finished(true));
 		archive.add_video(Video::new(&id2, Provider::Unknown).with_dl_finished(true));
 
-		let mut should_archive: Vec<(StringProvider, &ID)> = Vec::new();
+		let mut should_archive: Vec<(String, &str)> = Vec::new();
 		should_archive.push((String::from(&Provider::Youtube).to_lowercase(), &id1));
 		should_archive.push((String::from(&Provider::Unknown).to_lowercase(), &id2));
 
