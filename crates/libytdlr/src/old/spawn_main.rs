@@ -15,7 +15,7 @@ use indicatif::{
 use regex::Regex;
 use std::fs::File;
 use std::io::{
-	BufRead, // is needed because otherwise ".lines" does not exist????
+	BufRead,
 	BufReader,
 	Error as ioError,
 	ErrorKind,
@@ -29,9 +29,6 @@ use std::process::Stdio;
 
 lazy_static! {
 	static ref YTDL_ERROR: Regex = Regex::new(r"(?mi)^ERROR").unwrap();
-}
-
-lazy_static! {
 	static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
 		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
 		.progress_chars("#>-");
