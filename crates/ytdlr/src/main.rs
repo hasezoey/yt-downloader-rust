@@ -20,6 +20,7 @@ use libytdlr::*;
 
 mod clap_conf;
 use clap_conf::*;
+mod utils;
 
 /// Main
 fn main() -> Result<(), ioError> {
@@ -194,7 +195,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 			.progress_chars("#>-");
 	}
 
-	let bar: ProgressBar = ProgressBar::new(0).with_style(IMPORT_STYLE.clone());
+	let bar: ProgressBar = ProgressBar::hidden().with_style(IMPORT_STYLE.clone());
 
 	let mut archive = if let Some(archive) = libytdlr::setup_archive::setup_archive(archive_path) {
 		archive
@@ -204,12 +205,26 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 
 	let mut reader = BufReader::new(File::open(input_path)?);
 
-	let pgcb = |imp| match imp {
-		ImportProgress::Starting => bar.set_position(0),
-		ImportProgress::SizeHint(v) => bar.set_length(v.try_into().expect("Failed to convert usize to u64")),
-		ImportProgress::Increase(c, _i) => bar.inc(c.try_into().expect("Failed to convert usize to u64")),
-		ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Importing {} elements", v)),
-		_ => (),
+	crate::utils::set_progressbar(&bar, main_args);
+
+	let pgcb = |imp| {
+		if main_args.is_interactive() {
+			match imp {
+				ImportProgress::Starting => bar.set_position(0),
+				ImportProgress::SizeHint(v) => bar.set_length(v.try_into().expect("Failed to convert usize to u64")),
+				ImportProgress::Increase(c, _i) => bar.inc(c.try_into().expect("Failed to convert usize to u64")),
+				ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Importing {} elements", v)),
+				_ => (),
+			}
+		} else {
+			match imp {
+				ImportProgress::Starting => println!("Starting Import"),
+				ImportProgress::SizeHint(v) => println!("Import SizeHint: {}", v),
+				ImportProgress::Increase(c, i) => println!("Import Increase: {}, Current Index: {}", c, i),
+				ImportProgress::Finished(v) => println!("Import Finished, Successfull Imports: {}", v),
+				_ => (),
+			}
+		}
 	};
 
 	libytdlr::import_any_archive(&mut reader, &mut archive, pgcb)?;
