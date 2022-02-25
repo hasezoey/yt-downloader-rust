@@ -91,10 +91,10 @@ pub enum SubCommands {
 impl Check for SubCommands {
 	fn check(&mut self) -> Result<(), crate::Error> {
 		match self {
-			SubCommands::Download(v) => Check::check(v),
-			SubCommands::Archive(v) => Check::check(v),
-			// SubCommands::ReThumbnail(v) => Check::check(v),
-			// SubCommands::Completions(v) => Check::check(v),
+			SubCommands::Download(v) => return Check::check(v),
+			SubCommands::Archive(v) => return Check::check(v),
+			// SubCommands::ReThumbnail(v) => return Check::check(v),
+			// SubCommands::Completions(v) => return Check::check(v),
 		}
 	}
 }
@@ -122,8 +122,8 @@ pub enum ArchiveSubCommands {
 impl Check for ArchiveSubCommands {
 	fn check(&mut self) -> Result<(), crate::Error> {
 		match self {
-			ArchiveSubCommands::Import(v) => Check::check(v),
-			// ArchiveSubCommands::Migrate(v) => Check::check(v),
+			ArchiveSubCommands::Import(v) => return Check::check(v),
+			// ArchiveSubCommands::Migrate(v) => return Check::check(v),
 		}
 	}
 }
