@@ -53,8 +53,8 @@ pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	let as_string = String::from_utf8_lossy(&buffer[0..5]);
 
-	return match as_string.as_ref() {
-		"{" => import_ytdlr_json_archive(reader, archive, pgcb),
+	return match as_string.trim_start().as_bytes()[0] {
+		b'{' => import_ytdlr_json_archive(reader, archive, pgcb),
 		_ => import_ytdl_archive(reader, archive, pgcb),
 	};
 }
@@ -284,7 +284,7 @@ mod test {
 			}
 			"#;
 
-			let res0 = import_ytdlr_json_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
+			let res0 = import_any_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
 
