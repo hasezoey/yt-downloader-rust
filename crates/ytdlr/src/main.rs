@@ -41,40 +41,80 @@ fn main() -> Result<(), ioError> {
 		}
 	}
 
-	// Note: Subcommands are disabled until re-writing with subcommands
-	// handle importing native youtube-dl archives
-	// if let Some(sub_matches) = cli_matches.subcommands.get_import() {
-	// 	debug!("Subcommand \"import\" is given");
-	// 	let archive = import_archive::import_archive(import_archive::CommandImport {
-	// 		input:   sub_matches.input.clone(),
-	// 		archive: cli_matches
-	// 			.archive
-	// 			.expect("Archive path needs to be defined for Subcommand \"import\""),
-	// 	})?;
+	// env_logger can currently not dynamically set the loglevel
+	// println!("test veb, {}", cli_matches.verbosity);
 
-	// 	setup_archive::write_archive(&archive)?;
-
-	// 	return Ok(());
+	// match cli_matches.verbosity {
+	// 	0 => log::set_max_level(log::LevelFilter::Warn),
+	// 	1 => log::set_max_level(log::LevelFilter::Info),
+	// 	2 => log::set_max_level(log::LevelFilter::Debug),
+	// 	3 => log::set_max_level(log::LevelFilter::Trace),
+	// 	_ => {
+	// 		return Err(ioError::new(
+	// 			std::io::ErrorKind::Other,
+	// 			"Expected verbosity integer range between 0 and 3 (inclusive)",
+	// 		))
+	// 	},
 	// }
 
-	// DEBUG
-	// println!("command: {:#?}", cli_matches);
-	// std::process::exit(0);
+	// log::error!("test error");
+	// log::warn!("test warn");
+	// log::info!("test info");
+	// log::debug!("test debug");
+	// log::trace!("test trace");
 
-	// handle command without subcommands (actually downloading)
+	// todo!();
 
-	// mutable because it is needed for the archive
+	match &cli_matches.subcommands {
+		SubCommands::Download(v) => command_download(&cli_matches, v),
+		SubCommands::Archive(v) => sub_archive(&cli_matches, v),
+	}?;
+
+	return Ok(());
+}
+
+/// Handler function for the "archive" subcommand
+/// This function is mainly to keep the code structured and sorted
+#[inline]
+fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), ioError> {
+	match &sub_args.subcommands {
+		ArchiveSubCommands::Import(v) => command_import(main_args, v),
+		// ArchiveSubCommands::Migrate(_v) => todo!(),
+	}?;
+
+	return Ok(());
+}
+
+/// Handler function for the "download" subcommand
+/// This function is mainly to keep the code structured and sorted
+#[inline]
+fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result<(), ioError> {
+	if sub_args.urls.is_empty() {
+		return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
+	}
+	if sub_args.urls.len() > 1 {
+		return Err(ioError::new(
+			std::io::ErrorKind::Other,
+			"Currently only One (1) URL is supported",
+		));
+	}
+
 	let mut args = setup_arguments::setup_args(setup_arguments::SetupArgs {
-		out:                  cli_matches.output,
-		tmp:                  cli_matches.tmp,
-		url:                  cli_matches.url,
-		archive:              cli_matches.archive,
-		audio_only:           cli_matches.audio_only,
-		debug:                cli_matches.debug,
-		disable_cleanup:      cli_matches.disable_cleanup,
-		disable_re_thumbnail: cli_matches.disable_re_thumbnail,
-		askedit:              !cli_matches.disable_askedit, // invert, because of old implementation
-		editor:               cli_matches.editor.expect("Expected editor to be set!"),
+		out:                  sub_args.output_path.clone(),
+		tmp:                  main_args.tmp_path.clone(),
+		url:                  sub_args.urls[0].clone(),
+		archive:              main_args.archive_path.clone(),
+		audio_only:           sub_args.audio_only_enable,
+		debug:                main_args.verbosity >= 2,
+		disable_cleanup:      false,
+		disable_re_thumbnail: sub_args.reapply_thumbnail_disable,
+		askedit:              !main_args.is_interactive(), // invert, because of old implementation
+		editor:               sub_args
+			.audio_editor
+			.as_ref()
+			.expect("Expected editor to be set!")
+			.to_string_lossy()
+			.to_string(),
 	})?;
 	let mut errcode = false;
 
@@ -127,16 +167,16 @@ fn main() -> Result<(), ioError> {
 /// Handler function for the "import" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
-fn command_import(main_args: CliDerive, sub_args: CommandImport) -> Result<(), ioError> {
+fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(), ioError> {
 	use indicatif::{
 		ProgressBar,
 		ProgressStyle,
 	};
-	println!("Importing Archive from \"{}\"", sub_args.file.to_string_lossy());
+	println!("Importing Archive from \"{}\"", sub_args.file_path.to_string_lossy());
 
-	let input_path = sub_args.file;
+	let input_path = &sub_args.file_path;
 
-	if main_args.archive.is_none() {
+	if main_args.archive_path.is_none() {
 		return Err(ioError::new(
 			std::io::ErrorKind::Other,
 			"Archive is required for Import!",
@@ -144,7 +184,8 @@ fn command_import(main_args: CliDerive, sub_args: CommandImport) -> Result<(), i
 	}
 
 	let archive_path = main_args
-		.archive
+		.archive_path
+		.as_ref()
 		.expect("Expected archive check to have already returned");
 
 	lazy_static::lazy_static! {
