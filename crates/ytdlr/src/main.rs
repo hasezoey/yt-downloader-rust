@@ -205,7 +205,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 	let mut reader = BufReader::new(File::open(input_path)?);
 
 	let pgcb = |imp| match imp {
-		ImportProgress::Starting => todo!(),
+		ImportProgress::Starting => bar.set_position(0),
 		ImportProgress::SizeHint(v) => bar.set_length(v.try_into().expect("Failed to convert usize to u64")),
 		ImportProgress::Increase(c, _i) => bar.inc(c.try_into().expect("Failed to convert usize to u64")),
 		ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Importing {} elements", v)),
