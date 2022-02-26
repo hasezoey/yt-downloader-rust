@@ -139,7 +139,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	}
 
 	if !errcode {
-		move_finished::move_finished_files(&args)?;
+		move_finished::move_finished_files(&args.out, &args.tmp, args.debug)?;
 	}
 
 	if let Some(archive) = &mut args.archive {

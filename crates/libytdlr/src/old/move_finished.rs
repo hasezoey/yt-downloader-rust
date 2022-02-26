@@ -1,4 +1,3 @@
-use super::utils::Arguments;
 use crate::old::utils::ResponseYesNo;
 use fs_extra::file::{
 	move_file,
@@ -18,9 +17,13 @@ use std::path::{
 };
 
 /// Move all files from TMP to OUT
-pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
+pub fn move_finished_files<O: AsRef<Path>, T: AsRef<Path>>(
+	out_path: O,
+	tmp_path: T,
+	debug: bool,
+) -> Result<(), ioError> {
 	info!("Starting to move files");
-	let out_path = crate::utils::expand_tidle(&args.out)
+	let out_path = crate::utils::expand_tidle(out_path.as_ref())
 		.ok_or_else(|| return ioError::new(std::io::ErrorKind::InvalidInput, "Failed to Expand \"~\""))?;
 
 	std::fs::create_dir_all(&out_path)
@@ -40,7 +43,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 		// Convert "read_dir" to useable files, Steps:
 		let mut tmp: Vec<PathBuf> = Vec::default();
 		// 1. read the dir
-		for file in std::fs::read_dir(Path::new(&args.tmp))? {
+		for file in std::fs::read_dir(tmp_path.as_ref())? {
 			// 2. convert Result<DirEntry> to PathBuf
 			let file = file?.path();
 
@@ -83,7 +86,7 @@ pub fn move_finished_files(args: &Arguments) -> Result<(), ioError> {
 			.progress_chars("#>-"),
 	);
 
-	if args.debug {
+	if debug {
 		bar.set_draw_target(indicatif::ProgressDrawTarget::hidden())
 	}
 
