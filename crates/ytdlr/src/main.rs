@@ -14,6 +14,7 @@ use std::{
 		BufReader,
 		Error as ioError,
 	},
+	path::PathBuf,
 };
 
 use libytdlr::*;
@@ -69,6 +70,7 @@ fn main() -> Result<(), ioError> {
 	match &cli_matches.subcommands {
 		SubCommands::Download(v) => command_download(&cli_matches, v),
 		SubCommands::Archive(v) => sub_archive(&cli_matches, v),
+		SubCommands::ReThumbnail(v) => command_rethumbnail(&cli_matches, v),
 	}?;
 
 	return Ok(());
@@ -228,6 +230,34 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 	};
 
 	libytdlr::import_any_archive(&mut reader, &mut archive, pgcb)?;
+
+	return Ok(());
+}
+
+/// Handler function for the "rethumbnail" subcommand
+/// This function is mainly to keep the code structured and sorted
+#[inline]
+fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), ioError> {
+	// helper aliases to make it easier to access
+	let input_image_path: &PathBuf = &sub_args.input_image_path;
+	let input_media_path: &PathBuf = &sub_args.input_media_path;
+	let output_media_path: &PathBuf = sub_args
+		.output_media_path
+		.as_ref()
+		.expect("Expected trait \"Check\" to be run on \"CommandReThumbnail\" before this point");
+
+	println!(
+		"Re-Applying Thumbnail image \"{}\" to media file \"{}\"",
+		input_image_path.to_string_lossy(),
+		input_media_path.to_string_lossy()
+	);
+
+	re_thumbnail_with_tmp(input_media_path, input_image_path, output_media_path)?;
+
+	println!(
+		"Re-Applied Thumbnail to media, as \"{}\"",
+		output_media_path.to_string_lossy()
+	);
 
 	return Ok(());
 }

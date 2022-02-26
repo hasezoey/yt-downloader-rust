@@ -82,8 +82,9 @@ pub enum SubCommands {
 	Download(CommandDownload),
 	/// Archive Managing Commands
 	Archive(ArchiveDerive),
-	// /// Re-Thumbnail specific files
-	// ReThumbnail(CommandReThumbnail),
+	/// Re-Thumbnail specific files
+	#[clap(alias = "rethumbnail")] // alias, otherwise only "re-thumbnail" would be valid
+	ReThumbnail(CommandReThumbnail),
 	// /// Generate all shell completions
 	// Completions(CommandCompletions),
 }
@@ -93,7 +94,7 @@ impl Check for SubCommands {
 		match self {
 			SubCommands::Download(v) => return Check::check(v),
 			SubCommands::Archive(v) => return Check::check(v),
-			// SubCommands::ReThumbnail(v) => return Check::check(v),
+			SubCommands::ReThumbnail(v) => return Check::check(v),
 			// SubCommands::Completions(v) => return Check::check(v),
 		}
 	}
@@ -185,29 +186,29 @@ impl Check for CommandDownload {
 	}
 }
 
-// /// Manually run the Re-Apply Thumbnail step for a file with a specific image
-// #[derive(Debug, Parser)]
-// pub struct CommandReThumbnail {
-// 	/// Input Image file to use as a Thumbnail (like a jpg)
-// 	#[clap(short = 'i', long = "image", parse(from_os_str))]
-// 	pub input_image_path:  PathBuf,
-// 	/// Input Media file to apply a Thumbnail on (like a mp3)
-// 	#[clap(short = 'm', long = "media", parse(from_os_str))]
-// 	pub input_media_path:  PathBuf,
-// 	/// Output path of the final file, by default it is the same as "media"
-// 	#[clap(short = 'o', long = "out", parse(from_os_str))]
-// 	pub output_media_path: Option<PathBuf>,
-// }
+/// Manually run the Re-Apply Thumbnail step for a file with a specific image
+#[derive(Debug, Parser, Clone, PartialEq)]
+pub struct CommandReThumbnail {
+	/// Input Image file to use as a Thumbnail (like a jpg)
+	#[clap(short = 'i', long = "image", parse(from_os_str))]
+	pub input_image_path:  PathBuf,
+	/// Input Media file to apply a Thumbnail on (like a mp3)
+	#[clap(short = 'm', long = "media", parse(from_os_str))]
+	pub input_media_path:  PathBuf,
+	/// Output path of the final file, by default it is the same as "media"
+	#[clap(short = 'o', long = "out", parse(from_os_str))]
+	pub output_media_path: Option<PathBuf>,
+}
 
-// impl Check for CommandReThumbnail {
-// 	fn check(&mut self) -> Result<(), crate::Error> {
-// 		if self.output_media_path.is_none() {
-// 			self.output_media_path = Some(self.input_media_path.clone());
-// 		}
+impl Check for CommandReThumbnail {
+	fn check(&mut self) -> Result<(), crate::Error> {
+		if self.output_media_path.is_none() {
+			self.output_media_path = Some(self.input_media_path.clone());
+		}
 
-// 		return Ok(());
-// 	}
-// }
+		return Ok(());
+	}
+}
 
 // #[derive(Debug, Parser)]
 // pub struct CommandCompletions {}
@@ -452,6 +453,35 @@ mod test {
 			};
 
 			assert_eq!(true, explicit_enable.enable_colors());
+		}
+	}
+
+	mod command_re_thumbnail {
+		use super::*;
+
+		#[test]
+		fn test_check() {
+			// initial value
+			let mut init_default = CommandReThumbnail {
+				input_image_path:  PathBuf::from("/hello/image.jpg"),
+				input_media_path:  PathBuf::from("/hello/media.mp3"),
+				output_media_path: None,
+			};
+
+			// clone initial value (to not have to duplicate it), for testing without running the function
+			let cloned = {
+				let mut tmp = init_default.clone();
+
+				// modify the cloned value to what is expected
+				tmp.output_media_path = Some(tmp.input_media_path.clone());
+
+				tmp
+			};
+
+			// test to run the check and transform
+			assert!(init_default.check().is_ok());
+			// compare cloned manual and function execution
+			assert_eq!(cloned, init_default);
 		}
 	}
 }

@@ -3,6 +3,8 @@ mod import; // import command
 pub use import::*;
 mod count;
 pub use count::*;
+mod rethumbnail;
+pub use rethumbnail::*;
 // mod download; // download command
 // pub use download::*;
 // mod check_archive; // checkarchive command
