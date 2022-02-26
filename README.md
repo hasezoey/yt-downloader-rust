@@ -44,3 +44,18 @@ This subcommand will use the out-archive location of [`--archive`](#basic-usage)
 ---
 
 Please note this project is still in development (so not finished) and im still new to rust
+
+## Project TODO
+
+- [ ] Rework 2022
+  - [ ] Move Archive to SQL (SQLite by default) instead of big json
+  - [ ] re-implement main download
+  - [x] add QOL command `re-thumbnail`
+  - [ ] add QOL command `archive search` to search through the archive by any column
+  - [ ] add QOL command `completions` to generate shell completions (bash, zsh, etc)
+  - [x] re-implement `archive import`
+  - [ ] add command `archive migrate` (to check and migrate the archive to new versions)
+  - [ ] completely seperate `libytdlr(lib)` and `ytdlr(bin)`
+  - [ ] make binary interface more pleasant
+- [ ] Picard Integration (generic)
+- [ ] Sponsorblock integration via yt-dlp?
