@@ -217,3 +217,241 @@ impl Check for CommandDownload {
 // 		todo!()
 // 	}
 // }
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	mod command_download {
+		use super::*;
+
+		#[test]
+		fn test_check() {
+			let init_default = CommandDownload {
+				audio_editor: None,
+				output_path: None,
+				video_editor: None,
+				audio_only_enable: false,
+				reapply_thumbnail_disable: false,
+				urls: Vec::new(),
+			};
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+			assert_eq!(init_default, cloned);
+		}
+	}
+
+	mod archive_import {
+		use super::*;
+
+		#[test]
+		fn test_check() {
+			let init_default = ArchiveImport {
+				file_path: PathBuf::from("/hello"),
+			};
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+			assert_eq!(init_default, cloned);
+		}
+	}
+
+	mod archive_subcommands {
+		use super::*;
+
+		#[test]
+		fn test_check() {
+			let init_default = ArchiveSubCommands::Import(ArchiveImport {
+				file_path: PathBuf::from("/hello"),
+			});
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+			assert_eq!(init_default, cloned);
+		}
+	}
+
+	mod archive_derive {
+		use super::*;
+
+		#[test]
+		fn test_check() {
+			let init_default_import = ArchiveDerive {
+				subcommands: ArchiveSubCommands::Import(ArchiveImport {
+					file_path: PathBuf::from("/hello"),
+				}),
+			};
+
+			let mut cloned = init_default_import.clone();
+			assert!(cloned.check().is_ok());
+			assert_eq!(init_default_import, cloned);
+		}
+	}
+
+	mod subcommands {
+		use super::*;
+
+		#[test]
+		fn test_check() {
+			{
+				let init_default_download = SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+				});
+
+				let mut cloned = init_default_download.clone();
+				assert!(cloned.check().is_ok());
+				assert_eq!(init_default_download, cloned);
+			}
+
+			{
+				let init_default_archive = SubCommands::Archive(ArchiveDerive {
+					subcommands: ArchiveSubCommands::Import(ArchiveImport {
+						file_path: PathBuf::from("/hello"),
+					}),
+				});
+
+				let mut cloned = init_default_archive.clone();
+				assert!(cloned.check().is_ok());
+				assert_eq!(init_default_archive, cloned);
+			}
+		}
+	}
+
+	mod cli_derive {
+		use super::*;
+
+		#[test]
+		fn test_check() {
+			let init_default = CliDerive {
+				verbosity:    0,
+				tmp_path:     None,
+				debugger:     false,
+				archive_path: None,
+				explicit_tty: None,
+				force_color:  false,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+				}),
+			};
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+			assert_eq!(init_default, cloned);
+		}
+
+		#[test]
+		fn test_is_interactive_explicit() {
+			let explicit_disable = CliDerive {
+				verbosity:    0,
+				tmp_path:     None,
+				debugger:     false,
+				archive_path: None,
+				explicit_tty: Some(false),
+				force_color:  false,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+				}),
+			};
+
+			assert_eq!(false, explicit_disable.is_interactive());
+
+			let explicit_enable = CliDerive {
+				verbosity:    0,
+				tmp_path:     None,
+				debugger:     false,
+				archive_path: None,
+				explicit_tty: Some(true),
+				force_color:  false,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+				}),
+			};
+
+			assert_eq!(true, explicit_enable.is_interactive());
+		}
+
+		#[test]
+		fn test_enable_colors_forced() {
+			let explicit_disable = CliDerive {
+				verbosity:    0,
+				tmp_path:     None,
+				debugger:     false,
+				archive_path: None,
+				explicit_tty: None,
+				force_color:  true,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+				}),
+			};
+
+			assert_eq!(true, explicit_disable.enable_colors());
+		}
+
+		#[test]
+		fn test_enable_colors_forced_interactive() {
+			let explicit_disable = CliDerive {
+				verbosity:    0,
+				tmp_path:     None,
+				debugger:     false,
+				archive_path: None,
+				explicit_tty: Some(false),
+				force_color:  false,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+				}),
+			};
+
+			assert_eq!(false, explicit_disable.enable_colors());
+
+			let explicit_enable = CliDerive {
+				verbosity:    0,
+				tmp_path:     None,
+				debugger:     false,
+				archive_path: None,
+				explicit_tty: Some(true),
+				force_color:  false,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+				}),
+			};
+
+			assert_eq!(true, explicit_enable.enable_colors());
+		}
+	}
+}
