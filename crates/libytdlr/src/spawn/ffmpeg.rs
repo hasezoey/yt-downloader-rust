@@ -15,6 +15,9 @@ pub fn base_ffmpeg(overwrite: bool) -> Command {
 		cmd.arg("-y"); // always overwrite output path
 	}
 
+	// explicitly disable interactive mode
+	cmd.arg("-nostdin");
+
 	return cmd;
 }
 
