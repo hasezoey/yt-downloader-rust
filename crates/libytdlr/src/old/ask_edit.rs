@@ -149,7 +149,7 @@ fn spawn_editor(editor: &str, filepath: &Path, debug: bool) -> Result<ExitStatus
 
 /// Reapply the thumbnail after the video has been edited
 /// Reason for this is that some editor like audacity dosnt copy the thumbnail when saving
-fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
+fn re_thumbnail(_args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 	info!("Reapplying thumbnail for \"{}\"", &video_path.display());
 	let mut thumbnail_path = PathBuf::from(&video_path.as_os_str());
 	thumbnail_path.set_extension("jpg");
@@ -173,46 +173,9 @@ fn re_thumbnail(args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 		return Ok(()); // dont error out, just warn
 	}
 
-	{
-		let mut ffmpeg = crate::spawn::ffmpeg::base_ffmpeg(true);
-		ffmpeg.arg("-i").arg(&video_path);
-		ffmpeg.arg("-i").arg(&thumbnail_path);
-		ffmpeg.arg("-map").arg("0:0"); // copy without editing from input to output
-		ffmpeg.arg("-map").arg("1:0"); // copy without editing from input to output
-		ffmpeg.arg("-c").arg("copy"); // copy without editing from input to output
-		ffmpeg.arg("-id3v2_version").arg("3");
-		ffmpeg.arg("-metadata:s:v").arg("title=\"Album cover\""); // set metadata for video track
-		ffmpeg.arg("-movflags").arg("use_metadata_tags"); // copy metadata
+	crate::main_functionality::re_thumbnail(video_path, thumbnail_path, &ffmpegout_path)?;
 
-		ffmpeg.arg(&ffmpegout_path); // OUT Path
-
-		let mut spawned_ffmpeg: Child = if args.debug {
-			ffmpeg
-				.stderr(Stdio::inherit())
-				.stdout(Stdio::inherit())
-				.stdin(Stdio::null())
-				.spawn()?
-		} else {
-			ffmpeg
-				.stderr(Stdio::null())
-				.stdout(Stdio::null())
-				.stdin(Stdio::null())
-				.spawn()?
-		};
-
-		let exit_status = spawned_ffmpeg
-			.wait()
-			.expect("Something went wrong while waiting for ffmpeg to finish... (Did it even run?)");
-
-		if !exit_status.success() {
-			return Err(ioError::new(
-				ErrorKind::Other,
-				"ffmpeg exited with a non-zero status, Stopping YT-DL-Rust",
-			));
-		}
-
-		mv_handler(&ffmpegout_path, video_path)?;
-	}
+	mv_handler(&ffmpegout_path, video_path)?;
 
 	info!("Finished Reapplying for \"{}\"", &video_path.display());
 
