@@ -21,6 +21,15 @@ pub fn base_ffmpeg(overwrite: bool) -> Command {
 	return cmd;
 }
 
+#[inline]
+pub fn base_ffmpeg_hidebanner(overwrite: bool) -> Command {
+	let mut cmd = base_ffmpeg(overwrite);
+
+	cmd.arg("-hide_banner");
+
+	return cmd;
+}
+
 lazy_static! {
 	static ref FFMPEG_VERSION_REGEX: Regex = Regex::new(r"(?mi)^ffmpeg version ([a-z0-9.-]+) Copyright").unwrap();
 }
