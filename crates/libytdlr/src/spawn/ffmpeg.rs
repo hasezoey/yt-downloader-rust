@@ -7,6 +7,7 @@ use std::process::{
 
 use regex::Regex;
 
+/// Create a Command with basic ffmpeg options
 #[inline]
 pub fn base_ffmpeg(overwrite: bool) -> Command {
 	let mut cmd = super::multiplatform::spawn_command("ffmpeg");
@@ -21,6 +22,8 @@ pub fn base_ffmpeg(overwrite: bool) -> Command {
 	return cmd;
 }
 
+/// Create a Command with basic ffmpeg options
+/// Calls [`base_ffmpeg`] and adds argument `-hide_banner`
 #[inline]
 pub fn base_ffmpeg_hidebanner(overwrite: bool) -> Command {
 	let mut cmd = base_ffmpeg(overwrite);
