@@ -69,24 +69,9 @@ pub fn write_archive(archive: &Archive) -> Result<(), ioError> {
 	debug!("Writing Archive to File at \"{}\"", archive.path.display());
 	create_dir_all(PathBuf::from(&archive.path).parent().unwrap())
 		.expect("Recursivly creating directory(s) for Archive File Failed");
-	let writer = File::create(&archive.path)?;
+	let mut writer = File::create(&archive.path)?;
 
-	write_archive_to_writer(&writer, archive)?;
-
-	return Ok(());
-}
-
-/// Write Archive pretty in debug and normal in release
-fn write_archive_to_writer<T>(writer: T, archive: &Archive) -> Result<(), ioError>
-where
-	T: Write,
-{
-	if cfg!(debug_assertions) {
-		debug!("Writing Archive PRETTY to \"{}\"", &archive.path.display());
-		serde_json::to_writer_pretty(writer, &archive)?;
-	} else {
-		serde_json::to_writer(writer, &archive)?;
-	}
+	archive.write_to_writer(&mut writer)?;
 
 	return Ok(());
 }

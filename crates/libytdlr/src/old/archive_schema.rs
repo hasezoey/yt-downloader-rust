@@ -4,6 +4,10 @@ use serde::{
 	Deserialize,
 	Serialize,
 };
+use std::io::{
+	Error as ioError,
+	Write,
+};
 use std::path::PathBuf;
 
 use crate::data::video::Video;
@@ -93,6 +97,13 @@ impl Archive {
 
 		return changed;
 	}
+
+	/// Write the current Archive Instance in JSON from to the writer
+	pub fn write_to_writer<W: Write>(&self, writer: &mut W) -> Result<(), ioError> {
+		serde_json::to_writer_pretty(writer, self)?;
+
+		return Ok(());
+	}
 }
 
 #[cfg(test)]
@@ -176,5 +187,21 @@ mod test {
 		};
 
 		assert_eq!(true, archive2.check_all_videos());
+	}
+
+	#[test]
+	fn test_write_to_writer() {
+		let mut writer = Vec::new();
+
+		let archive = Archive::default();
+
+		let result = archive.write_to_writer(&mut writer);
+
+		assert!(result.is_ok());
+
+		assert_eq!(
+			["{\n", "  \"version\": \"0.1.0\",\n", "  \"videos\": []\n", "}"].concat(),
+			String::from_utf8_lossy(&writer)
+		);
 	}
 }
