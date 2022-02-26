@@ -15,7 +15,7 @@ trait Check {
 	fn check(&mut self) -> Result<(), crate::Error>;
 }
 
-#[derive(Debug, Parser, Clone)]
+#[derive(Debug, Parser, Clone, PartialEq)]
 #[clap(author, version, about, long_about = None)]
 #[clap(bin_name("ytdlr"))]
 #[clap(global_setting(AppSettings::AllArgsOverrideSelf))] // specifying a argument multiple times overwrites the earlier ones
@@ -76,7 +76,7 @@ impl Check for CliDerive {
 	}
 }
 
-#[derive(Debug, Subcommand, Clone)]
+#[derive(Debug, Subcommand, Clone, PartialEq)]
 pub enum SubCommands {
 	/// The main purpose of the binary, download URL
 	Download(CommandDownload),
@@ -99,7 +99,7 @@ impl Check for SubCommands {
 	}
 }
 
-#[derive(Debug, Parser, Clone)]
+#[derive(Debug, Parser, Clone, PartialEq)]
 pub struct ArchiveDerive {
 	#[clap(subcommand)]
 	pub subcommands: ArchiveSubCommands,
@@ -111,7 +111,7 @@ impl Check for ArchiveDerive {
 	}
 }
 
-#[derive(Debug, Subcommand, Clone)]
+#[derive(Debug, Subcommand, Clone, PartialEq)]
 pub enum ArchiveSubCommands {
 	/// Import a Archive file, be it youtube-dl, ytdlr-json
 	Import(ArchiveImport),
@@ -129,7 +129,7 @@ impl Check for ArchiveSubCommands {
 }
 
 /// Import a Archive into the current Archive
-#[derive(Debug, Parser, Clone)]
+#[derive(Debug, Parser, Clone, PartialEq)]
 pub struct ArchiveImport {
 	/// The Archive file to import from
 	#[clap(parse(from_os_str))]
@@ -158,7 +158,7 @@ impl Check for ArchiveImport {
 // }
 
 /// Run and download a given URL(s)
-#[derive(Debug, Parser, Clone)]
+#[derive(Debug, Parser, Clone, PartialEq)]
 pub struct CommandDownload {
 	/// Audio Editor for audio files when using edits on post-processing
 	#[clap(long, env = "YTDL_AUDIO_EDITOR")]
