@@ -95,21 +95,15 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	if sub_args.urls.is_empty() {
 		return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
 	}
-	if sub_args.urls.len() > 1 {
-		return Err(ioError::new(
-			std::io::ErrorKind::Other,
-			"Currently only One (1) URL is supported",
-		));
-	}
 
 	let mut errcode = false;
 	let mut tmp = std::env::temp_dir();
 
-	{
+	for url in &sub_args.urls {
 		let mut args = setup_arguments::setup_args(setup_arguments::SetupArgs {
 			out:                  sub_args.output_path.clone(),
 			tmp:                  main_args.tmp_path.clone(),
-			url:                  sub_args.urls[0].clone(),
+			url:                  url.clone(),
 			archive:              main_args.archive_path.clone(),
 			audio_only:           sub_args.audio_only_enable,
 			debug:                main_args.verbosity >= 2,
