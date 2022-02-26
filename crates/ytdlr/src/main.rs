@@ -102,59 +102,65 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		));
 	}
 
-	let mut args = setup_arguments::setup_args(setup_arguments::SetupArgs {
-		out:                  sub_args.output_path.clone(),
-		tmp:                  main_args.tmp_path.clone(),
-		url:                  sub_args.urls[0].clone(),
-		archive:              main_args.archive_path.clone(),
-		audio_only:           sub_args.audio_only_enable,
-		debug:                main_args.verbosity >= 2,
-		disable_re_thumbnail: sub_args.reapply_thumbnail_disable,
-		editor:               sub_args
-			.audio_editor
-			.as_ref()
-			.expect("Expected editor to be set!")
-			.to_string_lossy()
-			.to_string(),
-	})?;
 	let mut errcode = false;
+	let mut tmp = std::env::temp_dir();
 
-	spawn_main::spawn_ytdl(&mut args).unwrap_or_else(|err| {
-		println!(
-			"An Error Occured in spawn_ytdl (still saving archive to tmp):\n\t{}",
-			err
-		);
-		errcode = true;
-	});
+	{
+		let mut args = setup_arguments::setup_args(setup_arguments::SetupArgs {
+			out:                  sub_args.output_path.clone(),
+			tmp:                  main_args.tmp_path.clone(),
+			url:                  sub_args.urls[0].clone(),
+			archive:              main_args.archive_path.clone(),
+			audio_only:           sub_args.audio_only_enable,
+			debug:                main_args.verbosity >= 2,
+			disable_re_thumbnail: sub_args.reapply_thumbnail_disable,
+			editor:               sub_args
+				.audio_editor
+				.as_ref()
+				.expect("Expected editor to be set!")
+				.to_string_lossy()
+				.to_string(),
+		})?;
 
-	if !errcode && main_args.is_interactive() {
-		if args.archive.is_some() {
-			ask_edit::edits(&mut args).unwrap_or_else(|err| {
-				println!("An Error Occured in edits:\n\t{}", err);
-				errcode = true;
-			});
+		spawn_main::spawn_ytdl(&mut args).unwrap_or_else(|err| {
+			println!(
+				"An Error Occured in spawn_ytdl (still saving archive to tmp):\n\t{}",
+				err
+			);
+			errcode = true;
+		});
+
+		if !errcode && main_args.is_interactive() {
+			if args.archive.is_some() {
+				ask_edit::edits(&mut args).unwrap_or_else(|err| {
+					println!("An Error Occured in edits:\n\t{}", err);
+					errcode = true;
+				});
+			} else {
+				info!("No Archive, not asking for edits");
+			}
+		}
+
+		if !errcode {
+			move_finished::move_finished_files(&args.out, &args.tmp, args.debug)?;
+		}
+
+		if let Some(archive) = &mut args.archive {
+			if errcode {
+				debug!("An Error occured, writing archive to TMP location");
+				archive.path = tmp.join("ytdl_archive_ERR.json");
+			}
+
+			setup_archive::write_archive(&archive)?;
 		} else {
-			info!("No Archive, not asking for edits");
+			info!("No Archive, not writing");
 		}
+
+		tmp = args.tmp;
 	}
 
 	if !errcode {
-		move_finished::move_finished_files(&args.out, &args.tmp, args.debug)?;
-	}
-
-	if let Some(archive) = &mut args.archive {
-		if errcode {
-			debug!("An Error occured, writing archive to TMP location");
-			archive.path = args.tmp.join("ytdl_archive_ERR.json");
-		}
-
-		setup_archive::write_archive(archive)?;
-	} else {
-		info!("No Archive, not writing");
-	}
-
-	if !errcode {
-		std::fs::remove_dir_all(&args.tmp)?;
+		std::fs::remove_dir_all(&tmp)?;
 	}
 
 	// if an error happened, exit with an non-zero error code
