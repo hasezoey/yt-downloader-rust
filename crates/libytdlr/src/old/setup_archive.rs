@@ -7,7 +7,6 @@ use std::fs::{
 use std::io::{
 	BufReader,
 	Error as ioError,
-	Write,
 };
 use std::path::{
 	Path,
@@ -69,9 +68,8 @@ pub fn write_archive(archive: &Archive) -> Result<(), ioError> {
 	debug!("Writing Archive to File at \"{}\"", archive.path.display());
 	create_dir_all(PathBuf::from(&archive.path).parent().unwrap())
 		.expect("Recursivly creating directory(s) for Archive File Failed");
-	let mut writer = File::create(&archive.path)?;
 
-	archive.write_to_writer(&mut writer)?;
+	archive.write_to_file(&archive.path)?;
 
 	return Ok(());
 }

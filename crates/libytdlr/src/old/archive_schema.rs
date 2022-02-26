@@ -4,11 +4,15 @@ use serde::{
 	Deserialize,
 	Serialize,
 };
+use std::fs::File;
 use std::io::{
 	Error as ioError,
 	Write,
 };
-use std::path::PathBuf;
+use std::path::{
+	Path,
+	PathBuf,
+};
 
 use crate::data::video::Video;
 
@@ -103,6 +107,14 @@ impl Archive {
 		serde_json::to_writer_pretty(writer, self)?;
 
 		return Ok(());
+	}
+
+	/// Write the current Archive Instance in JSON to a file at `path`
+	/// This will overwrite any file already existing at the path, and error when the directory does not exist
+	pub fn write_to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), ioError> {
+		let mut file_writer = File::create(path.as_ref())?;
+
+		return self.write_to_writer(&mut file_writer);
 	}
 }
 
