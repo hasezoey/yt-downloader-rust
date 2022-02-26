@@ -18,8 +18,6 @@ pub struct Arguments {
 	pub audio_only:           bool,
 	/// print youtube-dl stdout?
 	pub debug:                bool,
-	/// disable cleanup?
-	pub disable_cleanup:      bool,
 	/// disable re-adding the thumbnail after the editor closes
 	pub disable_re_thumbnail: bool,
 	/// Archive location

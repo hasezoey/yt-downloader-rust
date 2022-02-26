@@ -89,7 +89,6 @@ pub struct SetupArgs {
 	pub archive:              Option<PathBuf>,
 	pub audio_only:           bool,
 	pub debug:                bool,
-	pub disable_cleanup:      bool,
 	pub disable_re_thumbnail: bool,
 	pub askedit:              bool,
 	pub editor:               String,
@@ -104,7 +103,6 @@ pub fn setup_args(input: SetupArgs) -> Result<Arguments, ioError> {
 		archive:              get_config_path(input.archive)?,
 		audio_only:           input.audio_only,
 		debug:                input.debug,
-		disable_cleanup:      input.disable_cleanup,
 		disable_re_thumbnail: input.disable_re_thumbnail,
 		askedit:              input.askedit,
 		editor:               input.editor,
@@ -132,7 +130,6 @@ mod test {
 			archive:              None,
 			askedit:              false,
 			audio_only:           false,
-			disable_cleanup:      false,
 			disable_re_thumbnail: false,
 			debug:                false,
 			editor:               String::from(""),
@@ -151,7 +148,6 @@ mod test {
 		assert_eq!(1, arguments.extra_args.len());
 		assert!(!arguments.audio_only);
 		assert!(!arguments.debug);
-		assert!(!arguments.disable_cleanup);
 		assert!(!arguments.disable_re_thumbnail);
 		assert!(arguments.archive.is_some());
 		assert!(!arguments.askedit);
@@ -168,7 +164,6 @@ mod test {
 			archive:              None,
 			audio_only:           false,
 			debug:                false,
-			disable_cleanup:      false,
 			disable_re_thumbnail: false,
 			askedit:              false,
 			editor:               String::from(""),

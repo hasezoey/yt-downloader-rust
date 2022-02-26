@@ -109,7 +109,6 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		archive:              main_args.archive_path.clone(),
 		audio_only:           sub_args.audio_only_enable,
 		debug:                main_args.verbosity >= 2,
-		disable_cleanup:      false,
 		disable_re_thumbnail: sub_args.reapply_thumbnail_disable,
 		askedit:              !main_args.is_interactive(), // invert, because of old implementation
 		editor:               sub_args
@@ -155,7 +154,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		info!("No Archive, not writing");
 	}
 
-	if !errcode && !args.disable_cleanup {
+	if !errcode {
 		std::fs::remove_dir_all(&args.tmp)?;
 	}
 
