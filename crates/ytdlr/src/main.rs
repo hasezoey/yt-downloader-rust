@@ -145,7 +145,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 				archive.path = tmp.join("ytdl_archive_ERR.json");
 			}
 
-			setup_archive::write_archive(&archive)?;
+			setup_archive::write_archive(archive)?;
 		} else {
 			info!("No Archive, not writing");
 		}
