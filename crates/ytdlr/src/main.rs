@@ -110,7 +110,6 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		audio_only:           sub_args.audio_only_enable,
 		debug:                main_args.verbosity >= 2,
 		disable_re_thumbnail: sub_args.reapply_thumbnail_disable,
-		askedit:              !main_args.is_interactive(), // invert, because of old implementation
 		editor:               sub_args
 			.audio_editor
 			.as_ref()
@@ -128,7 +127,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		errcode = true;
 	});
 
-	if !errcode && args.askedit {
+	if !errcode && main_args.is_interactive() {
 		if args.archive.is_some() {
 			ask_edit::edits(&mut args).unwrap_or_else(|err| {
 				println!("An Error Occured in edits:\n\t{}", err);

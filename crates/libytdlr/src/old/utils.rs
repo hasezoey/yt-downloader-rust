@@ -22,8 +22,6 @@ pub struct Arguments {
 	pub disable_re_thumbnail: bool,
 	/// Archive location
 	pub archive:              Option<Archive>,
-	/// Ask for Editing?
-	pub askedit:              bool,
 	/// Editor to use
 	pub editor:               String,
 }

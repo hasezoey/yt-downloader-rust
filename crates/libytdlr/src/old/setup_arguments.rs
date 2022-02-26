@@ -90,7 +90,6 @@ pub struct SetupArgs {
 	pub audio_only:           bool,
 	pub debug:                bool,
 	pub disable_re_thumbnail: bool,
-	pub askedit:              bool,
 	pub editor:               String,
 }
 
@@ -104,7 +103,6 @@ pub fn setup_args(input: SetupArgs) -> Result<Arguments, ioError> {
 		audio_only:           input.audio_only,
 		debug:                input.debug,
 		disable_re_thumbnail: input.disable_re_thumbnail,
-		askedit:              input.askedit,
 		editor:               input.editor,
 		extra_args:           Vec::new(),
 	};
@@ -128,7 +126,6 @@ mod test {
 	fn test_everything_default() {
 		let arguments = setup_args(SetupArgs {
 			archive:              None,
-			askedit:              false,
 			audio_only:           false,
 			disable_re_thumbnail: false,
 			debug:                false,
@@ -150,7 +147,6 @@ mod test {
 		assert!(!arguments.debug);
 		assert!(!arguments.disable_re_thumbnail);
 		assert!(arguments.archive.is_some());
-		assert!(!arguments.askedit);
 		assert!(arguments.editor.is_empty());
 	}
 
@@ -165,7 +161,6 @@ mod test {
 			audio_only:           false,
 			debug:                false,
 			disable_re_thumbnail: false,
-			askedit:              false,
 			editor:               String::from(""),
 		})
 		.unwrap();
