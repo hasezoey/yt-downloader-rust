@@ -13,7 +13,7 @@ pub mod data;
 mod error;
 mod main_functionality;
 mod old;
-mod spawn;
+pub mod spawn;
 pub use main_functionality::*;
 pub mod traits;
 pub mod utils;
