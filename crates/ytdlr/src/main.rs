@@ -74,7 +74,7 @@ fn main() -> Result<(), ioError> {
 fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), ioError> {
 	match &sub_args.subcommands {
 		ArchiveSubCommands::Import(v) => command_import(main_args, v),
-		// ArchiveSubCommands::Migrate(_v) => todo!(),
+		// ArchiveSubCommands::Migrate(v) => command_migrate(main_args, v),
 	}?;
 
 	return Ok(());
@@ -157,7 +157,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	return Ok(());
 }
 
-/// Handler function for the "import" subcommand
+/// Handler function for the "archive import" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(), ioError> {
@@ -223,6 +223,11 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 
 	return Ok(());
 }
+
+/// Handler function for the "archive migrate" subcommand
+/// This function is mainly to keep the code structured and sorted
+// #[inline]
+// fn command_migrate(main_args: &CliDerive, sub_args: &ArchiveMigrate) -> Result<(), ioError> {}
 
 /// Handler function for the "rethumbnail" subcommand
 /// This function is mainly to keep the code structured and sorted
