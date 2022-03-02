@@ -11,7 +11,8 @@ lazy_static = "1.4.0"
 indicatif = "0.16.2"
 colored = "2.0.0"
 log = "0.4.14"
-env_logger = "0.9.0"
+flexi_logger = "0.22" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
+time = "0.3" # to format the time for the logging
 serde_json = "1.0.74"
 atty = "0.2"
 libytdlr = { path = "../libytdlr" }

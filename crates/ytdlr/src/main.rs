@@ -4,10 +4,7 @@
 #[macro_use]
 extern crate log;
 
-use env_logger::{
-	builder,
-	Target,
-};
+use flexi_logger::LogSpecification;
 use std::{
 	fs::File,
 	io::{
@@ -21,12 +18,12 @@ use libytdlr::*;
 
 mod clap_conf;
 use clap_conf::*;
+mod logger;
 mod utils;
 
 /// Main
 fn main() -> Result<(), ioError> {
-	// logging to stdout because nothing else is on there and to not interfere with the progress bars
-	builder().target(Target::Stdout).init();
+	let mut logger_handle = logger::setup_logger()?;
 
 	let cli_matches = CliDerive::custom_parse();
 
@@ -43,29 +40,24 @@ fn main() -> Result<(), ioError> {
 		}
 	}
 
-	// env_logger can currently not dynamically set the loglevel
-	// println!("test veb, {}", cli_matches.verbosity);
+	log::info!("CLI Verbosity is {}", cli_matches.verbosity);
 
-	// match cli_matches.verbosity {
-	// 	0 => log::set_max_level(log::LevelFilter::Warn),
-	// 	1 => log::set_max_level(log::LevelFilter::Info),
-	// 	2 => log::set_max_level(log::LevelFilter::Debug),
-	// 	3 => log::set_max_level(log::LevelFilter::Trace),
-	// 	_ => {
-	// 		return Err(ioError::new(
-	// 			std::io::ErrorKind::Other,
-	// 			"Expected verbosity integer range between 0 and 3 (inclusive)",
-	// 		))
-	// 	},
-	// }
-
-	// log::error!("test error");
-	// log::warn!("test warn");
-	// log::info!("test info");
-	// log::debug!("test debug");
-	// log::trace!("test trace");
-
-	// todo!();
+	// apply cli "verbosity" argument to the log level
+	logger_handle.set_new_spec(
+		match cli_matches.verbosity {
+			0 => LogSpecification::parse("warn"),
+			1 => LogSpecification::parse("info"),
+			2 => LogSpecification::parse("debug"),
+			3 => LogSpecification::parse("trace"),
+			_ => {
+				return Err(ioError::new(
+					std::io::ErrorKind::Other,
+					"Expected verbosity integer range between 0 and 3 (inclusive)",
+				))
+			},
+		}
+		.expect("Expected LogSpecification to parse correctly"),
+	);
 
 	match &cli_matches.subcommands {
 		SubCommands::Download(v) => command_download(&cli_matches, v),
