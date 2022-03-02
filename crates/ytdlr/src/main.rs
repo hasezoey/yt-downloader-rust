@@ -5,6 +5,7 @@
 extern crate log;
 
 use flexi_logger::LogSpecification;
+use libytdlr::*;
 use std::{
 	fs::File,
 	io::{
@@ -14,10 +15,13 @@ use std::{
 	path::PathBuf,
 };
 
-use libytdlr::*;
-
 mod clap_conf;
 use clap_conf::*;
+
+use crate::utils::{
+	require_ffmpeg_installed,
+	require_ytdl_installed,
+};
 mod logger;
 mod utils;
 
@@ -84,6 +88,8 @@ fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), io
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result<(), ioError> {
+	require_ytdl_installed()?;
+
 	if sub_args.urls.is_empty() {
 		return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
 	}
@@ -233,6 +239,8 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), ioError> {
+	require_ffmpeg_installed()?;
+
 	// helper aliases to make it easier to access
 	let input_image_path: &PathBuf = &sub_args.input_image_path;
 	let input_media_path: &PathBuf = &sub_args.input_media_path;
