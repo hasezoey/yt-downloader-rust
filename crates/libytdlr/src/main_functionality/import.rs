@@ -32,6 +32,40 @@ pub enum ImportProgress {
 	Finished(usize),
 }
 
+/// Archive Type, as detected by [`detect_archive_type`]
+#[derive(Debug, PartialEq, Clone)]
+pub enum ArchiveType {
+	Unknown,
+	JSON,
+	SQLite,
+}
+
+/// Detect what archive type the input reader's file is
+pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, crate::Error> {
+	let buffer = reader.fill_buf()?; // read a bit of the reader, but dont consume the reader's contents
+
+	if buffer.is_empty() {
+		return Err(crate::Error::UnexpectedEOF(
+			"Detected Empty File, Cannot detect format".to_owned(),
+		));
+	}
+
+	// convert buffer to string, lossy, for trimming
+	let as_string = String::from_utf8_lossy(&buffer);
+
+	let trimmed = as_string.trim_start().as_bytes();
+
+	if trimmed.starts_with(b"{") {
+		return Ok(ArchiveType::JSON);
+	}
+
+	if trimmed.starts_with(b"SQLite format") {
+		return Ok(ArchiveType::SQLite);
+	}
+
+	return Ok(ArchiveType::Unknown);
+}
+
 /// Detect what archive is given and call the right function
 /// Calls [`import_ytdl_archive`] when its a ytdl archive and [`import_ytdl_r_archive`] when its a ytdl-r archive
 ///
@@ -43,19 +77,11 @@ pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 ) -> Result<(), crate::Error> {
 	log::debug!("import any archive");
 
-	let buffer = reader.fill_buf()?;
-
-	if buffer.len() < 5 {
-		return Err(crate::Error::UnexpectedEOF(
-			"Import Archive Buffer was not the required minimal size".to_owned(),
-		));
-	}
-
-	let as_string = String::from_utf8_lossy(&buffer[0..5]);
-
-	return match as_string.trim_start().as_bytes()[0] {
-		b'{' => import_ytdlr_json_archive(reader, archive, pgcb),
-		_ => import_ytdl_archive(reader, archive, pgcb),
+	return match detect_archive_type(reader)? {
+		ArchiveType::JSON => import_ytdlr_json_archive(reader, archive, pgcb),
+		ArchiveType::SQLite => todo!(),
+		// Assume "Unknown" is a YTDL Archive (plain text)
+		ArchiveType::Unknown => import_ytdl_archive(reader, archive, pgcb),
 	};
 }
 
@@ -165,28 +191,91 @@ mod test {
 		return |imp| c.write().expect("write failed").push(imp);
 	}
 
-	#[test]
-	fn test_unexpected_eof() {
-		let string0 = "";
-		let mut dummy_archive = Archive::default();
+	mod detect {
+		use super::*;
 
-		let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
+		#[test]
+		fn test_eof() {
+			let string0 = "";
 
-		let ret = import_any_archive(
-			&mut string0.as_bytes(),
-			&mut dummy_archive,
-			callback_counter(&pgcounter),
-		);
-		assert!(ret.is_err());
-		assert_eq!(0, pgcounter.read().expect("read failed").len());
-		assert_eq!(
-			crate::Error::UnexpectedEOF("Import Archive Buffer was not the required minimal size".to_owned()),
-			ret.unwrap_err()
-		)
+			let ret0 = detect_archive_type(&mut string0.as_bytes());
+
+			assert!(ret0.is_err());
+			assert_eq!(
+				Err(crate::Error::UnexpectedEOF(
+					"Detected Empty File, Cannot detect format".to_owned()
+				)),
+				ret0
+			);
+		}
+
+		#[test]
+		fn test_detect_json() {
+			let string0 = "{}";
+
+			let ret0 = detect_archive_type(&mut string0.as_bytes());
+
+			assert!(ret0.is_ok());
+			assert_eq!(Ok(ArchiveType::JSON), ret0);
+		}
+
+		#[test]
+		fn test_detect_ytdl() {
+			let string0 = "youtube ____________";
+
+			let ret0 = detect_archive_type(&mut string0.as_bytes());
+
+			assert!(ret0.is_ok());
+			assert_eq!(Ok(ArchiveType::Unknown), ret0);
+
+			let string1 = "soundcloud ____________";
+
+			let ret1 = detect_archive_type(&mut string1.as_bytes());
+
+			assert!(ret1.is_ok());
+			assert_eq!(Ok(ArchiveType::Unknown), ret1);
+		}
+
+		#[test]
+		fn test_detect_sqlite() {
+			let string0 = "SQLite format 3";
+
+			let ret0 = detect_archive_type(&mut string0.as_bytes());
+
+			assert!(ret0.is_ok());
+			assert_eq!(Ok(ArchiveType::SQLite), ret0);
+
+			let string1 = "SQLite Format 3"; // this is case-sensitive
+
+			let ret1 = detect_archive_type(&mut string1.as_bytes());
+
+			assert!(ret1.is_ok());
+			assert_eq!(Ok(ArchiveType::Unknown), ret1);
+		}
 	}
 
 	mod any {
 		use super::*;
+
+		#[test]
+		fn test_unexpected_eof() {
+			let string0 = "";
+			let mut dummy_archive = Archive::default();
+
+			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
+
+			let ret = import_any_archive(
+				&mut string0.as_bytes(),
+				&mut dummy_archive,
+				callback_counter(&pgcounter),
+			);
+			assert!(ret.is_err());
+			assert_eq!(0, pgcounter.read().expect("read failed").len());
+			assert_eq!(
+				crate::Error::UnexpectedEOF("Detected Empty File, Cannot detect format".to_owned()),
+				ret.unwrap_err()
+			)
+		}
 
 		#[test]
 		fn test_any_to_ytdl() {
