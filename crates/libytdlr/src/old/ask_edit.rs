@@ -173,7 +173,7 @@ fn re_thumbnail(_args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 		return Ok(()); // dont error out, just warn
 	}
 
-	crate::main_functionality::re_thumbnail(video_path, thumbnail_path, &ffmpegout_path)?;
+	crate::main::re_thumbnail(video_path, thumbnail_path, &ffmpegout_path)?;
 
 	mv_handler(&ffmpegout_path, video_path)?;
 
