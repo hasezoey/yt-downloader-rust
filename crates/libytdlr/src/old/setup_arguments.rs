@@ -2,23 +2,17 @@ use super::setup_archive::setup_archive;
 use super::utils::Arguments;
 use crate::data::json_archive::JSONArchive;
 
+use crate::utils::to_absolute;
 use std::fs::create_dir_all;
 use std::io::{
 	Error as ioError,
 	Result as ioResult,
 };
-use std::path::Path;
 use std::path::PathBuf;
-
-/// Helper function to make code more clean
-#[inline]
-fn process_paths<T: AsRef<Path>>(val: T) -> ioResult<PathBuf> {
-	return crate::utils::to_absolute(val);
-}
 
 /// Process input to useable PathBuf for temporary directory
 fn get_tmp_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
-	let mut ret_path = process_paths({
+	let mut ret_path = to_absolute({
 		if let Some(path) = val {
 			path
 		} else {
@@ -47,7 +41,7 @@ fn get_tmp_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
 
 /// Process input to useable Archive
 fn get_config_path(val: Option<PathBuf>) -> ioResult<Option<JSONArchive>> {
-	let archive_path = process_paths({
+	let archive_path = to_absolute({
 		if let Some(path) = val {
 			path
 		} else {
@@ -62,7 +56,7 @@ fn get_config_path(val: Option<PathBuf>) -> ioResult<Option<JSONArchive>> {
 
 /// Process input to useable PathBuf for Output
 fn get_output_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
-	let mut ret_path = process_paths({
+	let mut ret_path = to_absolute({
 		if let Some(path) = val {
 			path
 		} else {
