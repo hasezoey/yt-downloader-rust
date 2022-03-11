@@ -47,6 +47,7 @@ pub struct CliDerive {
 
 impl CliDerive {
 	/// Execute clap::Parser::parse and apply custom validation and transformation logic
+	#[must_use]
 	pub fn custom_parse() -> Self {
 		let mut parsed = Self::parse();
 
@@ -56,6 +57,7 @@ impl CliDerive {
 	}
 
 	/// Get if the mode is interactive or not
+	#[must_use]
 	pub fn is_interactive(&self) -> bool {
 		if self.explicit_tty.is_some() {
 			return self.explicit_tty.expect("Should have failed with \"is_some\"");
@@ -65,6 +67,7 @@ impl CliDerive {
 	}
 
 	/// Get if the colors are enabled or not
+	#[must_use]
 	pub fn enable_colors(&self) -> bool {
 		return self.force_color | self.is_interactive();
 	}
