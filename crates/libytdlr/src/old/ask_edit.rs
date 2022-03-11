@@ -150,6 +150,7 @@ fn spawn_editor(editor: &str, filepath: &Path, debug: bool) -> Result<ExitStatus
 /// Reapply the thumbnail after the video has been edited
 /// Reason for this is that some editor like audacity dosnt copy the thumbnail when saving
 fn re_thumbnail(_args: &Arguments, video_path: &Path) -> Result<(), ioError> {
+	use crate::main::rethumbnail::*;
 	info!("Reapplying thumbnail for \"{}\"", &video_path.display());
 	let mut thumbnail_path = PathBuf::from(&video_path.as_os_str());
 	thumbnail_path.set_extension("jpg");
@@ -173,7 +174,7 @@ fn re_thumbnail(_args: &Arguments, video_path: &Path) -> Result<(), ioError> {
 		return Ok(()); // dont error out, just warn
 	}
 
-	crate::main::re_thumbnail(video_path, thumbnail_path, &ffmpegout_path)?;
+	re_thumbnail(video_path, thumbnail_path, &ffmpegout_path)?;
 
 	mv_handler(&ffmpegout_path, video_path)?;
 

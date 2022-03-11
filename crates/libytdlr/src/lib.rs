@@ -11,10 +11,9 @@ extern crate log;
 
 pub mod data;
 mod error;
-mod main;
+pub mod main;
 mod old;
 pub mod spawn;
-pub use main::*;
 pub mod traits;
 pub mod utils;
 pub use error::Error;

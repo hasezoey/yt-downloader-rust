@@ -174,7 +174,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 		ProgressBar,
 		ProgressStyle,
 	};
-	use libytdlr::archive::import::*;
+	use libytdlr::main::archive::import::*;
 	println!("Importing Archive from \"{}\"", sub_args.file_path.to_string_lossy());
 
 	let input_path = &sub_args.file_path;
@@ -243,6 +243,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), ioError> {
+	use libytdlr::main::rethumbnail::*;
 	require_ffmpeg_installed()?;
 
 	// helper aliases to make it easier to access
