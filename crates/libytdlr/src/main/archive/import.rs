@@ -51,7 +51,7 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 	}
 
 	// convert buffer to string, lossy, for trimming
-	let as_string = String::from_utf8_lossy(&buffer);
+	let as_string = String::from_utf8_lossy(buffer);
 
 	let trimmed = as_string.trim_start().as_bytes();
 
