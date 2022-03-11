@@ -1,6 +1,5 @@
 //! Module for all the main functionality in the library (to keep everything sorted)
-mod import; // import command
-pub use import::*;
+pub mod archive;
 mod count;
 pub use count::*;
 mod rethumbnail;

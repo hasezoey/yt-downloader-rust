@@ -174,6 +174,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 		ProgressBar,
 		ProgressStyle,
 	};
+	use libytdlr::archive::import::*;
 	println!("Importing Archive from \"{}\"", sub_args.file_path.to_string_lossy());
 
 	let input_path = &sub_args.file_path;
@@ -228,7 +229,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 		}
 	};
 
-	libytdlr::import_any_archive(&mut reader, &mut archive, pgcb)?;
+	import_any_archive(&mut reader, &mut archive, pgcb)?;
 
 	return Ok(());
 }
