@@ -1,6 +1,6 @@
-use super::archive_schema::Archive;
 use super::setup_archive::setup_archive;
 use super::utils::Arguments;
+use crate::data::json_archive::JSONArchive;
 
 use std::fs::create_dir_all;
 use std::io::{
@@ -46,7 +46,7 @@ fn get_tmp_path(val: Option<PathBuf>) -> ioResult<PathBuf> {
 }
 
 /// Process input to useable Archive
-fn get_config_path(val: Option<PathBuf>) -> ioResult<Option<Archive>> {
+fn get_config_path(val: Option<PathBuf>) -> ioResult<Option<JSONArchive>> {
 	let archive_path = process_paths({
 		if let Some(path) = val {
 			path

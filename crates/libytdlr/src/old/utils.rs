@@ -1,4 +1,4 @@
-use super::archive_schema::Archive;
+use crate::data::json_archive::JSONArchive;
 
 use regex::Regex;
 use std::path::PathBuf;
@@ -21,7 +21,7 @@ pub struct Arguments {
 	/// disable re-adding the thumbnail after the editor closes
 	pub disable_re_thumbnail: bool,
 	/// Archive location
-	pub archive:              Option<Archive>,
+	pub archive:              Option<JSONArchive>,
 	/// Editor to use
 	pub editor:               String,
 }

@@ -50,7 +50,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 	debug!("Starting Edit ask loop");
 	let mut edited: Vec<PathBuf> = Vec::new();
 	// TODO: Reformat (get_mut_videos) to use iterators
-	for video in archive.get_mut_videos() {
+	for video in archive.get_videos_mut() {
 		if video.edit_asked() {
 			trace!("Video \"{}\" has already been asked to edit", video.id());
 

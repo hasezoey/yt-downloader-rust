@@ -1,6 +1,5 @@
 //! old library entry file
 
-pub mod archive_schema;
 pub mod ask_edit;
 pub mod move_finished;
 pub mod setup_archive;

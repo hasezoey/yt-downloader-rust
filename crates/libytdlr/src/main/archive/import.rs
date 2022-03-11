@@ -5,7 +5,7 @@ use std::io::BufRead;
 use regex::Regex;
 
 use crate::{
-	archive_schema::Archive,
+	data::json_archive::JSONArchive,
 	data::{
 		provider::Provider,
 		video::Video,
@@ -75,7 +75,7 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	archive: &mut Archive,
+	archive: &mut JSONArchive,
 	pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import any archive");
@@ -93,14 +93,14 @@ pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	archive: &mut Archive,
+	archive: &mut JSONArchive,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import ytdl archive");
 
 	pgcb(ImportProgress::Starting);
 
-	let new_archive: Archive = serde_json::from_reader(reader)?;
+	let new_archive: JSONArchive = serde_json::from_reader(reader)?;
 
 	pgcb(ImportProgress::SizeHint(new_archive.get_videos().len()));
 
@@ -133,7 +133,7 @@ lazy_static! {
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	archive: &mut Archive,
+	archive: &mut JSONArchive,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import ytdl-rust archive");
@@ -263,7 +263,7 @@ mod test {
 		#[test]
 		fn test_unexpected_eof() {
 			let string0 = "";
-			let mut dummy_archive = Archive::default();
+			let mut dummy_archive = JSONArchive::default();
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -282,7 +282,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdl() {
-			let mut archive0 = Archive::default();
+			let mut archive0 = JSONArchive::default();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "
@@ -296,7 +296,7 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_archive0 = {
-				let mut archive = Archive::default();
+				let mut archive = JSONArchive::default();
 				assert!(archive.add_video(
 					Video::new("____________", Provider::Youtube)
 						.with_dl_finished(true)
@@ -337,7 +337,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdlr() {
-			let mut archive0 = Archive::default();
+			let mut archive0 = JSONArchive::default();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = r#"
@@ -383,7 +383,7 @@ mod test {
 			assert_eq!(true, archive0.check_all_videos());
 
 			let cmp_archive0 = {
-				let mut archive = Archive::default();
+				let mut archive = JSONArchive::default();
 				assert!(archive.add_video(
 					Video::new("____________", Provider::Youtube)
 						.with_dl_finished(true)
@@ -433,7 +433,7 @@ mod test {
 
 		#[test]
 		fn test_basic_ytdl() {
-			let mut archive0 = Archive::default();
+			let mut archive0 = JSONArchive::default();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "
@@ -447,7 +447,7 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_archive0 = {
-				let mut archive = Archive::default();
+				let mut archive = JSONArchive::default();
 				assert!(archive.add_video(
 					Video::new("____________", Provider::Youtube)
 						.with_dl_finished(true)
@@ -488,7 +488,7 @@ mod test {
 
 		#[test]
 		fn test_no_captures_found_err() {
-			let mut archive0 = Archive::default();
+			let mut archive0 = JSONArchive::default();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "";
@@ -522,7 +522,7 @@ mod test {
 
 		#[test]
 		fn test_basic_ytdlr() {
-			let mut archive0 = Archive::default();
+			let mut archive0 = JSONArchive::default();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = r#"
@@ -568,7 +568,7 @@ mod test {
 			assert_eq!(true, archive0.check_all_videos());
 
 			let cmp_archive0 = {
-				let mut archive = Archive::default();
+				let mut archive = JSONArchive::default();
 				assert!(archive.add_video(
 					Video::new("____________", Provider::Youtube)
 						.with_dl_finished(true)

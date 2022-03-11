@@ -1,4 +1,4 @@
-use super::archive_schema::Archive;
+use crate::data::json_archive::JSONArchive;
 
 use std::fs::{
 	create_dir_all,
@@ -15,7 +15,7 @@ use std::path::{
 
 /// Setup Archive, if correct path
 /// Returns "None" if the path is invalid
-pub fn setup_archive<T: AsRef<Path>>(val: T) -> Option<Archive> {
+pub fn setup_archive<T: AsRef<Path>>(val: T) -> Option<JSONArchive> {
 	let input = val.as_ref();
 	if input.as_os_str().is_empty() {
 		debug!("Archive Path length is 0, working without an Archive");
@@ -39,7 +39,7 @@ pub fn setup_archive<T: AsRef<Path>>(val: T) -> Option<Archive> {
 	if !path.exists() {
 		debug!("Creating Default Archive File at \"{}\"", path.display());
 
-		let mut default_archive = Archive::default();
+		let mut default_archive = JSONArchive::default();
 		default_archive.path = path;
 
 		write_archive(&default_archive).expect("Failed to write Archive to File");
@@ -51,7 +51,7 @@ pub fn setup_archive<T: AsRef<Path>>(val: T) -> Option<Archive> {
 
 	let reader = BufReader::new(File::open(&path).expect("Archive File Reading Error"));
 
-	let mut ret: Archive =
+	let mut ret: JSONArchive =
 		serde_json::from_reader(reader).expect("Something went wrong reading the Archive File into Serde");
 
 	ret.path = path;
@@ -60,7 +60,7 @@ pub fn setup_archive<T: AsRef<Path>>(val: T) -> Option<Archive> {
 }
 
 /// if an Archive is existing in Arguments, write it
-pub fn write_archive(archive: &Archive) -> Result<(), ioError> {
+pub fn write_archive(archive: &JSONArchive) -> Result<(), ioError> {
 	if archive.path.as_os_str().is_empty() {
 		debug!("Not writing Archive, because no path got provided");
 		return Ok(());

@@ -19,7 +19,6 @@ use std::io::{
 	BufReader,
 	Error as ioError,
 	ErrorKind,
-	Write,
 };
 use std::path::{
 	Path,
@@ -86,9 +85,9 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 		{
 			let mut archive_handle = File::create(&archive_tmp).expect("Couldnt open archive_tmp path!");
 
-			for (provider, id) in archive.to_ytdl_archive() {
-				writeln!(archive_handle, "{} {}", &provider, &id).expect("Couldnt Write to archive_tmp file!");
-			}
+			archive
+				.to_ytdl_archive(&mut archive_handle)
+				.expect("Couldnt Write to archive_tmp file!");
 		}
 
 		ytdl.arg("--download-archive").arg(&archive_tmp);
