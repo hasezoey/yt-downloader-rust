@@ -35,8 +35,11 @@ pub enum ImportProgress {
 /// Archive Type, as detected by [`detect_archive_type`]
 #[derive(Debug, PartialEq, Clone)]
 pub enum ArchiveType {
+	/// Unknown Archive type, may be a ytdl archive
 	Unknown,
+	/// JSON YTDL-R Archive
 	JSON,
+	/// SQLite YTDL-R Archive (currently unused)
 	SQLite,
 }
 
