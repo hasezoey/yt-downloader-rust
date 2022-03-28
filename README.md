@@ -49,6 +49,8 @@ Please note this project is still in development (so not finished) and im still 
 
 - [ ] Rework 2022
   - [ ] Move Archive to SQL (SQLite by default) instead of big json
+    - [ ] re-implement `archive import` for sql
+    - [ ] re-implement main download for sql
   - [ ] re-implement main download
   - [x] add QOL command `re-thumbnail`
   - [ ] add QOL command `archive search` to search through the archive by any column
