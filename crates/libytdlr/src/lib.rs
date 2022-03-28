@@ -12,12 +12,11 @@ extern crate log;
 pub mod data;
 mod error;
 pub mod main;
-mod old;
+pub mod old;
 pub mod spawn;
 pub mod traits;
 pub mod utils;
 pub use error::Error;
-pub use old::*;
 
 /// Debug function to start vscode-lldb debugger from external console
 /// Only compiled when the target is "debug"

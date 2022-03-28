@@ -5,7 +5,10 @@
 extern crate log;
 
 use flexi_logger::LogSpecification;
-use libytdlr::*;
+use libytdlr::{
+	old::*,
+	*,
+};
 use std::{
 	fs::File,
 	io::{
@@ -199,7 +202,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 
 	let bar: ProgressBar = ProgressBar::hidden().with_style(IMPORT_STYLE.clone());
 
-	let mut archive = if let Some(archive) = libytdlr::setup_archive::setup_archive(archive_path) {
+	let mut archive = if let Some(archive) = setup_archive::setup_archive(archive_path) {
 		archive
 	} else {
 		return Err(ioError::new(std::io::ErrorKind::Other, "Reading Archive failed!"));
