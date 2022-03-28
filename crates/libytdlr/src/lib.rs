@@ -1,4 +1,4 @@
-//! Library of "YTLD-Rust", contains all the logic needed for the binary
+//! Library of "YTDL-Rust", contains all the logic needed for the binary
 
 #![allow(clippy::needless_return)]
 #![warn(clippy::implicit_return)]
