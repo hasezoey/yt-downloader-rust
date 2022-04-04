@@ -1,15 +1,12 @@
 //! Module for importing a archive into the current one
 
+use regex::Regex;
 use std::io::BufRead;
 
-use regex::Regex;
-
-use crate::{
-	data::json_archive::JSONArchive,
-	data::{
-		provider::Provider,
-		video::Video,
-	},
+use crate::data::{
+	json_archive::JSONArchive,
+	provider::Provider,
+	video::Video,
 };
 
 /// Enum to represent why the callback was called plus extra arguments
