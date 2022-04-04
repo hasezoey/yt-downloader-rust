@@ -70,7 +70,7 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 }
 
 /// Detect what archive is given and call the right function
-/// Calls [`import_ytdl_archive`] when its a ytdl archive and [`import_ytdl_r_archive`] when its a ytdl-r archive
+/// Calls [`import_ytdl_archive`] when its a ytdl archive and [`import_ytdlr_json_archive`] when its a ytdl-r archive
 ///
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
