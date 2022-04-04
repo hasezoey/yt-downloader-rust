@@ -72,16 +72,16 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	archive: &mut JSONArchive,
+	merge_to: &mut JSONArchive,
 	pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import any archive");
 
 	return match detect_archive_type(reader)? {
-		ArchiveType::JSON => import_ytdlr_json_archive(reader, archive, pgcb),
+		ArchiveType::JSON => import_ytdlr_json_archive(reader, merge_to, pgcb),
 		ArchiveType::SQLite => todo!(),
 		// Assume "Unknown" is a YTDL Archive (plain text)
-		ArchiveType::Unknown => import_ytdl_archive(reader, archive, pgcb),
+		ArchiveType::Unknown => import_ytdl_archive(reader, merge_to, pgcb),
 	};
 }
 
@@ -90,7 +90,7 @@ pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	archive: &mut JSONArchive,
+	merge_to: &mut JSONArchive,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import ytdl archive");
@@ -105,7 +105,7 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	for (index, video) in new_archive.get_videos().iter().enumerate() {
 		pgcb(ImportProgress::Increase(1, index));
-		if archive.add_video(video.clone()) {
+		if merge_to.add_video(video.clone()) {
 			successfull += 1;
 		}
 	}
@@ -130,7 +130,7 @@ lazy_static! {
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	archive: &mut JSONArchive,
+	merge_to: &mut JSONArchive,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import ytdl-rust archive");
@@ -151,7 +151,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 		let line = line?;
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(&line) {
-			if archive.add_video(
+			if merge_to.add_video(
 				Video::new(&cap[2], Provider::from(&cap[1]))
 					.with_dl_finished(true) // add parsed video as having finished downloading, because it was already in the ytdl-archive
 					.with_edit_asked(true), // add parsed video as having already been asked to edit, because no filename is available to ask for other edits
