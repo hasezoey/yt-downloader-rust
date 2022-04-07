@@ -173,6 +173,30 @@ impl fmt::Display for Video {
 	}
 }
 
+impl From<crate::data::sql_models::Media> for Video {
+	fn from(v: crate::data::sql_models::Media) -> Self {
+		return Self {
+			id:          v.media_id,
+			provider:    provider::Provider::from(v.provider),
+			dl_finished: true,
+			edit_asked:  true,
+			file_name:   v.title,
+		};
+	}
+}
+
+impl From<&crate::data::sql_models::Media> for Video {
+	fn from(v: &crate::data::sql_models::Media) -> Self {
+		return Self {
+			id:          v.media_id.clone(),
+			provider:    provider::Provider::from(v.provider.clone()),
+			dl_finished: true,
+			edit_asked:  true,
+			file_name:   v.title.clone(),
+		};
+	}
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
@@ -423,6 +447,47 @@ mod test {
 			Video::new("id1", provider::Provider::Other("SomethingElse".to_owned())),
 			video1.clone()
 		);
+	}
+
+	#[test]
+	fn test_from_media() {
+		// non-reference
+		{
+			let media = crate::data::sql_models::Media {
+				_id:         0,
+				media_id:    "someid".to_owned(),
+				provider:    "youtube".to_owned(),
+				title:       "helloTitle".to_owned(),
+				inserted_at: chrono::NaiveDateTime::from_timestamp(0, 0),
+			};
+
+			assert_eq!(
+				Video::new("someid", provider::Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("helloTitle"),
+				Video::from(media)
+			);
+		}
+
+		// reference
+		{
+			let media = crate::data::sql_models::Media {
+				_id:         0,
+				media_id:    "someid".to_owned(),
+				provider:    "youtube".to_owned(),
+				title:       "helloTitle".to_owned(),
+				inserted_at: chrono::NaiveDateTime::from_timestamp(0, 0),
+			};
+
+			assert_eq!(
+				Video::new("someid", provider::Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("helloTitle"),
+				Video::from(&media)
+			);
+		}
 	}
 
 	mod serde {
