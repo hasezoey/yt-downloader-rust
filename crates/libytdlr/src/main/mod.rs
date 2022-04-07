@@ -4,3 +4,4 @@ pub mod count;
 pub mod rethumbnail;
 // pub mod download; // download command
 // pub mod check_archive; // checkarchive command
+pub mod sql_utils;
