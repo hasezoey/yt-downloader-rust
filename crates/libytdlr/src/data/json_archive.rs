@@ -109,7 +109,7 @@ impl JSONArchive {
 		for video in self.get_videos_mut() {
 			let change = video.check_all();
 
-			changed = change | changed;
+			changed |= change;
 		}
 
 		return changed;
