@@ -201,18 +201,13 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 	}
 
 	let bar: ProgressBar = ProgressBar::hidden().with_style(IMPORT_STYLE.clone());
+	crate::utils::set_progressbar(&bar, main_args);
 
-	let mut archive = if let Some(archive) = setup_archive::setup_archive(archive_path) {
-		archive
-	} else {
-		return Err(ioError::new(std::io::ErrorKind::Other, "Reading Archive failed!"));
-	};
+	let (_new_archive, mut connection) = utils::handle_connect(archive_path, &bar, main_args)?;
 
 	let mut reader = BufReader::new(File::open(input_path)?);
 
-	crate::utils::set_progressbar(&bar, main_args);
-
-	let pgcb = |imp| {
+	let pgcb_import = |imp| {
 		if main_args.is_interactive() {
 			match imp {
 				ImportProgress::Starting => bar.set_position(0),
@@ -232,7 +227,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 		}
 	};
 
-	import_any_archive(&mut reader, &mut archive, pgcb)?;
+	import_any_archive(&mut reader, &mut connection, pgcb_import)?;
 
 	return Ok(());
 }

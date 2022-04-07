@@ -1,12 +1,17 @@
 //! Module for importing a archive into the current one
 
+use diesel::{
+	prelude::*,
+	upsert::excluded,
+};
 use regex::Regex;
 use std::io::BufRead;
 
 use crate::data::{
 	json_archive::JSONArchive,
 	provider::Provider,
-	video::Video,
+	sql_models::*,
+	sql_schema::*,
 };
 
 /// Enum to represent why the callback was called plus extra arguments
@@ -72,7 +77,7 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	merge_to: &mut JSONArchive,
+	merge_to: &mut SqliteConnection,
 	pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import any archive");
@@ -85,32 +90,62 @@ pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	};
 }
 
+lazy_static! {
+	/// Regex for removing known file extension from imported filenames
+	static ref REMOVE_KNOWN_FILEEXTENSION: Regex = Regex::new(r"(?mi)\.(?:(?:mp3)|(?:mp4))$").unwrap();
+}
+
 /// Import a YTDL-Rust (json) Archive
 ///
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	merge_to: &mut JSONArchive,
+	merge_to: &mut SqliteConnection,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import ytdl archive");
 
 	pgcb(ImportProgress::Starting);
 
-	let new_archive: JSONArchive = serde_json::from_reader(reader)?;
+	let input_archive: JSONArchive = serde_json::from_reader(reader)?;
 
-	pgcb(ImportProgress::SizeHint(new_archive.get_videos().len()));
+	pgcb(ImportProgress::SizeHint(input_archive.get_videos().len()));
 
-	let mut successfull = 0usize;
+	let mut bulk_values: Vec<InsMedia> = Vec::with_capacity(input_archive.get_videos().len());
 
-	for (index, video) in new_archive.get_videos().iter().enumerate() {
+	for (index, video) in input_archive.get_videos().iter().enumerate() {
 		pgcb(ImportProgress::Increase(1, index));
-		if merge_to.add_video(video.clone()) {
-			successfull += 1;
-		}
+
+		let filename = REMOVE_KNOWN_FILEEXTENSION.replace_all(video.file_name(), "");
+
+		bulk_values.push(InsMedia::new(video.id(), video.provider().to_string(), filename));
 	}
 
-	pgcb(ImportProgress::Finished(successfull));
+	// currently does not work, see https://github.com/diesel-rs/diesel/discussions/3115
+	// let affected_rows = diesel::insert_into(media_archive::table)
+	// 	.values(&bulk_values)
+	// 	.on_conflict((media_id, provider))
+	// 	.do_update()
+	// 	.set(title.eq(excluded(title)))
+	// 	.execute(merge_to)
+	// 	.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+
+	let mut affected_rows = 0usize;
+
+	// HACK: the following is currently just a workaround because of https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301
+	for val in bulk_values.iter() {
+		let affected = diesel::insert_into(media_archive::table)
+			.values(val)
+			.on_conflict((media_archive::media_id, media_archive::provider))
+			.do_update()
+			.set(media_archive::title.eq(excluded(media_archive::title)))
+			.execute(merge_to)
+			.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+
+		affected_rows += affected;
+	}
+
+	pgcb(ImportProgress::Finished(affected_rows));
 
 	return Ok(());
 }
@@ -130,7 +165,7 @@ lazy_static! {
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
-	merge_to: &mut JSONArchive,
+	merge_to: &mut SqliteConnection,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import ytdl-rust archive");
@@ -151,14 +186,21 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 		let line = line?;
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(&line) {
-			if merge_to.add_video(
-				Video::new(&cap[2], Provider::from(&cap[1]))
-					.with_dl_finished(true) // add parsed video as having finished downloading, because it was already in the ytdl-archive
-					.with_edit_asked(true), // add parsed video as having already been asked to edit, because no filename is available to ask for other edits
-			) {
-				successfull += 1;
-				pgcb(ImportProgress::Increase(1, index));
-			}
+			// HACK: the following is currently just a workaround because of https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301
+			let affected = diesel::insert_into(media_archive::table)
+				.values(InsMedia::new(
+					&cap[2],
+					Provider::from(&cap[1]).to_string(),
+					"unknown (none-provided)",
+				))
+				.on_conflict((media_archive::media_id, media_archive::provider))
+				.do_update()
+				.set(media_archive::title.eq(excluded(media_archive::title)))
+				.execute(merge_to)
+				.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+
+			successfull += affected;
+			pgcb(ImportProgress::Increase(1, index));
 		} else {
 			failed_captures = true;
 			log::info!("Could not get any captures from line: \"{}\"", &line);
@@ -183,12 +225,28 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 #[cfg(test)]
 mod test {
 	use super::*;
+	use crate::data::video::Video;
 	use std::ops::Deref;
 	use std::sync::RwLock;
 
 	/// Test utility function for easy callbacks
 	fn callback_counter(c: &RwLock<Vec<ImportProgress>>) -> impl FnMut(ImportProgress) + '_ {
 		return |imp| c.write().expect("write failed").push(imp);
+	}
+
+	fn create_connection() -> SqliteConnection {
+		// chrono is used to create a different database for each thread
+		let path = std::env::temp_dir().join(format!("ytdl-test-sqlite/{}-sqlite.db", chrono::Utc::now()));
+
+		// remove if already exists to have a clean test
+		if path.exists() {
+			std::fs::remove_file(&path).expect("Expected the file to be removed");
+		}
+
+		std::fs::create_dir_all(path.parent().expect("Expected the file to have a parent"))
+			.expect("expected the directory to be created");
+
+		return crate::main::sql_utils::sqlite_connect(path).expect("Expected SQLite to successfully start");
 	}
 
 	mod detect {
@@ -260,13 +318,13 @@ mod test {
 		#[test]
 		fn test_unexpected_eof() {
 			let string0 = "";
-			let mut dummy_archive = JSONArchive::default();
+			let mut dummy_connection = create_connection();
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let ret = import_any_archive(
 				&mut string0.as_bytes(),
-				&mut dummy_archive,
+				&mut dummy_connection,
 				callback_counter(&pgcounter),
 			);
 			assert!(ret.is_err());
@@ -279,7 +337,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdl() {
-			let mut archive0 = JSONArchive::default();
+			let mut connection0 = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "
@@ -289,35 +347,34 @@ mod test {
 			soundcloud 0000000000
 			";
 
-			let res0 = import_any_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
+			let res0 = import_any_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
-			let cmp_archive0 = {
-				let mut archive = JSONArchive::default();
-				assert!(archive.add_video(
-					Video::new("____________", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
-				assert!(archive.add_video(
-					Video::new("------------", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
-				assert!(archive.add_video(
-					Video::new("aaaaaaaaaaaa", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
-				assert!(archive.add_video(
-					Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
+			let cmp_vec: Vec<Video> = vec![
+				Video::new("____________", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+				Video::new("------------", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+				Video::new("aaaaaaaaaaaa", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+			];
 
-				archive
-			};
-			assert_eq!(cmp_archive0, archive0);
+			let found = media_archive::dsl::media_archive
+				.order(media_archive::_id.asc())
+				.load::<Media>(&mut connection0)
+				.expect("Expected a successfully query");
+
+			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
@@ -334,7 +391,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdlr() {
-			let mut archive0 = JSONArchive::default();
+			let mut connection0 = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = r#"
@@ -373,42 +430,35 @@ mod test {
 			}
 			"#;
 
-			let res0 = import_any_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
+			let res0 = import_any_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
 
-			assert_eq!(true, archive0.check_all_videos());
+			let cmp_vec: Vec<Video> = vec![
+				Video::new("____________", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile1"),
+				Video::new("------------", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile2"),
+				Video::new("aaaaaaaaaaaa", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile4"),
+			];
 
-			let cmp_archive0 = {
-				let mut archive = JSONArchive::default();
-				assert!(archive.add_video(
-					Video::new("____________", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true)
-						.with_filename("someFile1.mp3"),
-				));
-				assert!(archive.add_video(
-					Video::new("------------", Provider::Youtube)
-						.with_dl_finished(false)
-						.with_edit_asked(false)
-						.with_filename("someFile2.mp3"),
-				));
-				assert!(archive.add_video(
-					Video::new("aaaaaaaaaaaa", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(false)
-						.with_filename("someFile3.mp3"),
-				));
-				assert!(archive.add_video(
-					Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-						.with_dl_finished(true)
-						.with_edit_asked(true)
-						.with_filename("someFile4.mp3"),
-				));
+			let found = media_archive::dsl::media_archive
+				.order(media_archive::_id.asc())
+				.load::<Media>(&mut connection0)
+				.expect("Expected a successfully query");
 
-				archive
-			};
-			assert_eq!(cmp_archive0, archive0);
+			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
@@ -430,7 +480,7 @@ mod test {
 
 		#[test]
 		fn test_basic_ytdl() {
-			let mut archive0 = JSONArchive::default();
+			let mut connection0 = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "
@@ -440,35 +490,34 @@ mod test {
 			soundcloud 0000000000
 			";
 
-			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
+			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
-			let cmp_archive0 = {
-				let mut archive = JSONArchive::default();
-				assert!(archive.add_video(
-					Video::new("____________", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
-				assert!(archive.add_video(
-					Video::new("------------", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
-				assert!(archive.add_video(
-					Video::new("aaaaaaaaaaaa", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
-				assert!(archive.add_video(
-					Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-						.with_dl_finished(true)
-						.with_edit_asked(true),
-				));
+			let cmp_vec: Vec<Video> = vec![
+				Video::new("____________", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+				Video::new("------------", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+				Video::new("aaaaaaaaaaaa", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("unknown (none-provided)"),
+			];
 
-				archive
-			};
-			assert_eq!(cmp_archive0, archive0);
+			let found = media_archive::dsl::media_archive
+				.order(media_archive::_id.asc())
+				.load::<Media>(&mut connection0)
+				.expect("Expected a successfully query");
+
+			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
@@ -485,12 +534,12 @@ mod test {
 
 		#[test]
 		fn test_no_captures_found_err() {
-			let mut archive0 = JSONArchive::default();
+			let mut connection0 = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "";
 
-			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
+			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_err());
 			assert_eq!(
@@ -502,7 +551,7 @@ mod test {
 
 			let string0 = "   ";
 
-			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
+			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_err());
 			assert_eq!(
@@ -519,7 +568,7 @@ mod test {
 
 		#[test]
 		fn test_basic_ytdlr() {
-			let mut archive0 = JSONArchive::default();
+			let mut connection0 = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = r#"
@@ -558,42 +607,36 @@ mod test {
 			}
 			"#;
 
-			let res0 = import_ytdlr_json_archive(&mut string0.as_bytes(), &mut archive0, callback_counter(&pgcounter));
+			let res0 =
+				import_ytdlr_json_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
 
-			assert_eq!(true, archive0.check_all_videos());
+			let cmp_vec: Vec<Video> = vec![
+				Video::new("____________", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile1"),
+				Video::new("------------", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile2"),
+				Video::new("aaaaaaaaaaaa", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someFile4"),
+			];
 
-			let cmp_archive0 = {
-				let mut archive = JSONArchive::default();
-				assert!(archive.add_video(
-					Video::new("____________", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(true)
-						.with_filename("someFile1.mp3"),
-				));
-				assert!(archive.add_video(
-					Video::new("------------", Provider::Youtube)
-						.with_dl_finished(false)
-						.with_edit_asked(false)
-						.with_filename("someFile2.mp3"),
-				));
-				assert!(archive.add_video(
-					Video::new("aaaaaaaaaaaa", Provider::Youtube)
-						.with_dl_finished(true)
-						.with_edit_asked(false)
-						.with_filename("someFile3.mp3"),
-				));
-				assert!(archive.add_video(
-					Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-						.with_dl_finished(true)
-						.with_edit_asked(true)
-						.with_filename("someFile4.mp3"),
-				));
+			let found = media_archive::dsl::media_archive
+				.order(media_archive::_id.asc())
+				.load::<Media>(&mut connection0)
+				.expect("Expected a successfully query");
 
-				archive
-			};
-			assert_eq!(cmp_archive0, archive0);
+			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
