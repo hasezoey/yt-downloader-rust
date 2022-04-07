@@ -20,6 +20,10 @@ pub enum Error {
 	Other(String),
 	/// Variant for a Unexpected Process Exit (like when ytdl fails to spawn)
 	UnexpectedProcessExit(String),
+	/// Variant for a diesel Connection Error (sql i/o)
+	SQLConnectionError(diesel::ConnectionError),
+	/// Variant for a diesel SQL Operation Error
+	SQLOperationError(String),
 }
 
 // this is custom, because "std::io::Error" does not implement "PartialEq", but "std::io::ErrorKind" does
@@ -32,6 +36,8 @@ impl PartialEq for Error {
 			(Self::NoCapturesFound(l0), Self::NoCapturesFound(r0)) => return l0 == r0,
 			(Self::Other(l0), Self::Other(r0)) => return l0 == r0,
 			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
+			(Self::SQLConnectionError(l0), Self::SQLConnectionError(r0)) => return l0 == r0,
+			(Self::SQLOperationError(l0), Self::SQLOperationError(r0)) => return l0 == r0,
 			// Always return "false" for a serde_json::Error
 			(Self::SerdeJSONError(_l0), Self::SerdeJSONError(_r0)) => return false,
 			// Always return "false" for a Unexpected Process Exit
@@ -65,6 +71,12 @@ impl From<Error> for std::io::Error {
 	}
 }
 
+impl From<diesel::ConnectionError> for Error {
+	fn from(err: diesel::ConnectionError) -> Self {
+		return Self::SQLConnectionError(err);
+	}
+}
+
 impl Display for Error {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		return write!(
@@ -78,8 +90,12 @@ impl Display for Error {
 				Self::UnexpectedEOF(v) => format!("UnexpectedEOF: {}", v),
 				Self::SerdeJSONError(v) => format!("SerdeJSONError: {}", v),
 				Self::UnexpectedProcessExit(v) => format!("UnexpectedProcessExit: {}", v),
+				Self::SQLConnectionError(v) => format!("SQLConnectionError: {}", v),
+				Self::SQLOperationError(v) => format!("SQLOperationError: {}", v),
 				Self::Other(v) => format!("Other: {}", v),
 			}
 		);
 	}
 }
+
+impl std::error::Error for Error {}
