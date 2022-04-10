@@ -2,9 +2,9 @@ use super::utils::{
 	Arguments,
 	LineTypes,
 };
-use crate::data::{
-	provider::Provider,
-	video::Video,
+use crate::data::old_archive::{
+	Provider,
+	Video,
 };
 
 use colored::Colorize;

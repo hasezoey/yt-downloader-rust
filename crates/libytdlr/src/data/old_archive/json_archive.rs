@@ -1,6 +1,6 @@
 //! Module for the JSON Archive
 
-use crate::data::video::Video;
+use super::Video;
 use serde::{
 	Deserialize,
 	Serialize,
@@ -133,7 +133,7 @@ impl JSONArchive {
 #[cfg(test)]
 mod test {
 	use super::*;
-	use crate::data::provider::Provider;
+	use crate::data::old_archive::Provider;
 
 	#[test]
 	fn test_add_video() {

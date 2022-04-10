@@ -8,8 +8,10 @@ use regex::Regex;
 use std::io::BufRead;
 
 use crate::data::{
-	json_archive::JSONArchive,
-	provider::Provider,
+	old_archive::{
+		JSONArchive,
+		Provider,
+	},
 	sql_models::*,
 	sql_schema::*,
 };
@@ -225,7 +227,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 #[cfg(test)]
 mod test {
 	use super::*;
-	use crate::data::video::Video;
+	use crate::data::old_archive::video::Video;
 	use std::ops::Deref;
 	use std::sync::RwLock;
 

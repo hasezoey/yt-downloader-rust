@@ -1,6 +1,6 @@
 use super::move_finished::mv_handler;
 use super::utils::Arguments;
-use crate::data::video::Video;
+use crate::data::old_archive::video::Video;
 use crate::old::utils::{
 	ResponseContinue,
 	ResponseYesNo,

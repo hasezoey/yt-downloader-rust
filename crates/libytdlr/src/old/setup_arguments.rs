@@ -1,6 +1,6 @@
 use super::setup_archive::setup_archive;
 use super::utils::Arguments;
-use crate::data::json_archive::JSONArchive;
+use crate::data::old_archive::JSONArchive;
 
 use crate::utils::to_absolute;
 use std::fs::create_dir_all;
