@@ -26,9 +26,9 @@ impl CountVideo {
 }
 
 // Implemented for easy casting, if needed
-impl From<CountVideo> for crate::data::old_archive::video::Video {
+impl From<CountVideo> for crate::data::cache::media_info::MediaInfo {
 	fn from(val: CountVideo) -> Self {
-		return Self::new(val.id, crate::data::old_archive::Provider::Unknown).with_filename(val.title);
+		return Self::new(val.id).with_title(val.title);
 	}
 }
 
@@ -150,14 +150,11 @@ mod test {
 	}
 
 	#[test]
-	fn test_countvideo_into_video() {
-		use crate::data::old_archive::{
-			Provider,
-			Video,
-		};
+	fn test_countvideo_into_mediainfo() {
+		use crate::data::cache::media_info::MediaInfo;
 
 		assert_eq!(
-			Video::new("helloId1", Provider::Unknown).with_filename("HelloTitle1"),
+			MediaInfo::new("helloId1").with_title("HelloTitle1"),
 			CountVideo::new("helloId1".to_owned(), "HelloTitle1".to_owned()).into()
 		);
 	}
