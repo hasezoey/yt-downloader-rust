@@ -93,8 +93,6 @@ pub fn spawn_ytdl(args: &mut Arguments) -> Result<(), ioError> {
 		ytdl.arg("--download-archive").arg(&archive_tmp);
 	}
 
-	ytdl.arg("--newline"); // to make parsing easier
-
 	// yt-dlp argument to always print in a specific format when available
 	ytdl.arg("--print");
 	ytdl.arg("PARSE '%(extractor)s' '%(id)s' %(title)s");
