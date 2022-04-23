@@ -8,16 +8,16 @@ use std::{
 use diesel::SqliteConnection;
 
 /// Trait for Paths used by most top-level functions
-pub trait BasePaths {
-	/// Get the Output path of various commands
-	/// For download, it would be something like "~/Music/ytdlr"
-	fn get_output(&self) -> Option<&Path>;
-	/// Get the temporary directory path to use for temporary stuff
-	/// like intermediate downloads
-	fn get_tmp(&self) -> Option<&Path>;
-	/// Get the [`crate::archive_schema::Archive`] path to use
-	fn get_archive(&self) -> Option<&Path>;
-}
+// pub trait BasePaths {
+// 	/// Get the Output path of various commands
+// 	/// For download, it would be something like "~/Music/ytdlr"
+// 	fn get_output(&self) -> Option<&Path>;
+// 	/// Get the temporary directory path to use for temporary stuff
+// 	/// like intermediate downloads
+// 	fn get_tmp(&self) -> Option<&Path>;
+// 	/// Get the [`crate::archive_schema::Archive`] path to use
+// 	fn get_archive(&self) -> Option<&Path>;
+// }
 
 /// Options specific for the [`crate::main::download::download_single`] function
 pub trait DownloadOptions {
@@ -42,11 +42,4 @@ pub trait DownloadOptions {
 	/// Get a estimate of how many media elements will be downloaded
 	/// This commonly should be the length of the vec containing [`crate::main::count::CountVideo`] returned from [`crate::main::count::count`]
 	fn get_count_estimate(&self) -> usize;
-}
-
-/// Options speicifc for the [`verify-archive`] function
-/// TODO: replace link above to actual verify-archive function
-pub trait VerifyArchiveOptions {
-	/// Get if the function should only check and not write / migrate
-	fn get_dry_run(&self) -> bool;
 }
