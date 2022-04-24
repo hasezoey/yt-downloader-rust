@@ -35,6 +35,7 @@ impl From<CountVideo> for crate::data::cache::media_info::MediaInfo {
 /// Spawn ytdl and parse the output into a collection of [`CountVideo`]
 /// Wrapper for [`count_with_command`] with [`crate::spawn::ytdl::base_ytdl`]
 pub fn count<T: AsRef<str>>(url: T) -> Result<Vec<CountVideo>, crate::Error> {
+	// TODO: refactor to use "--print" like in [`crate::main::LineTypes`] instead of "--get-id"
 	let mut cmd = crate::spawn::ytdl::base_ytdl();
 	cmd.args(["-s", "--flat-playlist", "--get-id", "--get-title", url.as_ref()]);
 	return count_with_command(cmd);
