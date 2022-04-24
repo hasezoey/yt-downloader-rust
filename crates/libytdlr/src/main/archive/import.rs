@@ -136,13 +136,7 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	// HACK: the following is currently just a workaround because of https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301
 	for val in bulk_values.iter() {
-		let affected = diesel::insert_into(media_archive::table)
-			.values(val)
-			.on_conflict((media_archive::media_id, media_archive::provider))
-			.do_update()
-			.set(media_archive::title.eq(excluded(media_archive::title)))
-			.execute(merge_to)
-			.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+		let affected = insert_insmedia(val, merge_to)?;
 
 		affected_rows += affected;
 	}
@@ -188,18 +182,10 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 		let line = line?;
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(&line) {
-			// HACK: the following is currently just a workaround because of https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301
-			let affected = diesel::insert_into(media_archive::table)
-				.values(InsMedia::new(
-					&cap[2],
-					Provider::from(&cap[1]).to_string(),
-					"unknown (none-provided)",
-				))
-				.on_conflict((media_archive::media_id, media_archive::provider))
-				.do_update()
-				.set(media_archive::title.eq(excluded(media_archive::title)))
-				.execute(merge_to)
-				.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+			let affected = insert_insmedia(
+				&InsMedia::new(&cap[2], Provider::from(&cap[1]).to_string(), "unknown (none-provided)"),
+				merge_to,
+			)?;
 
 			successfull += affected;
 			pgcb(ImportProgress::Increase(1, index));
@@ -222,6 +208,20 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	pgcb(ImportProgress::Finished(successfull));
 
 	return Ok(());
+}
+
+/// Helper function to have a unified insertion command for all imports or functions that like to use this method
+///
+/// This function is also meant as a workaround to https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301 because bulk inserts with "on_conflict" in sqlite are not supported
+#[inline]
+pub fn insert_insmedia(input: &InsMedia, connection: &mut SqliteConnection) -> Result<usize, crate::Error> {
+	return diesel::insert_into(media_archive::table)
+		.values(input)
+		.on_conflict((media_archive::media_id, media_archive::provider))
+		.do_update()
+		.set(media_archive::title.eq(excluded(media_archive::title)))
+		.execute(connection)
+		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()));
 }
 
 #[cfg(test)]
@@ -474,6 +474,36 @@ mod test {
 				],
 				pgcounter.read().expect("failed to read").deref()
 			);
+		}
+	}
+
+	mod insert_insmedia {
+		use super::*;
+
+		#[test]
+		fn test_insert() {
+			let mut connection0 = create_connection();
+
+			let input0 = InsMedia::new("someid", "someprovider", "sometitle");
+
+			let res = insert_insmedia(&input0, &mut connection0);
+
+			assert!(res.is_ok());
+			let res = res.expect("Expected assert to fail before this");
+
+			assert_eq!(1, res);
+
+			let found = media_archive::dsl::media_archive
+				.order(media_archive::_id.asc())
+				.load::<Media>(&mut connection0)
+				.expect("Expected a successfully query");
+
+			let cmp_vec: Vec<Video> = vec![Video::new("someid", Provider::Other("someprovider".to_owned()))
+				.with_dl_finished(true)
+				.with_edit_asked(true)
+				.with_filename("sometitle")];
+
+			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 		}
 	}
 
