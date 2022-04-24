@@ -4,7 +4,7 @@ use crate::data::sql_schema::*;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 
-#[derive(Queryable)]
+#[derive(Debug, Clone, PartialEq, Queryable)]
 #[diesel(table_name = media_archive)]
 // #[diesel(treat_none_as_default_value = false)]
 pub struct Media {
@@ -20,7 +20,7 @@ pub struct Media {
 	pub inserted_at: NaiveDateTime,
 }
 
-#[derive(Insertable)]
+#[derive(Debug, Clone, PartialEq, Insertable)]
 #[diesel(table_name = media_archive)]
 // #[diesel(treat_none_as_default_value = false)]
 pub struct InsMedia {
