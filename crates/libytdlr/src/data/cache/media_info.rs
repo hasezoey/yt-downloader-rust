@@ -5,6 +5,8 @@ use serde::{
 	Serialize,
 };
 
+use crate::data::sql_models::InsMedia;
+
 use super::{
 	media_provider::MediaProvider,
 	media_stage::MediaStage,
@@ -66,6 +68,17 @@ impl MediaInfo {
 	/// Set the Provider of the current [`MediaInfo`]
 	pub fn set_provider(&mut self, provider: MediaProvider) {
 		self.provider = Some(provider);
+	}
+}
+
+impl From<MediaInfo> for InsMedia {
+	fn from(v: MediaInfo) -> Self {
+		return Self::new(
+			v.id,
+			v.provider
+				.map_or_else(|| return "unknown (none-provided)".to_owned(), |v| v.to_string()),
+			v.title.unwrap_or_else(|| return "unknown (none-provided)".to_owned()),
+		);
 	}
 }
 
@@ -137,6 +150,24 @@ mod test {
 				provider:   Some(MediaProvider::Youtube),
 			},
 			MediaInfo::new("someid").with_provider(MediaProvider::Youtube)
+		);
+	}
+
+	#[test]
+	fn test_into_insmedia() {
+		// test with full options
+		assert_eq!(
+			InsMedia::new("someid", "someprovider", "sometitle"),
+			MediaInfo::new("someid")
+				.with_provider(MediaProvider::Other("someprovider".to_owned()))
+				.with_title("sometitle")
+				.into()
+		);
+
+		// test with only id
+		assert_eq!(
+			InsMedia::new("someid", "unknown (none-provided)", "unknown (none-provided)"),
+			MediaInfo::new("someid").into()
 		);
 	}
 }
