@@ -23,17 +23,17 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum DownloadProgress<'a> {
+pub enum DownloadProgress {
 	/// Variant representing that the download is starting
 	AllStarting,
 	/// Variant representing that a media has started the process (id, title)
-	SingleStarting(&'a str, &'a str),
+	SingleStarting(String, String),
 	/// Variant representing that a started media has increased in progress (id, progress)
 	/// "id" may be [`None`] when the previous parsing did not parse a title
-	SingleProgress(Option<&'a str>, u8),
+	SingleProgress(Option<String>, u8),
 	/// Variant representing that a media has finished the process (id)
 	/// the "id" is not guranteed to be the same as in [`DownloadProgress::SingleStarting`]
-	SingleFinished(&'a str),
+	SingleFinished(String),
 	/// Variant representing that the download has finished (downloaded media count)
 	/// The value in this tuple is the size of actually downloaded media, not just found media
 	AllFinished(usize),
@@ -70,7 +70,8 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 				.lines()
 				.filter_map(|line| return line.ok())
 				.for_each(|line| {
-					warn!("ytdl [STDERR]: \"{}\"", line);
+					// this is not higher than "info" because ytdl otherwise might log some more generic messages
+					info!("ytdl [STDERR]: \"{}\"", line);
 				})
 		})?;
 
@@ -118,6 +119,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	let output_format = output_dir.join("%(extractor)s-%(id)s-%(title)s.%(ext)s");
 
 	if let Some(connection) = connection {
+		debug!("Found connection, generating archive");
 		if let Some(archive_lines) = options.gen_archive(connection) {
 			let archive_file_path = output_dir.join("ytdl_archive.txt");
 
@@ -142,6 +144,10 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 		ytdl_command.arg("-x");
 		// set the output audio format
 		ytdl_command.arg("--audio-format").arg("mp3");
+	} else {
+		ytdl_command.arg("-f").arg("bestvideo+bestaudio/best");
+		// set final consistent output format
+		ytdl_command.arg("--remux-video").arg("mkv");
 	}
 
 	{
@@ -370,7 +376,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					had_download = true;
 					if let Some(percent) = linetype.try_get_download_percent(line) {
 						// convert "current_mediainfo" to a reference and operate on the inner value (if exists) to return just the "id"
-						let id: Option<&str> = current_mediainfo.as_ref().map(|v| return v.id.as_str());
+						let id = current_mediainfo.as_ref().map(|v| return v.id.clone());
 						pgcb(DownloadProgress::SingleProgress(id, percent));
 					}
 				},
@@ -399,11 +405,11 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 									.title
 									.as_ref()
 									.expect("current_mediainfo.title should have been set");
-								pgcb(DownloadProgress::SingleStarting(&c_mi.id, title))
+								pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()))
 							},
 							CustomParseType::END => {
 								debug!("Found PARSE_END: \"{}\" \"{:?}\"", mi.1.id, mi.1.provider);
-								pgcb(DownloadProgress::SingleFinished(&mi.1.id));
+								pgcb(DownloadProgress::SingleFinished(mi.1.id.clone()));
 
 								if let Some(last_mediainfo) = current_mediainfo.take() {
 									if mi.1.id != last_mediainfo.id {
@@ -504,12 +510,12 @@ mod test {
 			return &self.url;
 		}
 
-		fn gen_archive(&self, _connection: &mut SqliteConnection) -> Option<Box<dyn Iterator<Item = &str> + '_>> {
+		fn gen_archive(&self, _connection: &mut SqliteConnection) -> Option<Box<dyn Iterator<Item = String> + '_>> {
 			if self.archive_lines.is_empty() {
 				return None;
 			}
 
-			return Some(Box::from(self.archive_lines.iter().map(|v| return v.as_str())));
+			return Some(Box::from(self.archive_lines.iter().map(|v| return v.clone())));
 		}
 
 		fn extra_ytdl_arguments(&self) -> Vec<&std::ffi::OsStr> {
@@ -547,8 +553,8 @@ mod test {
 	/// Test utility function for easy callbacks
 	fn callback_counter<'a>(
 		index_pg: &'a Arc<AtomicUsize>,
-		expected_pg: &'a Vec<DownloadProgress<'a>>,
-	) -> impl FnMut(DownloadProgress<'_>) + 'a {
+		expected_pg: &'a Vec<DownloadProgress>,
+	) -> impl FnMut(DownloadProgress) + 'a {
 		return |imp| {
 			let index = index_pg.load(std::sync::atomic::Ordering::Relaxed);
 			if index > expected_pg.len() {
@@ -588,6 +594,10 @@ mod test {
 			assert_eq!(
 				ret.get_args().into_iter().collect::<Vec<&OsStr>>(),
 				vec![
+					Path::new("-f").as_os_str(),
+					Path::new("bestvideo+bestaudio/best").as_os_str(),
+					Path::new("--remux-video").as_os_str(),
+					Path::new("mkv").as_os_str(),
 					Path::new("--embed-thumbnail").as_os_str(),
 					Path::new("--add-metadata").as_os_str(),
 					Path::new("--write-thumbnail").as_os_str(),
@@ -663,6 +673,10 @@ mod test {
 			assert_eq!(
 				ret.get_args().into_iter().collect::<Vec<&OsStr>>(),
 				vec![
+					Path::new("-f").as_os_str(),
+					Path::new("bestvideo+bestaudio/best").as_os_str(),
+					Path::new("--remux-video").as_os_str(),
+					Path::new("mkv").as_os_str(),
 					Path::new("--embed-thumbnail").as_os_str(),
 					Path::new("--add-metadata").as_os_str(),
 					Path::new("--write-thumbnail").as_os_str(),
@@ -703,6 +717,10 @@ mod test {
 				vec![
 					Path::new("--download-archive").as_os_str(),
 					test_dir.join("ytdl_archive.txt").as_os_str(),
+					Path::new("-f").as_os_str(),
+					Path::new("bestvideo+bestaudio/best").as_os_str(),
+					Path::new("--remux-video").as_os_str(),
+					Path::new("mkv").as_os_str(),
 					Path::new("--embed-thumbnail").as_os_str(),
 					Path::new("--add-metadata").as_os_str(),
 					Path::new("--write-thumbnail").as_os_str(),
@@ -871,16 +889,16 @@ mod test {
 		fn test_basic_single_usage() {
 			let expected_pg = &vec![
 				DownloadProgress::AllStarting,
-				DownloadProgress::SingleStarting("-----------", "Some Title Here"),
-				DownloadProgress::SingleProgress(Some("-----------"), 0),
-				DownloadProgress::SingleProgress(Some("-----------"), 50),
-				DownloadProgress::SingleProgress(Some("-----------"), 100),
-				DownloadProgress::SingleProgress(Some("-----------"), 100),
-				DownloadProgress::SingleProgress(Some("-----------"), 0),
-				DownloadProgress::SingleProgress(Some("-----------"), 57),
-				DownloadProgress::SingleProgress(Some("-----------"), 100),
-				DownloadProgress::SingleProgress(Some("-----------"), 100),
-				DownloadProgress::SingleFinished("-----------"),
+				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 50),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 57),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleFinished("-----------".to_owned()),
 				DownloadProgress::AllFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
@@ -923,26 +941,26 @@ PARSE_END 'youtube' '-----------'
 		fn test_basic_multi_usage() {
 			let expected_pg = &vec![
 				DownloadProgress::AllStarting,
-				DownloadProgress::SingleStarting("----------0", "Some Title Here 0"),
-				DownloadProgress::SingleProgress(Some("----------0"), 0),
-				DownloadProgress::SingleProgress(Some("----------0"), 50),
-				DownloadProgress::SingleProgress(Some("----------0"), 100),
-				DownloadProgress::SingleProgress(Some("----------0"), 100),
-				DownloadProgress::SingleProgress(Some("----------0"), 0),
-				DownloadProgress::SingleProgress(Some("----------0"), 57),
-				DownloadProgress::SingleProgress(Some("----------0"), 100),
-				DownloadProgress::SingleProgress(Some("----------0"), 100),
-				DownloadProgress::SingleFinished("----------0"),
-				DownloadProgress::SingleStarting("----------1", "Some Title Here 1"),
-				DownloadProgress::SingleProgress(Some("----------1"), 0),
-				DownloadProgress::SingleProgress(Some("----------1"), 50),
-				DownloadProgress::SingleProgress(Some("----------1"), 100),
-				DownloadProgress::SingleProgress(Some("----------1"), 100),
-				DownloadProgress::SingleProgress(Some("----------1"), 0),
-				DownloadProgress::SingleProgress(Some("----------1"), 57),
-				DownloadProgress::SingleProgress(Some("----------1"), 100),
-				DownloadProgress::SingleProgress(Some("----------1"), 100),
-				DownloadProgress::SingleFinished("----------1"),
+				DownloadProgress::SingleStarting("----------0".to_owned(), "Some Title Here 0".to_owned()),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 50),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 57),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 100),
+				DownloadProgress::SingleFinished("----------0".to_owned()),
+				DownloadProgress::SingleStarting("----------1".to_owned(), "Some Title Here 1".to_owned()),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 50),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 57),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 100),
+				DownloadProgress::SingleFinished("----------1".to_owned()),
 				DownloadProgress::AllFinished(2),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
