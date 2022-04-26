@@ -46,7 +46,10 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	archive_path: &Path,
 	pgcb: S,
 ) -> Result<(Cow<Path>, SqliteConnection), crate::Error> {
-	// let archive_path = archive_path.as_ref();
+	// early return in case the file does not actually exist
+	if !archive_path.exists() {
+		return Ok((archive_path.into(), sqlite_connect(archive_path)?));
+	}
 	let mut input_archive_reader = BufReader::new(File::open(archive_path)?);
 
 	return Ok(
