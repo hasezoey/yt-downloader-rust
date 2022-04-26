@@ -116,7 +116,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	std::fs::create_dir_all(output_dir)?;
 
 	// set a custom format the videos will be in for consistent parsing
-	let output_format = output_dir.join("%(extractor)s-%(id)s-%(title)s.%(ext)s");
+	let output_format = output_dir.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s");
 
 	if let Some(connection) = connection {
 		debug!("Found connection, generating archive");
@@ -609,7 +609,7 @@ mod test {
 					Path::new("--newline").as_os_str(),
 					Path::new("--no-simulate").as_os_str(),
 					Path::new("-o").as_os_str(),
-					Path::new("/tmp/hello/%(extractor)s-%(id)s-%(title)s.%(ext)s").as_os_str(),
+					Path::new("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
 					Path::new("someURL").as_os_str(),
 				]
 			);
@@ -649,7 +649,7 @@ mod test {
 					Path::new("--newline").as_os_str(),
 					Path::new("--no-simulate").as_os_str(),
 					Path::new("-o").as_os_str(),
-					Path::new("/tmp/hello/%(extractor)s-%(id)s-%(title)s.%(ext)s").as_os_str(),
+					Path::new("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
 					Path::new("someURL").as_os_str(),
 				]
 			);
@@ -688,7 +688,7 @@ mod test {
 					Path::new("--newline").as_os_str(),
 					Path::new("--no-simulate").as_os_str(),
 					Path::new("-o").as_os_str(),
-					Path::new("/tmp/hello/%(extractor)s-%(id)s-%(title)s.%(ext)s").as_os_str(),
+					Path::new("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
 					Path::new("hello1").as_os_str(),
 					Path::new("someURL").as_os_str(),
 				]
@@ -732,7 +732,7 @@ mod test {
 					Path::new("--newline").as_os_str(),
 					Path::new("--no-simulate").as_os_str(),
 					Path::new("-o").as_os_str(),
-					test_dir.join("%(extractor)s-%(id)s-%(title)s.%(ext)s").as_os_str(),
+					test_dir.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
 					Path::new("someURL").as_os_str(),
 				]
 			);
@@ -776,7 +776,7 @@ mod test {
 					Path::new("--newline").as_os_str(),
 					Path::new("--no-simulate").as_os_str(),
 					Path::new("-o").as_os_str(),
-					test_dir.join("%(extractor)s-%(id)s-%(title)s.%(ext)s").as_os_str(),
+					test_dir.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
 					Path::new("hello1").as_os_str(),
 					Path::new("someURL").as_os_str(),
 				]
