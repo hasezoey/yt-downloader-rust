@@ -17,6 +17,7 @@ serde_json = "1.0.74"
 atty = "0.2"
 diesel = { git = "https://github.com/diesel-rs/diesel.git", features = ["sqlite", "chrono"] } # TODO: replace with 2.0.0 release
 libytdlr = { path = "../libytdlr" }
+dirs-next = "2.0.0"
 
 [[bin]]
 name = "ytdlr"

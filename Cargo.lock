@@ -796,6 +796,7 @@ dependencies = [
  "clap",
  "colored",
  "diesel",
+ "dirs-next",
  "flexi_logger",
  "indicatif",
  "lazy_static",
