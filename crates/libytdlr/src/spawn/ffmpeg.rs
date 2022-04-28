@@ -10,7 +10,7 @@ use regex::Regex;
 /// Create a Command with basic ffmpeg options
 #[inline]
 pub fn base_ffmpeg(overwrite: bool) -> Command {
-	let mut cmd = super::multiplatform::spawn_command("ffmpeg");
+	let mut cmd = super::multiplatform::spawn_command(&"ffmpeg");
 
 	if overwrite {
 		cmd.arg("-y"); // always overwrite output path

@@ -9,7 +9,7 @@ use regex::Regex;
 
 #[inline]
 pub fn base_ytdl() -> Command {
-	return super::multiplatform::spawn_command("youtube-dl");
+	return super::multiplatform::spawn_command(&"youtube-dl");
 }
 
 lazy_static! {

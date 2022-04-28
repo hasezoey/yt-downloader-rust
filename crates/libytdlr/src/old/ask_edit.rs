@@ -126,7 +126,7 @@ pub fn edits(args: &mut Arguments) -> Result<(), ioError> {
 }
 
 fn spawn_editor(editor: &str, filepath: &Path, debug: bool) -> Result<ExitStatus, ioError> {
-	let mut editorcommand = crate::spawn::editor::base_editor(editor, filepath);
+	let mut editorcommand = crate::spawn::editor::base_editor(Path::new(editor), filepath);
 
 	let mut spawned_editor: Child = if debug {
 		editorcommand

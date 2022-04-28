@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::process::Command;
 
 // This file still exists and is seperated for future quick changes
@@ -5,7 +6,7 @@ use std::process::Command;
 /// Spawn a binary cross-system (not-windows version)
 #[cfg(not(target_os = "windows"))]
 #[inline]
-pub fn spawn_command(binary_name: &str) -> Command {
+pub fn spawn_command<P: AsRef<OsStr>>(binary_name: &P) -> Command {
 	return Command::new(binary_name);
 }
 
@@ -14,6 +15,6 @@ pub fn spawn_command(binary_name: &str) -> Command {
 /// Also, rust automatically searches all the paths, including the ytdl-rust binary path
 #[cfg(target_os = "windows")]
 #[inline]
-pub fn spawn_command(binary_name: &str) -> Command {
+pub fn spawn_command<P: AsRef<OsStr>>(binary_name: &P) -> Command {
 	return Command::new(binary);
 }
