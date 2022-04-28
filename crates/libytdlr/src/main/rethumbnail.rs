@@ -6,13 +6,18 @@ use std::{
 		BufRead,
 		BufReader,
 	},
-	path::Path,
+	os::unix::prelude::ExitStatusExt,
+	path::{
+		Path,
+		PathBuf,
+	},
 	process::Stdio,
 	thread,
 };
 
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
 /// Where the output is added with a "tmp" to the `output` until finished
+/// Will convert input images to jpg
 pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 	media: M,
 	image: I,
@@ -47,14 +52,36 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 		output_path_tmp.set_file_name(stem);
 	}
 
-	re_thumbnail(media, image, &output_path_tmp)?;
+	let mut is_tmp_image = false;
+	// image path to a jpg image
+	let image_path = {
+		let tmp_dir = std::env::temp_dir().join("libytdlr-imageconvert");
+
+		let image = image.as_ref();
+
+		let converted = convert_image_to_jpg(image, tmp_dir)?;
+
+		if converted != image {
+			is_tmp_image = true;
+		}
+
+		converted
+	};
+
+	re_thumbnail(media, &image_path, &output_path_tmp)?;
 
 	std::fs::rename(output_path_tmp, output.as_ref())?;
+
+	// remove temporary converted image file
+	if is_tmp_image {
+		std::fs::remove_file(image_path)?;
+	}
 
 	return Ok(());
 }
 
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
+/// Will not apply any image convertion
 ///
 /// To Automatically handle with a temporary file, use [`re_thumbnail_with_tmp`]
 pub fn re_thumbnail<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
@@ -141,45 +168,353 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	return Ok(());
 }
 
+// List of image extensions to try to find
+// sorted based on how common it should be
+const IMAGE_EXTENSIONS: &'static [&'static str] = &["jpg", "png", "webp"];
+
+/// Find a image based on the input's media_path
+/// Returns [`Some`] with a path to the image found, otherwise [`None`] if none was found
+pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, crate::Error> {
+	let media_path = media_path.as_ref();
+
+	if !media_path.exists() {
+		return Err(std::io::Error::new(
+			std::io::ErrorKind::NotFound,
+			format!(
+				"media_path does not exist! (Path: \"{}\")",
+				media_path.to_string_lossy()
+			),
+		)
+		.into());
+	}
+
+	if !media_path.is_file() {
+		return Err(crate::Error::Other(format!(
+			"media_path is not a file! (Path: \"{}\")",
+			media_path.to_string_lossy()
+		)));
+	}
+
+	// test for all extensions in IMAGE_EXTENSIONS
+	for test_ext in IMAGE_EXTENSIONS {
+		let mut image_path = media_path.to_owned();
+		image_path.set_extension(test_ext);
+
+		// if file is found, return it
+		if image_path.exists() {
+			return Ok(Some(image_path));
+		}
+	}
+
+	return Ok(None);
+}
+
+/// Convert "image_path" into "jpg" if possible with ffmpeg
+/// This will need to be used to convert * to jpg for thumbnails (mainly from webp)
+/// "output_dir" will be used when a conversion happens to store the converted file
+/// Returns the converted image's path
+pub fn convert_image_to_jpg<IP: AsRef<Path>, OP: AsRef<Path>>(
+	image_path: IP,
+	output_dir: OP,
+) -> Result<PathBuf, crate::Error> {
+	let cmd = crate::spawn::ffmpeg::base_ffmpeg_hidebanner(true);
+
+	return convert_image_to_jpg_with_command(cmd, image_path, output_dir);
+}
+
+/// Convert "image_path" into "jpg" if possible with the provided command base
+/// This will need to be used to convert * to jpg for thumbnails (mainly from webp)
+/// "output_dir" will be used when a conversion happens to store the converted file
+/// Returns the converted image's path
+///
+/// This function should not be called directly, use [`convert_image`] instead
+pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
+	mut cmd: std::process::Command,
+	image_path: IP,
+	output_dir: OP,
+) -> Result<PathBuf, crate::Error> {
+	let image_path = image_path.as_ref();
+	let output_dir = output_dir.as_ref();
+
+	if !image_path.exists() {
+		return Err(std::io::Error::new(
+			std::io::ErrorKind::NotFound,
+			format!(
+				"image_path does not exist! (Path: \"{}\")",
+				image_path.to_string_lossy()
+			),
+		)
+		.into());
+	}
+
+	if !image_path.is_file() {
+		return Err(crate::Error::Other(format!(
+			"image_path is not a file! (Path: \"{}\")",
+			image_path.to_string_lossy()
+		)));
+	}
+
+	// check if the input path is already a jpg, if it is do not apply ffmpeg
+	if let Some(ext) = image_path.extension() {
+		if ext == Path::new("jpg") {
+			return Ok(image_path.to_owned());
+		}
+	}
+
+	if output_dir.exists() && !output_dir.is_dir() {
+		return Err(crate::Error::Other(format!(
+			"output_dir exists but is not a directory! (Path: \"{}\")",
+			output_dir.to_string_lossy()
+		)));
+	}
+
+	std::fs::create_dir_all(output_dir)?;
+
+	let output_path = {
+		let filename = image_path
+			.file_name()
+			.ok_or_else(|| return crate::Error::Other("Expected image_path to have a filename".to_owned()))?;
+		let mut tmp_path = output_dir.join(filename);
+
+		tmp_path.set_extension("jpg");
+
+		tmp_path
+	};
+
+	// set the input image
+	cmd.arg("-i").arg(image_path);
+
+	// set the output path
+	cmd.arg(&output_path);
+
+	// create pipe for stderr, other stream are ignored
+	// this is because ffmpeg only logs to stderr, where stdout is used for data piping
+	cmd.stdout(Stdio::null()).stderr(Stdio::piped()).stdin(Stdio::null());
+
+	let mut ffmpeg_child = cmd.spawn()?;
+
+	let stderr_reader = BufReader::new(ffmpeg_child.stderr.take().ok_or_else(|| {
+		return crate::Error::IoError(std::io::Error::new(
+			std::io::ErrorKind::BrokenPipe,
+			"Failed to get Child STDERR",
+		));
+	})?);
+
+	// offload the stderr reader to a different thread to not block main
+	let ffmpeg_child_stderr_thread = std::thread::Builder::new()
+		.name("ffmpeg stderr handler".to_owned())
+		.spawn(|| {
+			stderr_reader
+				.lines()
+				.filter_map(|v| return v.ok())
+				.for_each(|line| log::info!("ffmpeg STDERR: {}", line))
+		})?;
+
+	let ffmpeg_child_exit_status = ffmpeg_child.wait()?;
+
+	// wait until the stderr thread has exited
+	ffmpeg_child_stderr_thread.join().map_err(|err| {
+		return crate::Error::Other(format!("Joining the ffmpeg_stderr STDERR handle failed: {:?}", err));
+	})?;
+
+	if !ffmpeg_child_exit_status.success() {
+		return Err(match ffmpeg_child_exit_status.code() {
+			Some(code) => crate::Error::Other(format!("ffmpeg_child exited with code: {}", code)),
+			None => {
+				let signal = match ffmpeg_child_exit_status.signal() {
+					Some(code) => code.to_string(),
+					None => "None".to_owned(),
+				};
+
+				crate::Error::Other(format!("ffmpeg_child exited with signal: {}", signal))
+			},
+		});
+	}
+
+	return Ok(output_path);
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
+	use serial_test::serial;
 
-	#[test]
-	fn test_basic_func() {
-		let fake_command = std::process::Command::new("echo");
+	fn create_dir(target: &'static str) -> PathBuf {
+		// get a testing directory
+		let tmp = std::env::temp_dir().join(format!("ytdl-test-{}", target));
 
-		let media = Path::new("/hello/media.mp3");
-		let image = Path::new("/hello/image.jpg");
-		let output = Path::new("/hello/output.mp3");
+		// if the directory already exists, delete it for clean working environment
+		if tmp.exists() {
+			std::fs::remove_dir_all(&tmp).expect("Expected remove_dir_all to be successfull");
+		}
 
-		let result = re_thumbnail_with_command(fake_command, media, image, output);
+		std::fs::create_dir_all(&tmp).expect("Expected create_dir_all to be successfull");
 
-		assert!(result.is_ok());
+		return tmp;
 	}
 
-	#[test]
-	fn test_exit_status() {
-		let mut fake_command = std::process::Command::new("sh");
-		fake_command.args([
-			"-c", // random exit code that is non-0
-			"exit 1",
-		]);
+	mod re_thumbnail {
+		use super::*;
 
-		let media = Path::new("/hello/media.mp3");
-		let image = Path::new("/hello/image.jpg");
-		let output = Path::new("/hello/output.mp3");
+		#[test]
+		fn test_basic_func() {
+			let fake_command = std::process::Command::new("echo");
 
-		let output = re_thumbnail_with_command(fake_command, media, image, output);
+			let media = Path::new("/hello/media.mp3");
+			let image = Path::new("/hello/image.jpg");
+			let output = Path::new("/hello/output.mp3");
 
-		assert!(output.is_err());
+			let result = re_thumbnail_with_command(fake_command, media, image, output);
 
-		assert_eq!(
-			crate::Error::IoError(std::io::Error::new(
-				std::io::ErrorKind::Other,
-				"ffmpeg did not successfully exit: 1".to_owned(),
-			)),
-			output.expect_err("Expected Assert to test Result to be ERR")
-		);
+			assert!(result.is_ok());
+		}
+
+		#[test]
+		fn test_exit_status() {
+			let mut fake_command = std::process::Command::new("sh");
+			fake_command.args([
+				"-c", // random exit code that is non-0
+				"exit 1",
+			]);
+
+			let media = Path::new("/hello/media.mp3");
+			let image = Path::new("/hello/image.jpg");
+			let output = Path::new("/hello/output.mp3");
+
+			let output = re_thumbnail_with_command(fake_command, media, image, output);
+
+			assert!(output.is_err());
+
+			assert_eq!(
+				crate::Error::IoError(std::io::Error::new(
+					std::io::ErrorKind::Other,
+					"ffmpeg did not successfully exit: 1".to_owned(),
+				)),
+				output.expect_err("Expected Assert to test Result to be ERR")
+			);
+		}
+	}
+
+	mod find_image {
+		use super::*;
+
+		#[test]
+		#[serial]
+		fn test_find_image_jpg() {
+			let workdir = create_dir("findimage");
+
+			let test_file_path = workdir.join("somefile.jpg");
+
+			std::fs::File::create(&test_file_path).expect("Expected File::create to be successfull");
+
+			let result = find_image(&test_file_path);
+
+			assert!(result.is_ok());
+
+			let result = result.expect("Expected is_ok assert to throw");
+			assert_eq!(Some(test_file_path), result);
+		}
+
+		#[test]
+		#[serial]
+		fn test_find_image_png() {
+			let workdir = create_dir("findimage");
+
+			let test_file_path = workdir.join("somefile.png");
+
+			std::fs::File::create(&test_file_path).expect("Expected File::create to be successfull");
+
+			let result = find_image(&test_file_path);
+
+			assert!(result.is_ok());
+
+			let result = result.expect("Expected is_ok assert to throw");
+			assert_eq!(Some(test_file_path), result);
+		}
+
+		#[test]
+		#[serial]
+		fn test_find_image_webp() {
+			let workdir = create_dir("findimage");
+
+			let test_file_path = workdir.join("somefile.webp");
+
+			std::fs::File::create(&test_file_path).expect("Expected File::create to be successfull");
+
+			let result = find_image(&test_file_path);
+
+			assert!(result.is_ok());
+
+			let result = result.expect("Expected is_ok assert to throw");
+			assert_eq!(Some(test_file_path), result);
+		}
+	}
+
+	mod convert_image_to_jpg {
+		use super::*;
+
+		#[test]
+		#[serial]
+		fn test_basic_func() {
+			let workdir = create_dir("convertimagejpg");
+			let fake_command = std::process::Command::new("echo");
+
+			let output_dir = workdir.join("tmp");
+			let image_path = workdir.join("hello.webp");
+			std::fs::File::create(&image_path).expect("Expected File::create to be successfull");
+			let expected_output = output_dir.join("hello.jpg");
+
+			let result = convert_image_to_jpg_with_command(fake_command, image_path, output_dir);
+
+			assert!(result.is_ok());
+			let result = result.expect("Expected is_ok assert to throw");
+			assert_eq!(&expected_output, &result);
+		}
+
+		#[test]
+		#[serial]
+		fn test_early_return_jpg() {
+			let workdir = create_dir("convertimagejpg");
+			let output_dir = workdir.join("tmp");
+			let mut fake_command = std::process::Command::new("sh");
+			fake_command.args([
+				"-c", // random exit code that is non-0
+				"exit 1",
+			]);
+
+			let image_path = workdir.join("hello.jpg");
+			std::fs::File::create(&image_path).expect("Expected File::create to be successfull");
+			let expected_output = image_path.clone();
+
+			let result = convert_image_to_jpg_with_command(fake_command, image_path, output_dir);
+
+			assert!(result.is_ok());
+			let result = result.expect("Expected is_ok assert to throw");
+			assert_eq!(&expected_output, &result);
+		}
+
+		#[test]
+		#[serial]
+		fn test_exit_status() {
+			let workdir = create_dir("convertimagejpg");
+			let output_dir = workdir.join("tmp");
+			let mut fake_command = std::process::Command::new("sh");
+			fake_command.args([
+				"-c", // random exit code that is non-0
+				"exit 1",
+			]);
+
+			let image_path = workdir.join("hello.webp");
+			std::fs::File::create(&image_path).expect("Expected File::create to be successfull");
+
+			let result = convert_image_to_jpg_with_command(fake_command, image_path, output_dir);
+
+			assert!(result.is_err());
+
+			assert_eq!(
+				crate::Error::Other("ffmpeg_child exited with code: 1".to_owned()),
+				result.expect_err("Expected Assert to test Result to be ERR")
+			);
+		}
 	}
 }
