@@ -36,8 +36,8 @@ pub trait DownloadOptions {
 	/// Get the URL to download
 	fn get_url(&self) -> &str;
 	/// Get wheter or not to print out Command STDOUT (in this case ytdl)
-	/// STDERR is always printed (using [`log`])
-	/// With this returning `true`, the STDOUT output is also printed to [`log`], with [`log::trace`]
+	/// STDERR is always printed (using [`log::trace`])
+	/// With this returning `true`, the STDOUT output is also printed with [`log::trace`]
 	fn print_command_stdout(&self) -> bool;
 	/// Get a estimate of how many media elements will be downloaded
 	/// This commonly should be the length of the vec containing [`crate::main::count::CountVideo`] returned from [`crate::main::count::count`]

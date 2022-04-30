@@ -212,7 +212,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 /// Helper function to have a unified insertion command for all imports or functions that like to use this method
 ///
-/// This function is also meant as a workaround to https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301 because bulk inserts with "on_conflict" in sqlite are not supported
+/// This function is also meant as a workaround to <https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301> because bulk inserts with "on_conflict" in sqlite are not supported
 #[inline]
 pub fn insert_insmedia(input: &InsMedia, connection: &mut SqliteConnection) -> Result<usize, crate::Error> {
 	return diesel::insert_into(media_archive::table)

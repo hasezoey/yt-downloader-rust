@@ -75,11 +75,11 @@ impl MediaInfo {
 	}
 
 	/// Try to create a [`MediaInfo`] instance from a filename
-	/// Parsed based on the output template defined in [`crate::main::download::assemble_ytdl_command`]
+	/// Parsed based on the output template defined in `crate::main::download::assemble_ytdl_command`
 	/// Only accepts a str input, not a path one
 	pub fn try_from_filename<I: AsRef<str>>(filename: &I) -> Option<Self> {
 		lazy_static! {
-			// Regex for getting the provider,id,title from a filename (as defined in [`crate::main::download::assemble_ytdl_command`])
+			// Regex for getting the provider,id,title from a filename (as defined in `crate::main::download::assemble_ytdl_command`)
 			static ref FROM_PATH_REGEX: Regex = Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
 		}
 

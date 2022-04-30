@@ -227,7 +227,7 @@ pub fn convert_image_to_jpg<IP: AsRef<Path>, OP: AsRef<Path>>(
 /// "output_dir" will be used when a conversion happens to store the converted file
 /// Returns the converted image's path
 ///
-/// This function should not be called directly, use [`convert_image`] instead
+/// This function should not be called directly, use [`convert_image_to_jpg`] instead
 pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	mut cmd: std::process::Command,
 	image_path: IP,
