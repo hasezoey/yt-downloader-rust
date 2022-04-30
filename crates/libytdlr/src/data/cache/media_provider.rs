@@ -23,7 +23,7 @@ impl MediaProvider {
 
 	/// Convert a String-like to a [`MediaProvider`]
 	/// Input will be trimmed and lowercased for matching
-	pub fn from_str<I: AsRef<str>>(input: I) -> Self {
+	pub fn from_str_like<I: AsRef<str>>(input: I) -> Self {
 		let lower = input.as_ref().trim().to_lowercase();
 
 		return match lower.as_str() {
@@ -58,7 +58,7 @@ impl AsRef<str> for MediaProvider {
 // Implement FROM str to Self
 impl From<&str> for MediaProvider {
 	fn from(v: &str) -> Self {
-		return Self::from_str(v);
+		return Self::from_str_like(v);
 	}
 }
 
@@ -167,24 +167,27 @@ mod test {
 		}
 
 		#[test]
-		fn test_from_str() {
+		fn test_from_str_like() {
 			// str
-			assert_eq!(MediaProvider::Youtube, MediaProvider::from_str("youtube"));
-			assert_eq!(MediaProvider::Soundcloud, MediaProvider::from_str("soundcloud"));
+			assert_eq!(MediaProvider::Youtube, MediaProvider::from_str_like("youtube"));
+			assert_eq!(MediaProvider::Soundcloud, MediaProvider::from_str_like("soundcloud"));
 			assert_eq!(
 				MediaProvider::Other("other".to_owned()),
-				MediaProvider::from_str("other")
+				MediaProvider::from_str_like("other")
 			);
 
 			// String
-			assert_eq!(MediaProvider::Youtube, MediaProvider::from_str("youtube".to_owned()));
+			assert_eq!(
+				MediaProvider::Youtube,
+				MediaProvider::from_str_like("youtube".to_owned())
+			);
 			assert_eq!(
 				MediaProvider::Soundcloud,
-				MediaProvider::from_str("soundcloud".to_owned())
+				MediaProvider::from_str_like("soundcloud".to_owned())
 			);
 			assert_eq!(
 				MediaProvider::Other("other".to_owned()),
-				MediaProvider::from_str("other".to_owned())
+				MediaProvider::from_str_like("other".to_owned())
 			);
 		}
 	}

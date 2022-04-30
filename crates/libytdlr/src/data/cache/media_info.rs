@@ -98,7 +98,7 @@ impl MediaInfo {
 
 		return Some(
 			Self::new(&cap[2])
-				.with_provider(MediaProvider::from_str(&cap[1]))
+				.with_provider(MediaProvider::from_str_like(&cap[1]))
 				.with_title(&cap[3])
 				.with_filename(filename),
 		);

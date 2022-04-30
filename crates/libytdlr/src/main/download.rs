@@ -321,13 +321,13 @@ impl LineType {
 						CustomParseType::Start,
 						MediaInfo::new(id)
 							.with_title(title)
-							.with_provider(MediaProvider::from_str(provider)),
+							.with_provider(MediaProvider::from_str_like(provider)),
 					));
 				},
 				"END" => {
 					return Some((
 						CustomParseType::End,
-						MediaInfo::new(id).with_provider(MediaProvider::from_str(provider)),
+						MediaInfo::new(id).with_provider(MediaProvider::from_str_like(provider)),
 					));
 				},
 				// the following is unreachable, because the Regex ensures that only "START" and "END" match
@@ -856,7 +856,7 @@ mod test {
 				Some((
 					CustomParseType::Start,
 					MediaInfo::new("-----------")
-						.with_provider(MediaProvider::from_str("youtube"))
+						.with_provider(MediaProvider::from_str_like("youtube"))
 						.with_title("Some Title Here")
 				)),
 				LineType::Custom.try_get_parse_helper(input)
@@ -867,7 +867,7 @@ mod test {
 			assert_eq!(
 				Some((
 					CustomParseType::End,
-					MediaInfo::new("-----------").with_provider(MediaProvider::from_str("youtube"))
+					MediaInfo::new("-----------").with_provider(MediaProvider::from_str_like("youtube"))
 				)),
 				LineType::Custom.try_get_parse_helper(input)
 			);
