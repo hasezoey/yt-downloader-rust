@@ -14,6 +14,7 @@ use libytdlr::*;
 use state::DownloadState;
 use std::{
 	cell::RefCell,
+	collections::HashMap,
 	fs::File,
 	io::{
 		BufReader,
@@ -190,10 +191,44 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 	let download_path = download_state.get_download_path();
 
+	// convert finished media elements to hashmap so it can be found without using a new iterator over and over
+	let mut finished_vec_acc: HashMap<String, data::cache::media_info::MediaInfo> = finished_vec_acc
+		.into_iter()
+		.map(|v| {
+			return (
+				format!(
+					"{}-{}",
+					v.provider
+						.as_ref()
+						.map_or_else(|| return "unknown", |v| return v.to_str()),
+					v.id
+				),
+				v,
+			);
+		})
+		.collect();
+
+	// merge found filenames into existing mediainfo
+	for new_media in crate::utils::find_editable_files(download_path)? {
+		if let Some(media) = finished_vec_acc.get_mut(&format!(
+			"{}-{}",
+			new_media
+				.provider
+				.as_ref()
+				.map_or_else(|| return "unknown", |v| return v.to_str()),
+			new_media.id
+		)) {
+			let new_media_filename = new_media
+				.filename
+				.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
+
+			media.set_filename(new_media_filename);
+		}
+	}
+
 	// ask for editing
-	// TODO: consider re-using what "download_single" returned, to have it more in-order
 	// TODO: consider renaming before asking for edit
-	'for_media_loop: for media in /* crate::utils::find_editable_files(download_path)? */ finished_vec_acc {
+	'for_media_loop: for (_key, media) in /* crate::utils::find_editable_files(download_path)? */ finished_vec_acc {
 		let media_filename = media
 			.filename
 			.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
@@ -208,7 +243,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 						.as_ref()
 						.expect("Expected MediaInfo to have a title from \"try_from_filename\"")
 				),
-				&["h", "y", "N", "a", "v"],
+				&["h", "y", "N", "a", "v", "p"],
 				"n",
 			)?;
 
@@ -247,7 +282,8 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 					[n] skip element and move onto the next one\n\
 					[y] edit element, automatically choose editor\n\
 					[a] edit element with audio editor\n\
-					[v] edit element with video editor\
+					[v] edit element with video editor\n\
+					[p] play element with mpv\
 					"
 					);
 					continue 'ask_do_loop;
@@ -257,6 +293,13 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 				},
 				"v" => {
 					crate::utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?;
+				},
+				"p" => {
+					// TODO: allow PLAYER to be something other than mpv
+					crate::utils::run_editor(&Some(PathBuf::from("mpv")), &media_path, false)?;
+
+					// re-do the loop, because it was only played
+					continue 'ask_do_loop;
 				},
 				_ => unreachable!("get_input should only return a OK value from the possible array"),
 			}
