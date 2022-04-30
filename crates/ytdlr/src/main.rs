@@ -167,6 +167,8 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 	// TODO: do a "count" before running actual download
 
+	let mut finished_vec_acc: Vec<data::cache::media_info::MediaInfo> = Vec::new();
+
 	for url in &sub_args.urls {
 		download_state.set_current_url(url);
 
@@ -176,18 +178,22 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		if let Some(ref mut connection) = maybe_connection {
 			pgbar.reset();
 			pgbar.set_length(new_media.len().try_into().expect("Failed to convert usize to u64"));
-			for media in new_media {
+			for media in new_media.iter() {
 				pgbar.inc(1);
 				libytdlr::main::archive::import::insert_insmedia(&media.into(), connection)?;
 			}
 			pgbar.finish_and_clear();
 		}
+
+		finished_vec_acc.extend(new_media);
 	}
 
 	let download_path = download_state.get_download_path();
 
 	// ask for editing
-	'for_media_loop: for media in crate::utils::find_editable_files(download_path)? {
+	// TODO: consider re-using what "download_single" returned, to have it more in-order
+	// TODO: consider renaming before asking for edit
+	'for_media_loop: for media in /* crate::utils::find_editable_files(download_path)? */ finished_vec_acc {
 		let media_filename = media
 			.filename
 			.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");

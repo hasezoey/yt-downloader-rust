@@ -105,13 +105,16 @@ impl MediaInfo {
 	}
 }
 
-impl From<MediaInfo> for InsMedia {
-	fn from(v: MediaInfo) -> Self {
+impl From<&MediaInfo> for InsMedia {
+	fn from(v: &MediaInfo) -> Self {
 		return Self::new(
-			v.id,
+			v.id.clone(),
 			v.provider
+				.clone()
 				.map_or_else(|| return "unknown (none-provided)".to_owned(), |v| return v.to_string()),
-			v.title.unwrap_or_else(|| return "unknown (none-provided)".to_owned()),
+			v.title
+				.clone()
+				.unwrap_or_else(|| return "unknown (none-provided)".to_owned()),
 		);
 	}
 }
@@ -192,16 +195,16 @@ mod test {
 		// test with full options
 		assert_eq!(
 			InsMedia::new("someid", "someprovider", "sometitle"),
-			MediaInfo::new("someid")
+			(&MediaInfo::new("someid")
 				.with_provider(MediaProvider::Other("someprovider".to_owned()))
-				.with_title("sometitle")
+				.with_title("sometitle"))
 				.into()
 		);
 
 		// test with only id
 		assert_eq!(
 			InsMedia::new("someid", "unknown (none-provided)", "unknown (none-provided)"),
-			MediaInfo::new("someid").into()
+			(&MediaInfo::new("someid")).into()
 		);
 	}
 
