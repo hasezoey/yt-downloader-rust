@@ -34,6 +34,15 @@ impl MediaProvider {
 	}
 }
 
+impl std::str::FromStr for MediaProvider {
+	// this implementation cannot fail, because if there is no dedicated way it will fallback to variant "Other"
+	type Err = ();
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		return Ok(Self::from_str_like(s));
+	}
+}
+
 // Implement FROM reference-Self to String
 impl From<&MediaProvider> for String {
 	fn from(p: &MediaProvider) -> Self {
@@ -119,6 +128,13 @@ mod test {
 			assert_eq!(MediaProvider::Youtube, MediaProvider::from("youtube"));
 			assert_eq!(MediaProvider::Soundcloud, MediaProvider::from("soundcloud"));
 			assert_eq!(MediaProvider::Other("other".to_owned()), MediaProvider::from("other"));
+		}
+
+		#[test]
+		fn test_fromstr() {
+			assert_eq!(Ok(MediaProvider::Youtube), "youtube".parse());
+			assert_eq!(Ok(MediaProvider::Soundcloud), "soundcloud".parse());
+			assert_eq!(Ok(MediaProvider::Other("other".to_owned())), "other".parse());
 		}
 
 		#[test]
