@@ -128,7 +128,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 				let mut archive_write_handle = BufWriter::new(File::create(&archive_file_path)?);
 
 				for archive_line in archive_lines {
-					archive_write_handle.write(archive_line.as_bytes())?;
+					archive_write_handle.write_all(archive_line.as_bytes())?;
 				}
 			}
 

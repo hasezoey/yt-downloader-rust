@@ -170,7 +170,7 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 
 // List of image extensions to try to find
 // sorted based on how common it should be
-const IMAGE_EXTENSIONS: &'static [&'static str] = &["jpg", "png", "webp"];
+const IMAGE_EXTENSIONS: &[&str] = &["jpg", "png", "webp"];
 
 /// Find a image based on the input's media_path
 /// Returns [`Some`] with a path to the image found, otherwise [`None`] if none was found

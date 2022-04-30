@@ -69,7 +69,7 @@ impl DownloadState {
 	}
 
 	/// Get the "download_path" stored in the instance as reference
-	pub fn get_download_path<'a>(&'a self) -> &'a Path {
+	pub fn get_download_path(&self) -> &Path {
 		return &self.download_path;
 	}
 }
@@ -173,7 +173,7 @@ impl DownloadOptions for DownloadState {
 		return Some(Box::new(lines_iter));
 	}
 
-	fn get_url<'a>(&'a self) -> &'a str {
+	fn get_url(&self) -> &str {
 		// check against "current_url" still being empty
 		if self.current_url.is_empty() {
 			panic!("Expected \"current_url\" to not be empty at this point");

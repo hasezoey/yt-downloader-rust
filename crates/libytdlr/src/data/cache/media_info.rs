@@ -110,7 +110,7 @@ impl From<MediaInfo> for InsMedia {
 		return Self::new(
 			v.id,
 			v.provider
-				.map_or_else(|| return "unknown (none-provided)".to_owned(), |v| v.to_string()),
+				.map_or_else(|| return "unknown (none-provided)".to_owned(), |v| return v.to_string()),
 			v.title.unwrap_or_else(|| return "unknown (none-provided)".to_owned()),
 		);
 	}

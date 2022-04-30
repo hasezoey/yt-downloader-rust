@@ -130,11 +130,9 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 	let mut mediainfo_vec: Vec<MediaInfo> = Vec::default();
 
 	// do a loop over each element in the directory, and filter out paths that are not valid / accessable
-	for entry in std::fs::read_dir(path)? {
-		if let Ok(entry) = entry {
-			if let Some(mediainfo) = process_path_for_editable_files(entry.path()) {
-				mediainfo_vec.push(mediainfo);
-			}
+	for entry in (std::fs::read_dir(path)?).flatten() {
+		if let Some(mediainfo) = process_path_for_editable_files(entry.path()) {
+			mediainfo_vec.push(mediainfo);
 		}
 	}
 
@@ -158,13 +156,13 @@ fn process_path_for_editable_files(path: PathBuf) -> Option<MediaInfo> {
 }
 
 // Array of AUDIO extensions supported for matching in ytdlr
-const AUDIO_EXTENSION_LIST: &'static [&'static str] = &["mp3", "wav", "aac", "ogg"];
+const AUDIO_EXTENSION_LIST: &[&str] = &["mp3", "wav", "aac", "ogg"];
 // Array of VIDEO extensions supported for matching in ytdlr
-const VIDEO_EXTENSION_LIST: &'static [&'static str] = &["mp4", "mkv", "webm"];
+const VIDEO_EXTENSION_LIST: &[&str] = &["mp4", "mkv", "webm"];
 
 /// Helper function to keep all extension matching for [`find_editable_files`] sorted
 #[inline]
-fn match_extension_for_editable_files<'a>(input: &'a OsStr) -> bool {
+fn match_extension_for_editable_files(input: &OsStr) -> bool {
 	// convert "input" to a str (from OsStr), and if not possible return "false"
 	if let Some(input) = input.to_str() {
 		if AUDIO_EXTENSION_LIST.contains(&input) | VIDEO_EXTENSION_LIST.contains(&input) {
@@ -206,6 +204,7 @@ pub fn get_filetype<F: AsRef<Path>>(filename: F) -> FileType {
 
 /// Get input from STDIN with "possible" or "default"
 /// if using "default", remember to set a character in "possible" to upper-case
+#[allow(clippy::needless_collect)] // this is because of a known false-positive https://github.com/rust-lang/rust-clippy/issues/6164
 pub fn get_input<'a>(msg: &'a str, possible: &[&'static str], default: &'static str) -> Result<String, crate::Error> {
 	// TODO: maybe consider replacing this with the crate "dialoguer"
 	let possible_converted = possible
@@ -240,7 +239,7 @@ pub fn get_input<'a>(msg: &'a str, possible: &[&'static str], default: &'static 
 		}
 
 		if possible_converted.contains(&input) {
-			return Ok(input.to_owned());
+			return Ok(input);
 		}
 
 		println!("... Invalid Input: \"{}\"", input);
@@ -349,7 +348,7 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdo
 fn get_editor_base(maybe_editor: &Option<PathBuf>) -> Result<PathBuf, crate::Error> {
 	if let Some(editor) = maybe_editor {
 		// return path if "Some", if none ask for another new path
-		if let Some(path) = test_editor_base(&editor)? {
+		if let Some(path) = test_editor_base(editor)? {
 			return Ok(path);
 		}
 	}
@@ -383,7 +382,7 @@ fn get_editor_base(maybe_editor: &Option<PathBuf>) -> Result<PathBuf, crate::Err
 /// Returns [`Ok(None)`] if a new path should be prompted
 fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 	'test_editor: loop {
-		let test_result = test_editor_base_valid(&path);
+		let test_result = test_editor_base_valid(path);
 		if test_result.is_ok() {
 			return Ok(Some(path.to_owned()));
 		}
@@ -417,7 +416,7 @@ fn test_editor_base_valid(path: &Path) -> Result<(), ioError> {
 /// Returns [`Some`] the final filename (Path Format: "title.extension") (filename, final_filename)
 /// Returns [`None`] when `media.title` or `media.filename` or `media.filename.extension` are [`None`]
 #[inline]
-pub fn convert_mediainfo_to_filename<'a>(media: &'a MediaInfo) -> Option<(&'a PathBuf, PathBuf)> {
+pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, PathBuf)> {
 	let media_filename = media.filename.as_ref()?;
 	let media_title = media.title.as_ref()?;
 	let extension = media_filename.extension()?;

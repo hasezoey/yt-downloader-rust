@@ -285,9 +285,9 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 			let final_dir_path = sub_args.output_path.as_ref().map_or_else(
 				|| {
-					dirs_next::download_dir()
+					return dirs_next::download_dir()
 						.unwrap_or_else(|| return PathBuf::from("."))
-						.join("ytdlr-out")
+						.join("ytdlr-out");
 				},
 				|v| return v.clone(),
 			);
