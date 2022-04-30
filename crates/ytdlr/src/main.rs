@@ -4,12 +4,16 @@
 #[macro_use]
 extern crate log;
 
+use diesel::SqliteConnection;
 use flexi_logger::LogSpecification;
-use libytdlr::{
-	old::*,
-	*,
+use indicatif::{
+	ProgressBar,
+	ProgressStyle,
 };
+use libytdlr::*;
+use state::DownloadState;
 use std::{
+	cell::RefCell,
 	fs::File,
 	io::{
 		BufReader,
@@ -101,83 +105,263 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
 	}
 
-	let mut errcode = false;
-	let mut tmp = std::env::temp_dir();
+	lazy_static::lazy_static! {
+		// ProgressBar Style for download, will look like "[0/0] [00:00:00] [#>-] CustomMsg"
+		static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
+		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
+		.progress_chars("#>-");
+	}
+
+	// let mut errcode = false;
+	let tmp_path = main_args
+		.tmp_path
+		.as_ref()
+		.map_or_else(|| return std::env::temp_dir(), |v| return v.clone())
+		.join("ytdl_rust_tmp");
+
+	let pgbar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
+	crate::utils::set_progressbar(&pgbar, main_args);
+	let mut download_state = DownloadState::new(
+		sub_args.audio_only_enable,
+		sub_args.print_youtubedl_stdout,
+		tmp_path,
+		sub_args.force_genarchive_bydate,
+		sub_args.force_genarchive_all,
+	);
+	let mut maybe_connection: Option<SqliteConnection> = {
+		if let Some(ap) = main_args.archive_path.as_ref() {
+			Some(crate::utils::handle_connect(ap, &pgbar, main_args)?.1)
+		} else {
+			None
+		}
+	};
+	let download_info: RefCell<(usize, String, String)> = RefCell::new((0, String::default(), String::default()));
+	pgbar.set_prefix(format!("[{}/{}]", "??", "??"));
+	let download_pgcb = |dpg| match dpg {
+		main::download::DownloadProgress::AllStarting => {
+			pgbar.reset();
+		},
+		main::download::DownloadProgress::SingleStarting(id, title) => {
+			let new_count = download_info.borrow().0 + 1;
+			download_info.replace((new_count, id, title));
+
+			pgbar.reset();
+			let download_info_borrowed = download_info.borrow();
+			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
+			pgbar.set_message(format!("Downloading: {}", download_info_borrowed.2));
+			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
+		},
+		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
+			pgbar.set_position(percent.into());
+		},
+		main::download::DownloadProgress::SingleFinished(_id) => {
+			pgbar.finish_and_clear();
+			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().2));
+			// pgbar.finish_with_message();
+		},
+		main::download::DownloadProgress::AllFinished(new_count) => {
+			pgbar.finish_and_clear();
+			pgbar.println(format!("Finished Downloading {} new Media", new_count));
+		},
+	};
+
+	// TODO: do a "count" before running actual download
 
 	for url in &sub_args.urls {
-		let mut args = setup_arguments::setup_args(setup_arguments::SetupArgs {
-			out:                  sub_args.output_path.clone(),
-			tmp:                  main_args.tmp_path.clone(),
-			url:                  url.clone(),
-			archive:              main_args.archive_path.clone(),
-			audio_only:           sub_args.audio_only_enable,
-			debug:                main_args.verbosity >= 2,
-			disable_re_thumbnail: sub_args.reapply_thumbnail_disable,
-			editor:               sub_args
-				.audio_editor
-				.as_ref()
-				.expect("Expected editor to be set!")
-				.to_string_lossy()
-				.to_string(),
-		})?;
+		download_state.set_current_url(url);
 
-		spawn_main::spawn_ytdl(&mut args).unwrap_or_else(|err| {
-			println!(
-				"An Error Occured in spawn_ytdl (still saving archive to tmp):\n\t{}",
-				err
-			);
-			errcode = true;
-		});
+		let new_media =
+			libytdlr::main::download::download_single(maybe_connection.as_mut(), &download_state, download_pgcb)?;
 
-		if !errcode && main_args.is_interactive() {
-			if args.archive.is_some() {
-				ask_edit::edits(&mut args).unwrap_or_else(|err| {
-					println!("An Error Occured in edits:\n\t{}", err);
-					errcode = true;
-				});
+		if let Some(ref mut connection) = maybe_connection {
+			pgbar.reset();
+			pgbar.set_length(new_media.len().try_into().expect("Failed to convert usize to u64"));
+			for media in new_media {
+				pgbar.inc(1);
+				libytdlr::main::archive::import::insert_insmedia(&media.into(), connection)?;
+			}
+			pgbar.finish_and_clear();
+		}
+	}
+
+	let download_path = download_state.get_download_path();
+
+	// ask for editing
+	'for_media_loop: for media in crate::utils::find_editable_files(download_path)? {
+		let media_filename = media
+			.filename
+			.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
+		let media_path = download_path.join(&media_filename);
+		// extra loop is required for printing the help and asking again
+		'ask_do_loop: loop {
+			let input = crate::utils::get_input(
+				&format!(
+					"Edit Media \"{}\"?",
+					media
+						.title
+						.as_ref()
+						.expect("Expected MediaInfo to have a title from \"try_from_filename\"")
+				),
+				&["h", "y", "N", "a", "v"],
+				"n",
+			)?;
+
+			match input.as_str() {
+				"n" => continue 'for_media_loop,
+				"y" => match crate::utils::get_filetype(&media_filename) {
+					utils::FileType::Video => {
+						println!("Found filetype to be of video");
+						crate::utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?
+					},
+					utils::FileType::Audio => {
+						println!("Found filetype to be of audio");
+						crate::utils::run_editor(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?
+					},
+					utils::FileType::Unknown => {
+						// if not FileType could be found, ask user what to do
+						match crate::utils::get_input(
+							"Could not find suitable editor for extension, [a]udio editor, [v]ideo editor, a[b]ort, [n]ext.",
+							&["a", "v", "b", "n"],
+							"",
+						)?
+						.as_str()
+						{
+							"a" => crate::utils::run_editor(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?,
+							"v" => crate::utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?,
+							"b" => return Err(crate::Error::Other("Abort Selected".to_owned()).into()),
+							"n" => continue 'for_media_loop,
+							_ => unreachable!("get_input should only return a OK value from the possible array"),
+						}
+					},
+				},
+				"h" => {
+					println!(
+						"Help:\n\
+					[h] print help (this)\n\
+					[n] skip element and move onto the next one\n\
+					[y] edit element, automatically choose editor\n\
+					[a] edit element with audio editor\n\
+					[v] edit element with video editor\
+					"
+					);
+					continue 'ask_do_loop;
+				},
+				"a" => {
+					crate::utils::run_editor(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?;
+				},
+				"v" => {
+					crate::utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?;
+				},
+				_ => unreachable!("get_input should only return a OK value from the possible array"),
+			}
+
+			// when getting here, the media needs to be re-thumbnailed
+			debug!("Re-applying thumbnail for media");
+			if let Some(image_path) = libytdlr::main::rethumbnail::find_image(&media_path)? {
+				// re-apply thumbnail to "media_path", and have the output be the same path
+				// "re_thumbnail_with_tmp" will handle that the original will only be overwritten once successfully finished
+				libytdlr::main::rethumbnail::re_thumbnail_with_tmp(&media_path, image_path, &media_path)?;
 			} else {
-				info!("No Archive, not asking for edits");
-			}
-		}
-
-		if !errcode {
-			move_finished::move_finished_files(&args.out, &args.tmp, args.debug)?;
-		}
-
-		if let Some(archive) = &mut args.archive {
-			if errcode {
-				debug!("An Error occured, writing archive to TMP location");
-				archive.path = tmp.join("ytdl_archive_ERR.json");
+				warn!(
+					"No Image found for media, not re-applying thumbnail! Media: \"{}\"",
+					media
+						.title
+						.as_ref()
+						.expect("Expected MediaInfo to have a title from \"try_from_filename\"")
+				);
 			}
 
-			setup_archive::write_archive(archive)?;
-		} else {
-			info!("No Archive, not writing");
+			continue 'for_media_loop;
 		}
-
-		tmp = args.tmp;
 	}
 
-	if !errcode {
-		std::fs::remove_dir_all(&tmp)?;
-	}
+	// the following is used to ask the user what to do with the media-files
+	// current choices are:
+	// move all media that is found to the final_directory (specified via options or defaulted), or
+	// open picard and let picard handle the moving
+	match crate::utils::get_input("[m]ove Media to Output Directory or Open [p]icard?", &["m", "p"], "")?.as_str() {
+		"m" => {
+			debug!("Moving all files to the final destination");
 
-	// if an error happened, exit with an non-zero error code
-	if errcode {
-		warn!("Existing with non-zero code, because of an previous Error");
-		std::process::exit(1);
+			let final_dir_path = sub_args.output_path.as_ref().map_or_else(
+				|| {
+					dirs_next::download_dir()
+						.unwrap_or_else(|| return PathBuf::from("."))
+						.join("ytdlr-out")
+				},
+				|v| return v.clone(),
+			);
+			std::fs::create_dir_all(&final_dir_path)?;
+
+			let mut moved_count = 0usize;
+
+			for media in crate::utils::find_editable_files(download_path)? {
+				let (media_filename, final_filename) = match crate::utils::convert_mediainfo_to_filename(&media) {
+					Some(v) => v,
+					None => {
+						warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
+
+						continue;
+					},
+				};
+				let from_path = download_path.join(media_filename);
+				let to_path = final_dir_path.join(final_filename);
+				trace!(
+					"Copying file \"{}\" to \"{}\"",
+					from_path.to_string_lossy(),
+					to_path.to_string_lossy()
+				);
+				// copy has to be used, because it cannot be ensured the "final_path" is on the same file-system
+				// and a "move"(mv) function does not exist in standard rust
+				std::fs::copy(&from_path, to_path)?;
+
+				trace!("Removing file \"{}\"", from_path.to_string_lossy());
+				// remove the original file, because copy was used
+				std::fs::remove_file(from_path)?;
+
+				moved_count += 1;
+			}
+
+			println!(
+				"Moved {} media files to \"{}\"",
+				moved_count,
+				final_dir_path.to_string_lossy()
+			);
+
+			return Ok(());
+		},
+		"p" => {
+			debug!("Renaming files for Picard");
+
+			let final_dir_path = download_path.join("final");
+			std::fs::create_dir_all(&final_dir_path)?;
+
+			for media in crate::utils::find_editable_files(download_path)? {
+				let (media_filename, final_filename) = match crate::utils::convert_mediainfo_to_filename(&media) {
+					Some(v) => v,
+					None => {
+						warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
+
+						continue;
+					},
+				};
+				// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same directory
+				std::fs::rename(download_path.join(media_filename), final_dir_path.join(final_filename))?;
+			}
+
+			debug!("Running Picard");
+			crate::utils::run_editor(&sub_args.picard_editor, &final_dir_path, false)?;
+
+			return Ok(());
+		},
+		_ => unreachable!("get_input should only return a OK value from the possible array"),
 	}
-	return Ok(());
 }
 
 /// Handler function for the "archive import" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(), ioError> {
-	use indicatif::{
-		ProgressBar,
-		ProgressStyle,
-	};
 	use libytdlr::main::archive::import::*;
 	println!("Importing Archive from \"{}\"", sub_args.file_path.to_string_lossy());
 
