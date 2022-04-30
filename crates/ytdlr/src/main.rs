@@ -191,11 +191,12 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 	let download_path = download_state.get_download_path();
 
+	let mut index = 0usize;
 	// convert finished media elements to hashmap so it can be found without using a new iterator over and over
-	let mut finished_vec_acc: HashMap<String, data::cache::media_info::MediaInfo> = finished_vec_acc
+	let mut finished_vec_acc: HashMap<String, (usize, data::cache::media_info::MediaInfo)> = finished_vec_acc
 		.into_iter()
 		.map(|v| {
-			return (
+			let res = (
 				format!(
 					"{}-{}",
 					v.provider
@@ -203,8 +204,10 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 						.map_or_else(|| return "unknown", |v| return v.to_str()),
 					v.id
 				),
-				v,
+				(index, v),
 			);
+			index += 1;
+			return res;
 		})
 		.collect();
 
@@ -222,9 +225,14 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 				.filename
 				.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
 
-			media.set_filename(new_media_filename);
+			media.1.set_filename(new_media_filename);
 		}
 	}
+
+	// sort in index order
+	let mut finished_vec_acc: Vec<(usize, data::cache::media_info::MediaInfo)> =
+		finished_vec_acc.into_values().collect();
+	finished_vec_acc.sort_by_key(|v| return v.0);
 
 	// ask for editing
 	// TODO: consider renaming before asking for edit
@@ -243,7 +251,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 						.as_ref()
 						.expect("Expected MediaInfo to have a title from \"try_from_filename\"")
 				),
-				&["h", "y", "N", "a", "v", "p"],
+				&["h", "y", "N", "a", "v" /* , "p" */],
 				"n",
 			)?;
 
@@ -282,8 +290,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 					[n] skip element and move onto the next one\n\
 					[y] edit element, automatically choose editor\n\
 					[a] edit element with audio editor\n\
-					[v] edit element with video editor\n\
-					[p] play element with mpv\
+					[v] edit element with video editor\
 					"
 					);
 					continue 'ask_do_loop;
@@ -294,13 +301,13 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 				"v" => {
 					crate::utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?;
 				},
-				"p" => {
-					// TODO: allow PLAYER to be something other than mpv
-					crate::utils::run_editor(&Some(PathBuf::from("mpv")), &media_path, false)?;
+				// "p" => {
+				// 	// TODO: allow PLAYER to be something other than mpv
+				// 	crate::utils::run_editor(&Some(PathBuf::from("mpv")), &media_path, false)?;
 
-					// re-do the loop, because it was only played
-					continue 'ask_do_loop;
-				},
+				// 	// re-do the loop, because it was only played
+				// 	continue 'ask_do_loop;
+				// },
 				_ => unreachable!("get_input should only return a OK value from the possible array"),
 			}
 
