@@ -205,8 +205,8 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 /// Helper Enum for differentiating [`LineType::Custom`] from "START" and "END"
 #[derive(Debug, PartialEq, Clone)]
 enum CustomParseType {
-	START,
-	END,
+	Start,
+	End,
 }
 
 /// Line type for a ytdl output line
@@ -318,7 +318,7 @@ impl LineType {
 					let title = &cap[4];
 
 					return Some((
-						CustomParseType::START,
+						CustomParseType::Start,
 						MediaInfo::new(id)
 							.with_title(title)
 							.with_provider(MediaProvider::from_str(provider)),
@@ -326,7 +326,7 @@ impl LineType {
 				},
 				"END" => {
 					return Some((
-						CustomParseType::END,
+						CustomParseType::End,
 						MediaInfo::new(id).with_provider(MediaProvider::from_str(provider)),
 					));
 				},
@@ -387,7 +387,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 				LineType::Custom => {
 					if let Some(mi) = linetype.try_get_parse_helper(line) {
 						match mi.0 {
-							CustomParseType::START => {
+							CustomParseType::Start => {
 								debug!(
 									"Found PARSE_START: \"{}\" \"{:?}\" \"{:?}\"",
 									mi.1.id, mi.1.provider, mi.1.title
@@ -407,7 +407,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 									.expect("current_mediainfo.title should have been set");
 								pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()))
 							},
-							CustomParseType::END => {
+							CustomParseType::End => {
 								debug!("Found PARSE_END: \"{}\" \"{:?}\"", mi.1.id, mi.1.provider);
 								pgcb(DownloadProgress::SingleFinished(mi.1.id.clone()));
 
@@ -854,7 +854,7 @@ mod test {
 			let input = "PARSE_START 'youtube' '-----------' Some Title Here";
 			assert_eq!(
 				Some((
-					CustomParseType::START,
+					CustomParseType::Start,
 					MediaInfo::new("-----------")
 						.with_provider(MediaProvider::from_str("youtube"))
 						.with_title("Some Title Here")
@@ -866,7 +866,7 @@ mod test {
 			let input = "PARSE_END 'youtube' '-----------'";
 			assert_eq!(
 				Some((
-					CustomParseType::END,
+					CustomParseType::End,
 					MediaInfo::new("-----------").with_provider(MediaProvider::from_str("youtube"))
 				)),
 				LineType::Custom.try_get_parse_helper(input)
