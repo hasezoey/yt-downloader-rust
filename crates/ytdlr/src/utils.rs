@@ -96,13 +96,12 @@ pub fn handle_connect<'a>(
 
 	let res = libytdlr::main::sql_utils::migrate_and_connect(archive_path, pgcb_migrate)?;
 
+	bar.finish_and_clear();
 	if res.0 != archive_path {
-		bar.finish_with_message(format!(
+		bar.println(format!(
 			"Migration from JSON to SQLite archive done, Archive path has changed to \"{}\"",
 			res.0.to_string_lossy()
 		));
-	} else {
-		bar.finish_and_clear();
 	}
 
 	return Ok(res);
