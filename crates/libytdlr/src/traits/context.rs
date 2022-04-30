@@ -34,7 +34,7 @@ pub trait DownloadOptions {
 	fn gen_archive<'a>(&'a self, connection: &'a mut SqliteConnection)
 		-> Option<Box<dyn Iterator<Item = String> + '_>>;
 	/// Get the URL to download
-	fn get_url<'a>(&'a self) -> &'a str;
+	fn get_url(&self) -> &str;
 	/// Get wheter or not to print out Command STDOUT (in this case ytdl)
 	/// STDERR is always printed (using [`log`])
 	/// With this returning `true`, the STDOUT output is also printed to [`log`], with [`log::trace`]

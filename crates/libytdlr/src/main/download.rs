@@ -286,7 +286,7 @@ impl LineType {
 			let percent_str = &cap[1];
 
 			// directly use the "Result"returned by "from_str_radix" and convert it to a "Option"
-			return u8::from_str_radix(percent_str, 10).ok();
+			return percent_str.parse::<u8>().ok();
 		}
 
 		return None;

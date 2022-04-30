@@ -13,7 +13,7 @@ pub enum MediaProvider {
 
 impl MediaProvider {
 	/// Get current current [`MediaProvider`] as a str
-	pub fn to_str<'a>(&'a self) -> &'a str {
+	pub fn to_str(&self) -> &str {
 		return match self {
 			MediaProvider::Youtube => "youtube",
 			MediaProvider::Soundcloud => "soundcloud",
