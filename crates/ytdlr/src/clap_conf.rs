@@ -170,6 +170,9 @@ pub struct CommandDownload {
 	/// Video Editor for video files when using edits on post-processing
 	#[clap(long, env = "YTDL_VIDEO_EDITOR")]
 	pub video_editor:              Option<PathBuf>,
+	/// Picard Path / Command to use
+	#[clap(long = "picard", env = "YTDL_PICARD")]
+	pub picard_editor:             Option<PathBuf>,
 	/// Output path for any command that outputs a file
 	#[clap(short, long, parse(from_os_str), env = "YTDL_OUT")]
 	pub output_path:               Option<PathBuf>,
@@ -179,6 +182,22 @@ pub struct CommandDownload {
 	/// Set download to be audio-only (if its not, it will just extract the audio)
 	#[clap(short = 'a', long = "audio-only")]
 	pub audio_only_enable:         bool,
+	/// Force "gen_archive" to use the newest 1000 media elements instead of from count-result
+	/// This may be useful if a playlist is meant to be processed, but has more than ~1000 elements
+	#[clap(long = "force-genarchive-by-date")]
+	pub force_genarchive_bydate:   bool,
+	/// Force "gen_archive" to dump the full sqlite archive as a youtube-dl archive
+	/// This may be useful for debugging or if you dont care about how big the youtube-dl archive gets
+	#[clap(long = "force-genarchive-all")]
+	pub force_genarchive_all:      bool,
+	/// Print Youtube-DL stdout
+	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
+	#[clap(long = "youtubedl-stdout")]
+	pub print_youtubedl_stdout:    bool,
+	/// Print Editor stdout (both video & audio)
+	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
+	#[clap(long = "editor-stdout")]
+	pub print_editor_stdout:       bool,
 
 	pub urls: Vec<String>,
 }
@@ -238,6 +257,11 @@ mod test {
 				audio_only_enable: false,
 				reapply_thumbnail_disable: false,
 				urls: Vec::new(),
+				force_genarchive_bydate: false,
+				force_genarchive_all: false,
+				print_youtubedl_stdout: false,
+				print_editor_stdout: false,
+				picard_editor: None,
 			};
 
 			let mut cloned = init_default.clone();
@@ -306,6 +330,11 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
 				});
 
 				let mut cloned = init_default_download.clone();
@@ -346,6 +375,11 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
 				}),
 			};
 
@@ -370,6 +404,11 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
 				}),
 			};
 
@@ -389,6 +428,11 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
 				}),
 			};
 
@@ -411,6 +455,11 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
 				}),
 			};
 
@@ -433,6 +482,11 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
 				}),
 			};
 
@@ -452,6 +506,11 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
 				}),
 			};
 
