@@ -793,6 +793,5 @@ dependencies = [
  "lazy_static",
  "libytdlr",
  "log",
- "serde_json",
  "time 0.3.7",
 ]
