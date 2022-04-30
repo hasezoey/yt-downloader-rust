@@ -26,6 +26,7 @@ use crate::utils::{
 	require_ytdl_installed,
 };
 mod logger;
+mod state;
 mod utils;
 
 /// Main
