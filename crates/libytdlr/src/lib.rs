@@ -12,7 +12,6 @@ extern crate log;
 pub mod data;
 mod error;
 pub mod main;
-pub mod old;
 pub mod spawn;
 pub mod traits;
 pub mod utils;
