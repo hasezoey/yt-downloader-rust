@@ -6,7 +6,7 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-clap = { version = "3.0.9", features = ["derive", "wrap_help", "env"] }
+clap = { version = "3.1.13", features = ["derive", "wrap_help", "env"] }
 lazy_static = "1.4.0"
 indicatif = "0.16.2"
 colored = "2.0.0"

@@ -3,7 +3,6 @@
 #![deny(missing_docs)] // comments are used for "--help" generation, so it should always be defined
 
 use clap::{
-	AppSettings,
 	Parser,
 	Subcommand,
 };
@@ -18,9 +17,9 @@ trait Check {
 #[derive(Debug, Parser, Clone, PartialEq)]
 #[clap(author, version, about, long_about = None)]
 #[clap(bin_name("ytdlr"))]
-#[clap(global_setting(AppSettings::AllArgsOverrideSelf))] // specifying a argument multiple times overwrites the earlier ones
-#[clap(global_setting(AppSettings::DisableHelpSubcommand))] // Disable subcommand "help", only "-h --help" should be used
-#[clap(global_setting(AppSettings::SubcommandsNegateReqs))]
+#[clap(args_override_self(true))] // specifying a argument multiple times overwrites the earlier ones
+#[clap(disable_help_subcommand(true))] // Disable subcommand "help", only "-h --help" should be used
+#[clap(subcommand_negates_reqs(true))]
 pub struct CliDerive {
 	/// Set Loggin verbosity (0 - Default - WARN, 1 - INFO, 2 - DEBUG, 3 - TRACE)
 	#[clap(short, long, parse(from_occurrences), env = "YTDL_VERBOSITY")]
