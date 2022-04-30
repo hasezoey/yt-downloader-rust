@@ -13,8 +13,8 @@ log = "0.4"
 serde_json = "1.0"
 dirs-next = "2.0"
 path-absolutize = "3.0" # Replace with official implementation, RFC: https://github.com/rust-lang/rfcs/issues/2208
-diesel = { git = "https://github.com/diesel-rs/diesel.git", features = ["sqlite", "chrono"] } # TODO: replace with 2.0.0 release
-diesel_migrations = { git = "https://github.com/diesel-rs/diesel.git" } # TODO: replace with 2.0.0 release
+diesel = { version = "2.0.0-rc.0", features = ["sqlite", "chrono"] } # TODO: replace with 2.0.0 release
+diesel_migrations = { version = "2.0.0-rc.0" } # TODO: replace with 2.0.0 release
 chrono = "0.4"
 
 [dev-dependencies]
