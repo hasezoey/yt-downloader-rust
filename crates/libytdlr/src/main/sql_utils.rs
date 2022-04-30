@@ -50,6 +50,25 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	if !archive_path.exists() {
 		return Ok((archive_path.into(), sqlite_connect(archive_path)?));
 	}
+
+	// test if the "migrate-to" path already exists, if yes use that instead of re-doing the migration
+	let sqlite_path = {
+		let mut tmp = archive_path.to_path_buf();
+		tmp.set_extension("db");
+
+		tmp
+	};
+	// in case it is the same path as the input, directly use it and dont log a warning
+	if archive_path == sqlite_path {
+		let connection = sqlite_connect(&sqlite_path)?;
+		return Ok((sqlite_path.into(), connection));
+	}
+	if sqlite_path.exists() {
+		warn!("SQLite Database already exists at migration path, using that instead of re-migrating!\nDont forget to change the archive path to \"{}\"!", sqlite_path.to_string_lossy());
+		let connection = sqlite_connect(&sqlite_path)?;
+		return Ok((sqlite_path.into(), connection));
+	}
+
 	let mut input_archive_reader = BufReader::new(File::open(archive_path)?);
 
 	return Ok(
@@ -61,12 +80,6 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 			},
 			super::archive::import::ArchiveType::JSON => {
 				debug!("Applying Migration from JSON to SQLite");
-				let sqlite_path = {
-					let mut tmp = archive_path.to_path_buf();
-					tmp.set_extension("db");
-
-					tmp
-				};
 
 				// handle case where the input path matches the changed path
 				if sqlite_path == archive_path {
