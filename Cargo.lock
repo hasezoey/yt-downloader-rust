@@ -312,7 +312,6 @@ dependencies = [
  "diesel_migrations",
  "dirs-next",
  "fs_extra",
- "indicatif",
  "lazy_static",
  "log",
  "path-absolutize",
