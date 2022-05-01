@@ -49,15 +49,16 @@ Please note this project is still in development (so not finished) and im still 
 
 - [ ] Rework 2022
   - [ ] Move Archive to SQL (SQLite by default) instead of big json
-    - [ ] re-implement `archive import` for sql
-    - [ ] re-implement main download for sql
-  - [ ] re-implement main download
+    - [x] re-implement `archive import` for sql
+    - [x] re-implement main download for sql
+  - [x] re-implement main download
   - [x] add QOL command `re-thumbnail`
   - [ ] add QOL command `archive search` to search through the archive by any column
   - [ ] add QOL command `completions` to generate shell completions (bash, zsh, etc)
   - [x] re-implement `archive import`
   - [ ] add command `archive migrate` (to check and migrate the archive to new versions)
-  - [ ] completely seperate `libytdlr(lib)` and `ytdlr(bin)`
+  - [x] completely seperate `libytdlr(lib)` and `ytdlr(bin)`
   - [ ] make binary interface more pleasant
-- [ ] Picard Integration (generic)
+  - [ ] add ability to start a play (like mpv) before choosing to edit
+- [x] Picard Integration (generic)
 - [ ] Sponsorblock integration via yt-dlp?
