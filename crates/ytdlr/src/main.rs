@@ -211,21 +211,46 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		})
 		.collect();
 
-	// merge found filenames into existing mediainfo
-	for new_media in crate::utils::find_editable_files(download_path)? {
-		if let Some(media) = finished_vec_acc.get_mut(&format!(
-			"{}-{}",
-			new_media
-				.provider
-				.as_ref()
-				.map_or_else(|| return "unknown", |v| return v.to_str()),
-			new_media.id
-		)) {
-			let new_media_filename = new_media
-				.filename
-				.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
+	// error-recovery, discover all files that can be edited, even if nothing has been downloaded
+	// though for now it will not be in the download order
+	if finished_vec_acc.is_empty() {
+		debug!("Downloaded media was empty, trying to find editable files");
+		// for safety reset the index variable
+		let mut index = 0usize;
+		finished_vec_acc = crate::utils::find_editable_files(download_path)?
+			.into_iter()
+			.map(|v| {
+				let res = (
+					format!(
+						"{}-{}",
+						v.provider
+							.as_ref()
+							.map_or_else(|| return "unknown", |v| return v.to_str()),
+						v.id
+					),
+					(index, v),
+				);
+				index += 1;
+				return res;
+			})
+			.collect();
+	} else {
+		// merge found filenames into existing mediainfo
+		for new_media in crate::utils::find_editable_files(download_path)? {
+			if let Some(media) = finished_vec_acc.get_mut(&format!(
+				"{}-{}",
+				new_media
+					.provider
+					.as_ref()
+					.map_or_else(|| return "unknown", |v| return v.to_str()),
+				new_media.id
+			)) {
+				let new_media_filename = new_media
+					.filename
+					.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
 
-			media.1.set_filename(new_media_filename);
+				media.1.set_filename(new_media_filename);
+			}
 		}
 	}
 
