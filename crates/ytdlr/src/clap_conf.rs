@@ -118,15 +118,12 @@ impl Check for ArchiveDerive {
 pub enum ArchiveSubCommands {
 	/// Import a Archive file, be it youtube-dl, ytdlr-json
 	Import(ArchiveImport),
-	// /// Migrate and check the current Archive
-	// Migrate(ArchiveMigrate),
 }
 
 impl Check for ArchiveSubCommands {
 	fn check(&mut self) -> Result<(), crate::Error> {
 		match self {
 			ArchiveSubCommands::Import(v) => return Check::check(v),
-			// ArchiveSubCommands::Migrate(v) => return Check::check(v),
 		}
 	}
 }
@@ -144,21 +141,6 @@ impl Check for ArchiveImport {
 		return Ok(());
 	}
 }
-
-// /// Migrate and check the current Archive in use
-// #[derive(Debug, Parser)]
-// pub struct ArchiveMigrate {
-// 	/// Check the current Archive for any problems
-// 	/// This includes: old archive format, unapplied migrations, not existing, broken archive
-// 	#[clap(long)]
-// 	pub check: bool,
-// }
-
-// impl Check for ArchiveMigrate {
-// 	fn check(&mut self) -> Result<(), crate::Error> {
-// 		return Ok(());
-// 	}
-// }
 
 /// Run and download a given URL(s)
 #[derive(Debug, Parser, Clone, PartialEq)]

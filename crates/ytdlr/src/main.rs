@@ -90,7 +90,6 @@ fn main() -> Result<(), ioError> {
 fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), ioError> {
 	match &sub_args.subcommands {
 		ArchiveSubCommands::Import(v) => command_import(main_args, v),
-		// ArchiveSubCommands::Migrate(v) => command_migrate(main_args, v),
 	}?;
 
 	return Ok(());
