@@ -50,6 +50,38 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	if !archive_path.exists() {
 		return Ok((archive_path.into(), sqlite_connect(archive_path)?));
 	}
+
+	let migrate_to_path = {
+		let mut tmp = archive_path.to_path_buf();
+		tmp.set_extension("db");
+
+		tmp
+	};
+
+	// check if the "migrate-to" path already exists, and use that directly instead or error of already existing
+	if migrate_to_path.exists() {
+		if !migrate_to_path.is_file() {
+			return Err(crate::Error::Other(format!(
+				"Migrate-To Path exists but is not a file! (Path: \"{}\")",
+				migrate_to_path.to_string_lossy()
+			)));
+		}
+
+		let mut sqlite_path_reader = BufReader::new(File::open(&migrate_to_path)?);
+		return Ok(
+			match crate::main::archive::import::detect_archive_type(&mut sqlite_path_reader)? {
+				super::archive::import::ArchiveType::Unknown => return Err(crate::Error::Other(format!("Migrate-To Path already exists, but is of unknown type! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
+				super::archive::import::ArchiveType::JSON => return Err(crate::Error::Other(format!("Migrate-To Path already eixsts and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
+				super::archive::import::ArchiveType::SQLite => {
+					// this has to be done before, because the following ".into" call will move the value
+					let connection = sqlite_connect(&migrate_to_path)?;
+
+					(migrate_to_path.into(), connection)
+				},
+			},
+		);
+	}
+
 	let mut input_archive_reader = BufReader::new(File::open(archive_path)?);
 
 	return Ok(
@@ -61,22 +93,16 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 			},
 			super::archive::import::ArchiveType::JSON => {
 				debug!("Applying Migration from JSON to SQLite");
-				let sqlite_path = {
-					let mut tmp = archive_path.to_path_buf();
-					tmp.set_extension("db");
-
-					tmp
-				};
 
 				// handle case where the input path matches the changed path
-				if sqlite_path == archive_path {
+				if migrate_to_path == archive_path {
 					return Err(crate::Error::Other(
 						"Migration cannot be done: Input path matches output path (setting extension to \".db\")"
 							.into(),
 					));
 				}
 
-				let mut connection = sqlite_connect(&sqlite_path)?;
+				let mut connection = sqlite_connect(&migrate_to_path)?;
 
 				crate::main::archive::import::import_ytdlr_json_archive(
 					&mut input_archive_reader,
@@ -86,7 +112,7 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 
 				debug!("Migration from JSON to SQLite done");
 
-				(sqlite_path.into(), connection)
+				(migrate_to_path.into(), connection)
 			},
 			super::archive::import::ArchiveType::SQLite => (archive_path.into(), sqlite_connect(archive_path)?),
 		},
@@ -96,7 +122,6 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 #[cfg(test)]
 mod test {
 	use super::*;
-	use serial_test::serial;
 
 	fn create_connection() -> SqliteConnection {
 		// chrono is used to create a different database for each thread
@@ -180,8 +205,21 @@ mod test {
 		use super::*;
 
 		fn gen_archive_path<P: AsRef<OsStr>>(extension: P) -> PathBuf {
-			let mut path = std::env::temp_dir().join(format!("ytdl-test-sql_utils/{}-gen_archive", chrono::Utc::now()));
+			let mut path =
+				std::env::temp_dir().join(format!("ytdl-test-sql_utils/{}-gen_archive", uuid::Uuid::new_v4()));
 			path.set_extension(extension);
+			println!("generated: {}", path.to_string_lossy());
+
+			// clear generated path
+			clear_path(&path);
+
+			{
+				let mut migrate_to_path = path.clone();
+				migrate_to_path.set_extension("db");
+
+				// clear migrate_to_path
+				clear_path(migrate_to_path);
+			}
 
 			return path;
 		}
@@ -203,8 +241,6 @@ mod test {
 		fn write_file_with_content<S: AsRef<str>, P: AsRef<OsStr>>(input: S, extension: P) -> PathBuf {
 			let path = gen_archive_path(extension);
 
-			clear_path(&path);
-
 			create_dir_all_parent(&path);
 
 			let mut file = BufWriter::new(std::fs::File::create(&path).expect("Expected file to be created"));
@@ -221,7 +257,7 @@ mod test {
 		}
 
 		#[test]
-		fn test_unknown_archive() {
+		fn test_input_unknown_archive() {
 			let string0 = "
 			youtube ____________
 			youtube ------------
@@ -248,14 +284,13 @@ mod test {
 		}
 
 		#[test]
-		fn test_sqlite_archive() {
+		fn test_input_sqlite_archive() {
 			let path = gen_archive_path("db_sqlite");
 			create_dir_all_parent(&path);
 
 			{
 				// create database file
-				let _connection = sqlite_connect(&path);
-				// and drop it, so to not have a lock on it
+				assert!(sqlite_connect(&path).is_ok());
 			}
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
@@ -270,8 +305,7 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
-		fn test_json_archive() {
+		fn test_input_json_archive() {
 			let string0 = r#"
 			{
 				"version": "0.1.0",
@@ -343,8 +377,7 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
-		fn test_json_archive_same_name() {
+		fn test_to_existing_json() {
 			let string0 = r#"
 			{
 			}
@@ -364,8 +397,60 @@ mod test {
 
 			assert_eq!(
 				res.to_string(),
-				"Other: Migration cannot be done: Input path matches output path (setting extension to \".db\")"
+				format!("Other: Migrate-To Path already eixsts and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", path.to_string_lossy())
 			);
+			assert_eq!(0, pgcounter.read().expect("read failed").len());
+		}
+
+		#[test]
+		fn test_to_existing_unknown() {
+			let string0 = "
+			youtube ____________
+			youtube ------------
+			youtube aaaaaaaaaaaa
+			soundcloud 0000000000
+			";
+
+			let path = write_file_with_content(string0, "db");
+
+			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
+
+			let res = migrate_and_connect(&path, callback_counter(&pgcounter));
+
+			assert!(res.is_err());
+			let res = match res {
+				Ok(_) => panic!("Expected a Error value"),
+				Err(err) => err,
+			};
+
+			assert_eq!(
+				res.to_string(),
+				format!(
+					"Other: Migrate-To Path already exists, but is of unknown type! (Path: \"{}\")",
+					path.to_string_lossy()
+				)
+			);
+			assert_eq!(0, pgcounter.read().expect("read failed").len());
+		}
+
+		#[test]
+		fn test_to_existing_sqlite() {
+			let path = gen_archive_path("db");
+			create_dir_all_parent(&path);
+
+			{
+				// create database file
+				assert!(sqlite_connect(&path).is_ok());
+			}
+
+			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
+
+			let res = migrate_and_connect(&path, callback_counter(&pgcounter));
+
+			assert!(res.is_ok());
+			let res = res.unwrap();
+
+			assert_eq!(&path, res.0.as_ref());
 			assert_eq!(0, pgcounter.read().expect("read failed").len());
 		}
 	}
