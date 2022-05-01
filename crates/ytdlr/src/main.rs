@@ -17,8 +17,13 @@ use std::{
 	collections::HashMap,
 	fs::File,
 	io::{
+		BufRead,
 		BufReader,
+		BufWriter,
 		Error as ioError,
+		Read,
+		Seek,
+		Write,
 	},
 	path::PathBuf,
 };
@@ -189,6 +194,59 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	}
 
 	let download_path = download_state.get_download_path();
+	let tmp_recovery_path = download_path.join("recovery");
+
+	{
+		if !finished_vec_acc.is_empty() {
+			info!("Saving downloaded media to temp storage for recovery");
+			let mut file_handle = BufWriter::new(std::fs::File::create(&tmp_recovery_path)?);
+
+			for media in finished_vec_acc.iter() {
+				file_handle.write_all(
+					format!(
+						"'{}'-'{}'-{}",
+						media
+							.provider
+							.as_ref()
+							.expect("Expected downloaded media to have a provider"),
+						media.id,
+						media.title.as_ref().expect("Expected downloaded media to have a title")
+					)
+					.as_bytes(),
+				)?;
+			}
+		} else {
+			info!("Trying to recover from tmp_recovery_path");
+
+			if tmp_recovery_path.exists() {
+				// error in case of not being a file, maybe consider changeing this to a function and ignoring if not existing
+				if !tmp_recovery_path.is_file() {
+					return Err(crate::Error::Other(format!(
+						"TMP Recovery Path is not a file! (Path: \"{}\")",
+						tmp_recovery_path.to_string_lossy()
+					))
+					.into());
+				}
+
+				let mut file_handle = BufReader::new(std::fs::File::open(&tmp_recovery_path)?);
+
+				let count = file_handle.by_ref().lines().count();
+				// seek to the beginning, because "lines.count" has advanced it to the end
+				file_handle.seek(std::io::SeekFrom::Start(0))?;
+
+				// this is to not have to allocate in each "for" loop run
+				finished_vec_acc.reserve(count - finished_vec_acc.len());
+
+				for media in file_handle
+					.lines()
+					.filter_map(|v| return v.ok())
+					.filter_map(|v| return data::cache::media_info::MediaInfo::try_from_tmp_recovery(v))
+				{
+					finished_vec_acc.push(media);
+				}
+			}
+		}
+	}
 
 	let mut index = 0usize;
 	// convert finished media elements to hashmap so it can be found without using a new iterator over and over
@@ -407,8 +465,6 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 				moved_count,
 				final_dir_path.to_string_lossy()
 			);
-
-			return Ok(());
 		},
 		"p" => {
 			debug!("Renaming files for Picard");
@@ -431,11 +487,14 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 			debug!("Running Picard");
 			crate::utils::run_editor(&sub_args.picard_editor, &final_dir_path, false)?;
-
-			return Ok(());
 		},
 		_ => unreachable!("get_input should only return a OK value from the possible array"),
 	}
+
+	// do some cleanup
+	std::fs::remove_file(tmp_recovery_path)?; // remove the recovery file, because of a successfull finish
+
+	return Ok(());
 }
 
 /// Handler function for the "archive import" subcommand
