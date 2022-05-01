@@ -113,7 +113,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	lazy_static::lazy_static! {
 		// ProgressBar Style for download, will look like "[0/0] [00:00:00] [#>-] CustomMsg"
 		static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
-		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {wide_msg}")
+		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
 		.progress_chars("#>-");
 	}
 
