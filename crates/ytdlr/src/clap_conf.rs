@@ -240,6 +240,28 @@ pub struct CommandReThumbnail {
 
 impl Check for CommandReThumbnail {
 	fn check(&mut self) -> Result<(), crate::Error> {
+		// apply "expand_tilde" to archive_path
+		self.input_image_path = crate::utils::fix_path(&self.input_image_path).ok_or_else(|| {
+			return crate::Error::Other("Input Image Path was provided, but could not be expanded / fixed".to_owned());
+		})?;
+
+		// apply "expand_tilde" to archive_path
+		self.input_media_path = crate::utils::fix_path(&self.input_media_path).ok_or_else(|| {
+			return crate::Error::Other("Input Media Path was provided, but could not be expanded / fixed".to_owned());
+		})?;
+
+		// apply "expand_tilde" to archive_path
+		self.output_media_path = match self.output_media_path.take() {
+			// this has to be so round-about, because i dont know of a function that would allow functionality like "and_then" but instead of returning the same value, it would return a result
+			Some(v) => Some(crate::utils::fix_path(v).ok_or_else(|| {
+				return crate::Error::Other(
+					"Output Media Path was provided, but could not be expanded / fixed".to_owned(),
+				);
+			})?),
+			None => None,
+		};
+
+		// the "fix_path" is done above, to not have to seperate / repeat the processing
 		if self.output_media_path.is_none() {
 			self.output_media_path = Some(self.input_media_path.clone());
 		}
@@ -679,6 +701,56 @@ mod test {
 			assert!(init_default.check().is_ok());
 			// compare cloned manual and function execution
 			assert_eq!(cloned, init_default);
+		}
+
+		#[test]
+		fn test_check_inputpaths_fixed() {
+			// fake home
+			let homedir = Path::new("/custom/home");
+			std::env::set_var("HOME", homedir);
+
+			// initial value
+			let mut init_default = CommandReThumbnail {
+				input_image_path:  PathBuf::from("~/image.jpg"),
+				input_media_path:  PathBuf::from("~/media.mp3"),
+				output_media_path: None,
+			};
+
+			let mut cloned = init_default.clone();
+			// test to run the check and transform
+			assert!(cloned.check().is_ok());
+
+			// manually fix in the init
+			init_default.input_image_path = homedir.join("image.jpg");
+			init_default.input_media_path = homedir.join("media.mp3");
+			init_default.output_media_path = Some(init_default.input_media_path.clone());
+			// compare cloned manual and function execution
+			assert_eq!(init_default, cloned);
+		}
+
+		#[test]
+		fn test_check_outputpaths_fixed() {
+			// fake home
+			let homedir = Path::new("/custom/home");
+			std::env::set_var("HOME", homedir);
+
+			// initial value
+			let mut init_default = CommandReThumbnail {
+				input_image_path:  PathBuf::from("~/image.jpg"),
+				input_media_path:  PathBuf::from("~/media.mp3"),
+				output_media_path: Some(PathBuf::from("~/out.mp3")),
+			};
+
+			let mut cloned = init_default.clone();
+			// test to run the check and transform
+			assert!(cloned.check().is_ok());
+
+			// manually fix in the init
+			init_default.input_image_path = homedir.join("image.jpg");
+			init_default.input_media_path = homedir.join("media.mp3");
+			init_default.output_media_path = Some(homedir.join("out.mp3"));
+			// compare cloned manual and function execution
+			assert_eq!(init_default, cloned);
 		}
 	}
 }
