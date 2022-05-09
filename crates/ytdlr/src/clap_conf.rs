@@ -156,6 +156,11 @@ pub struct ArchiveImport {
 
 impl Check for ArchiveImport {
 	fn check(&mut self) -> Result<(), crate::Error> {
+		// apply "expand_tilde" to archive_path
+		self.file_path = crate::utils::fix_path(&self.file_path).ok_or_else(|| {
+			return crate::Error::Other("Import Path was provided, but could not be expanded / fixed".to_owned());
+		})?;
+
 		return Ok(());
 	}
 }
@@ -243,6 +248,7 @@ impl Check for CommandReThumbnail {
 #[cfg(test)]
 mod test {
 	use super::*;
+	use std::path::Path;
 
 	mod command_download {
 		use super::*;
@@ -280,6 +286,24 @@ mod test {
 
 			let mut cloned = init_default.clone();
 			assert!(cloned.check().is_ok());
+			assert_eq!(init_default, cloned);
+		}
+
+		#[test]
+		fn test_check_filepath_fixed() {
+			// fake home
+			let homedir = Path::new("/custom/home");
+			std::env::set_var("HOME", homedir);
+
+			let mut init_default = ArchiveImport {
+				file_path: PathBuf::from("~/somedir"),
+			};
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+
+			// manually fix in the init
+			init_default.file_path = homedir.join("somedir");
 			assert_eq!(init_default, cloned);
 		}
 	}
@@ -356,8 +380,6 @@ mod test {
 	}
 
 	mod cli_derive {
-		use std::path::Path;
-
 		use super::*;
 
 		#[test]
