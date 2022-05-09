@@ -169,12 +169,15 @@ impl Check for ArchiveImport {
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct CommandDownload {
 	/// Audio Editor for audio files when using edits on post-processing
+	/// Must be either a absolute path or findable via PATH
 	#[clap(long, env = "YTDL_AUDIO_EDITOR")]
 	pub audio_editor:              Option<PathBuf>,
 	/// Video Editor for video files when using edits on post-processing
+	/// Must be either a absolute path or findable via PATH
 	#[clap(long, env = "YTDL_VIDEO_EDITOR")]
 	pub video_editor:              Option<PathBuf>,
 	/// Picard Path / Command to use
+	/// Must be either a absolute path or findable via PATH
 	#[clap(long = "picard", env = "YTDL_PICARD")]
 	pub picard_editor:             Option<PathBuf>,
 	/// Output path for any command that outputs a file
