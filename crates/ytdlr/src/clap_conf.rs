@@ -74,6 +74,24 @@ impl CliDerive {
 
 impl Check for CliDerive {
 	fn check(&mut self) -> Result<(), crate::Error> {
+		// apply "expand_tilde" to archive_path
+		self.archive_path = match self.archive_path.take() {
+			// this has to be so round-about, because i dont know of a function that would allow functionality like "and_then" but instead of returning the same value, it would return a result
+			Some(v) => Some(crate::utils::fix_path(v).ok_or_else(|| {
+				return crate::Error::Other("Archive Path was provided, but could not be expanded / fixed".to_owned());
+			})?),
+			None => None,
+		};
+
+		// apply "expand_tilde" to archive_path
+		self.tmp_path = match self.tmp_path.take() {
+			// this has to be so round-about, because i dont know of a function that would allow functionality like "and_then" but instead of returning the same value, it would return a result
+			Some(v) => Some(crate::utils::fix_path(v).ok_or_else(|| {
+				return crate::Error::Other("Temp Path was provided, but could not be expanded / fixed".to_owned());
+			})?),
+			None => None,
+		};
+
 		return Check::check(&mut self.subcommands);
 	}
 }
@@ -338,6 +356,8 @@ mod test {
 	}
 
 	mod cli_derive {
+		use std::path::Path;
+
 		use super::*;
 
 		#[test]
@@ -366,6 +386,78 @@ mod test {
 
 			let mut cloned = init_default.clone();
 			assert!(cloned.check().is_ok());
+			assert_eq!(init_default, cloned);
+		}
+
+		#[test]
+		fn test_check_archivepath_fixed() {
+			// fake home
+			let homedir = Path::new("/custom/home");
+			std::env::set_var("HOME", homedir);
+
+			let mut init_default = CliDerive {
+				verbosity:    0,
+				tmp_path:     None,
+				debugger:     false,
+				archive_path: Some(PathBuf::from("~/somedir")),
+				explicit_tty: None,
+				force_color:  false,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
+				}),
+			};
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+
+			// manually fix in the init
+			init_default.archive_path = Some(homedir.join("somedir"));
+			assert_eq!(init_default, cloned);
+		}
+
+		#[test]
+		fn test_check_tmppath_fixed() {
+			// fake home
+			let homedir = Path::new("/custom/home");
+			std::env::set_var("HOME", homedir);
+
+			let mut init_default = CliDerive {
+				verbosity:    0,
+				tmp_path:     Some(PathBuf::from("~/somedir")),
+				debugger:     false,
+				archive_path: None,
+				explicit_tty: None,
+				force_color:  false,
+				subcommands:  SubCommands::Download(CommandDownload {
+					audio_editor: None,
+					output_path: None,
+					video_editor: None,
+					audio_only_enable: false,
+					reapply_thumbnail_disable: false,
+					urls: Vec::new(),
+					force_genarchive_bydate: false,
+					force_genarchive_all: false,
+					print_youtubedl_stdout: false,
+					print_editor_stdout: false,
+					picard_editor: None,
+				}),
+			};
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+
+			// manually fix in the init
+			init_default.tmp_path = Some(homedir.join("somedir"));
 			assert_eq!(init_default, cloned);
 		}
 
