@@ -422,3 +422,12 @@ pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, Pat
 
 	return Some((media_filename, Path::new(media_title).with_extension(extension)));
 }
+
+/// Apply all required processing to paths that need extra processing
+/// Returns [`None`] if any of the functions processing the input return [`None`] (which happens if they cannot fix the paths)
+/// Returns [`Some`] with the fixed path
+#[inline]
+pub fn fix_path<P: AsRef<Path>>(ip: P) -> Option<PathBuf> {
+	// currently there is only one process to be done
+	return libytdlr::utils::expand_tidle(ip);
+}
