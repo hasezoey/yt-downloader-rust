@@ -5,9 +5,9 @@
 ## Requirements
 
 - Linux / Mac - build with POSIX system paths in mind (Windows *might* work)
-- youtube-dl is installed and be accessable via the command `youtube-dl`
+- youtube-dl or yt-dlp installed and be accessable via the command `youtube-dl`
 - ffmpeg is installed and be accessable via the command `ffmpeg`
-- rust stable 1.50 or higher
+- rust stable 1.58 or higher
 
 ## Usage
 
