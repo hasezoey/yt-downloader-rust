@@ -117,7 +117,6 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		.progress_chars("#>-");
 	}
 
-	// let mut errcode = false;
 	let tmp_path = main_args
 		.tmp_path
 		.as_ref()
