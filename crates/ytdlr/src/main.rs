@@ -112,7 +112,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 	lazy_static::lazy_static! {
 		// ProgressBar Style for download, will look like "[0/0] [00:00:00] [#>-] CustomMsg"
-		static ref SINGLE_STYLE: ProgressStyle = ProgressStyle::default_bar()
+		static ref DOWNLOAD_STYLE: ProgressStyle = ProgressStyle::default_bar()
 		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
 		.progress_chars("#>-");
 	}
@@ -123,7 +123,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		.map_or_else(|| return std::env::temp_dir(), |v| return v.clone())
 		.join("ytdl_rust_tmp");
 
-	let pgbar: ProgressBar = ProgressBar::new(100).with_style(SINGLE_STYLE.clone());
+	let pgbar: ProgressBar = ProgressBar::new(100).with_style(DOWNLOAD_STYLE.clone());
 	crate::utils::set_progressbar(&pgbar, main_args);
 	let mut download_state = DownloadState::new(
 		sub_args.audio_only_enable,
