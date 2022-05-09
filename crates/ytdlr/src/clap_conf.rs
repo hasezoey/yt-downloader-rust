@@ -211,6 +211,15 @@ pub struct CommandDownload {
 
 impl Check for CommandDownload {
 	fn check(&mut self) -> Result<(), crate::Error> {
+		// apply "expand_tilde" to archive_path
+		self.output_path = match self.output_path.take() {
+			// this has to be so round-about, because i dont know of a function that would allow functionality like "and_then" but instead of returning the same value, it would return a result
+			Some(v) => Some(crate::utils::fix_path(v).ok_or_else(|| {
+				return crate::Error::Other("Output Path was provided, but could not be expanded / fixed".to_owned());
+			})?),
+			None => None,
+		};
+
 		return Ok(());
 	}
 }
@@ -274,6 +283,34 @@ mod test {
 
 			let mut cloned = init_default.clone();
 			assert!(cloned.check().is_ok());
+			assert_eq!(init_default, cloned);
+		}
+
+		#[test]
+		fn test_check_outpath_fixed() {
+			// fake home
+			let homedir = Path::new("/custom/home");
+			std::env::set_var("HOME", homedir);
+
+			let mut init_default = CommandDownload {
+				audio_editor: None,
+				output_path: Some(PathBuf::from("~/somedir")),
+				video_editor: None,
+				audio_only_enable: false,
+				reapply_thumbnail_disable: false,
+				urls: Vec::new(),
+				force_genarchive_bydate: false,
+				force_genarchive_all: false,
+				print_youtubedl_stdout: false,
+				print_editor_stdout: false,
+				picard_editor: None,
+			};
+
+			let mut cloned = init_default.clone();
+			assert!(cloned.check().is_ok());
+
+			// manually fix in the init
+			init_default.output_path = Some(homedir.join("somedir"));
 			assert_eq!(init_default, cloned);
 		}
 	}
