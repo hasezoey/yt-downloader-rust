@@ -687,18 +687,11 @@ mod test {
 				output_media_path: None,
 			};
 
-			// clone initial value (to not have to duplicate it), for testing without running the function
-			let cloned = {
-				let mut tmp = init_default.clone();
-
-				// modify the cloned value to what is expected
-				tmp.output_media_path = Some(tmp.input_media_path.clone());
-
-				tmp
-			};
-
+			let mut cloned = init_default.clone();
 			// test to run the check and transform
-			assert!(init_default.check().is_ok());
+			assert!(cloned.check().is_ok());
+			// manually fix in the init
+			init_default.output_media_path = Some(init_default.input_media_path.clone());
 			// compare cloned manual and function execution
 			assert_eq!(cloned, init_default);
 		}
