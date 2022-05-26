@@ -8,7 +8,7 @@ license = "MIT"
 [dependencies]
 clap = { version = "3.1.13", features = ["derive", "wrap_help", "env"] }
 lazy_static = "1.4.0"
-indicatif = "0.16.2"
+indicatif = "0.17.0-rc.11" # TODO: upgrade to latest stable version when available
 colored = "2.0.0"
 log = "0.4.16"
 flexi_logger = "0.22" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
@@ -17,6 +17,7 @@ atty = "0.2"
 diesel = { version = "2.0.0-rc.0", features = ["sqlite", "chrono"] } # TODO: replace with 2.0.0 release
 libytdlr = { path = "../libytdlr" }
 dirs-next = "2.0.0"
+# parking_lot = "0.12"
 
 [[bin]]
 name = "ytdlr"

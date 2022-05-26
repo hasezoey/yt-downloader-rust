@@ -114,6 +114,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		// ProgressBar Style for download, will look like "[0/0] [00:00:00] [#>-] CustomMsg"
 		static ref DOWNLOAD_STYLE: ProgressStyle = ProgressStyle::default_bar()
 		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
+		.expect("Expected ProgressStyle template to be valid")
 		.progress_chars("#>-");
 	}
 
@@ -520,6 +521,7 @@ fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(),
 	lazy_static::lazy_static! {
 		static ref IMPORT_STYLE: ProgressStyle = ProgressStyle::default_bar()
 			.template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+			.expect("Expected ProgressStyle template to be valid")
 			.progress_chars("#>-");
 	}
 
