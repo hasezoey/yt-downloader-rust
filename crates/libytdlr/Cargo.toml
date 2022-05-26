@@ -16,6 +16,7 @@ path-absolutize = "3.0" # Replace with official implementation, RFC: https://git
 diesel = { version = "2.0.0-rc.0", features = ["sqlite", "chrono"] } # TODO: replace with 2.0.0 release
 diesel_migrations = { version = "2.0.0-rc.0" } # TODO: replace with 2.0.0 release
 chrono = "0.4"
+duct = "0.13" # required to pipe stderr into stdout
 
 [dev-dependencies]
 serde_test = "1.0.117"

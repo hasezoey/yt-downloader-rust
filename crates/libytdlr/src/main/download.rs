@@ -11,8 +11,7 @@ use std::{
 		BufWriter,
 		Write,
 	},
-	os::unix::prelude::ExitStatusExt,
-	process::Stdio,
+	time::Duration,
 };
 
 use crate::{
@@ -48,66 +47,70 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 	options: &A,
 	pgcb: C,
 ) -> Result<Vec<MediaInfo>, crate::Error> {
-	let mut ytdl_child = {
+	let ytdl_child = {
 		let args = assemble_ytdl_command(connection, options)?;
 
-		crate::spawn::ytdl::base_ytdl()
-			.args(args)
-			.stdout(Stdio::piped())
-			.stderr(Stdio::piped())
-			.stdin(Stdio::null())
-			.spawn()?
+		// merge stderr into stdout
+		duct::cmd("youtube-dl", args).stderr_to_stdout().reader()?
 	};
 
-	let stdout_reader = BufReader::new(
-		ytdl_child
-			.stdout
-			.take()
-			.ok_or_else(|| return crate::Error::Other("Failed to take YTDL Child's STDOUT".to_owned()))?,
-	);
-	let stderr_reader = BufReader::new(
-		ytdl_child
-			.stderr
-			.take()
-			.ok_or_else(|| return crate::Error::Other("Failed to take YTDL Child's STDERR".to_owned()))?,
-	);
+	let stdout_reader = BufReader::new(&ytdl_child);
+	// let stdout_reader = BufReader::new(
+	// 	ytdl_child
+	// 		.stdout
+	// 		.take()
+	// 		.ok_or_else(|| return crate::Error::Other("Failed to take YTDL Child's STDOUT".to_owned()))?,
+	// );
+	// let stderr_reader = BufReader::new(
+	// 	ytdl_child
+	// 		.stderr
+	// 		.take()
+	// 		.ok_or_else(|| return crate::Error::Other("Failed to take YTDL Child's STDERR".to_owned()))?,
+	// );
 
-	let ytdl_child_stderr_thread = std::thread::Builder::new()
-		.name("ytdl stderr handler".to_owned())
-		.spawn(move || {
-			// always print STDERR as "warn"
-			stderr_reader
-				.lines()
-				.filter_map(|line| return line.ok())
-				.for_each(|line| {
-					// this is not higher than "info" because ytdl otherwise might log some more generic messages
-					info!("ytdl [STDERR]: \"{}\"", line);
-				})
-		})?;
+	// let ytdl_child_stderr_thread = std::thread::Builder::new()
+	// 	.name("ytdl stderr handler".to_owned())
+	// 	.spawn(move || {
+	// 		// always print STDERR as "warn"
+	// 		stderr_reader
+	// 			.lines()
+	// 			.filter_map(|line| return line.ok())
+	// 			.for_each(|line| {
+	// 				// this is not higher than "info" because ytdl otherwise might log some more generic messages
+	// 				info!("ytdl [STDERR]: \"{}\"", line);
+	// 			})
+	// 	})?;
 
 	let media_vec = handle_stdout(options, pgcb, stdout_reader)?;
 
 	// wait until the ytdl_child has exited and get the status of the exit
-	let ytdl_child_exit_status = ytdl_child.wait()?;
+	// let ytdl_child_exit_status = ytdl_child.wait()?;
+	loop {
+		// wait loop, because somehow a "ReaderHandle" does not implement "wait", only "try_wait", but have to wait for it to exit here
+		if let Some(_) = ytdl_child.try_wait()? {
+			break;
+		}
+		std::thread::sleep(Duration::from_millis(100));
+	}
 
 	// wait until the stderr thread has exited
-	ytdl_child_stderr_thread.join().map_err(|err| {
-		return crate::Error::Other(format!("Joining the ytdl_child STDERR handle failed: {:?}", err));
-	})?;
+	// ytdl_child_stderr_thread.join().map_err(|err| {
+	// 	return crate::Error::Other(format!("Joining the ytdl_child STDERR handle failed: {:?}", err));
+	// })?;
 
-	if !ytdl_child_exit_status.success() {
-		return Err(match ytdl_child_exit_status.code() {
-			Some(code) => crate::Error::Other(format!("YTDL Child exited with code: {}", code)),
-			None => {
-				let signal = match ytdl_child_exit_status.signal() {
-					Some(code) => code.to_string(),
-					None => "None".to_owned(),
-				};
+	// if !ytdl_child_exit_status.success() {
+	// 	return Err(match ytdl_child_exit_status.code() {
+	// 		Some(code) => crate::Error::Other(format!("YTDL Child exited with code: {}", code)),
+	// 		None => {
+	// 			let signal = match ytdl_child_exit_status.signal() {
+	// 				Some(code) => code.to_string(),
+	// 				None => "None".to_owned(),
+	// 			};
 
-				crate::Error::Other(format!("YTDL Child exited with signal: {}", signal))
-			},
-		});
-	}
+	// 			crate::Error::Other(format!("YTDL Child exited with signal: {}", signal))
+	// 		},
+	// 	});
+	// }
 
 	return Ok(media_vec);
 }
