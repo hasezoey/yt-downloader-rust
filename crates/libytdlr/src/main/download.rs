@@ -3,6 +3,7 @@
 use diesel::SqliteConnection;
 use regex::Regex;
 use std::{
+	ffi::OsString,
 	fs::File,
 	io::{
 		BufRead,
@@ -47,7 +48,16 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 	options: &A,
 	pgcb: C,
 ) -> Result<Vec<MediaInfo>, crate::Error> {
-	let mut ytdl_child = assemble_ytdl_command(connection, options)?.spawn()?;
+	let mut ytdl_child = {
+		let args = assemble_ytdl_command(connection, options)?;
+
+		crate::spawn::ytdl::base_ytdl()
+			.args(args)
+			.stdout(Stdio::piped())
+			.stderr(Stdio::piped())
+			.stdin(Stdio::null())
+			.spawn()?
+	};
 
 	let stdout_reader = BufReader::new(
 		ytdl_child
@@ -102,14 +112,47 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 	return Ok(media_vec);
 }
 
-/// Helper function to assemble the full ytdl
-/// Returns the fully assembled ytdl command
+/// Internal Struct for easily adding various types that resolve to [`OsString`] and output a [`Vec<OsString>`]
+struct ArgsHelper(Vec<OsString>);
+impl ArgsHelper {
+	/// Create a new instance of ArgsHelper
+	pub fn new() -> Self {
+		return Self(Vec::default());
+	}
+
+	/// Add a new Argument to the list, added at the end and converted to a [`OsString`]
+	/// Returns the input reference to "self" for chaining
+	pub fn arg<U>(&mut self, arg: U) -> &mut Self
+	where
+		U: Into<OsString>,
+	{
+		self.0.push(arg.into());
+
+		return self;
+	}
+
+	/// Convert Self to the inner value
+	/// Consumes self
+	pub fn into_inner(self) -> Vec<OsString> {
+		return self.0;
+	}
+}
+
+impl From<ArgsHelper> for Vec<OsString> {
+	fn from(v: ArgsHelper) -> Self {
+		return v.into_inner();
+	}
+}
+
+/// Helper Function to assemble all ytdl command arguments
+/// Returns a list of arguments for youtube-dl in order
 #[inline]
 fn assemble_ytdl_command<A: DownloadOptions>(
 	connection: Option<&mut SqliteConnection>,
 	options: &A,
-) -> std::io::Result<std::process::Command> {
-	let mut ytdl_command = crate::spawn::ytdl::base_ytdl();
+) -> std::io::Result<Vec<OsString>> {
+	let mut ytdl_args = ArgsHelper::new();
+
 	let output_dir = options.download_path();
 	debug!("YTDL Output dir is \"{}\"", output_dir.to_string_lossy());
 
@@ -132,74 +175,68 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 				}
 			}
 
-			ytdl_command.arg("--download-archive").arg(&archive_file_path);
+			ytdl_args.arg("--download-archive").arg(&archive_file_path);
 		}
 	}
 
 	// apply options to make output audio-only
 	if options.audio_only() {
 		// set the output format
-		ytdl_command.arg("-f").arg("bestaudio/best");
+		ytdl_args.arg("-f").arg("bestaudio/best");
 		// set ytdl to always extract the audio, if it is not already audio-only
-		ytdl_command.arg("-x");
+		ytdl_args.arg("-x");
 		// set the output audio format
-		ytdl_command.arg("--audio-format").arg("mp3");
+		ytdl_args.arg("--audio-format").arg("mp3");
 	} else {
-		ytdl_command.arg("-f").arg("bestvideo+bestaudio/best");
+		ytdl_args.arg("-f").arg("bestvideo+bestaudio/best");
 		// set final consistent output format
-		ytdl_command.arg("--remux-video").arg("mkv");
+		ytdl_args.arg("--remux-video").arg("mkv");
 	}
 
 	{
 		// the following options are test-wise applied to both audio and video files
 
 		// embed the videoo thumbnail if available into the output container
-		ytdl_command.arg("--embed-thumbnail");
+		ytdl_args.arg("--embed-thumbnail");
 
 		// add metadata to the container if the container supports it
-		ytdl_command.arg("--add-metadata");
+		ytdl_args.arg("--add-metadata");
 	}
 
 	// write the media's thumbnail as a seperate file
-	ytdl_command.arg("--write-thumbnail");
+	ytdl_args.arg("--write-thumbnail");
 
 	// set custom logging for easy parsing
 	// print once before the video starts to download to get all information and to get a consistent start point
-	ytdl_command
+	ytdl_args
 		.arg("--print")
 		.arg("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s");
 	// print once after the video got fully processed to get a consistent end point
-	ytdl_command
+	ytdl_args
 		.arg("--print")
 		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
 		.arg("after_video:PARSE_END '%(extractor)s' '%(id)s'");
 
 	// ensure ytdl is printing progress reports
-	ytdl_command.arg("--progress");
+	ytdl_args.arg("--progress");
 	// ensure ytdl prints the progress reports on a new line
-	ytdl_command.arg("--newline");
+	ytdl_args.arg("--newline");
 
 	// ensure it is not in simulate mode (for example set via extra arguments)
-	ytdl_command.arg("--no-simulate");
+	ytdl_args.arg("--no-simulate");
 
 	// set the output directory for ytdl
-	ytdl_command.arg("-o").arg(output_format);
+	ytdl_args.arg("-o").arg(output_format);
 
 	// apply all extra arguments
 	for extra_arg in options.extra_ytdl_arguments().iter() {
-		ytdl_command.arg(extra_arg);
+		ytdl_args.arg(extra_arg);
 	}
 
 	// apply the url to download as the last argument
-	ytdl_command.arg(options.get_url());
+	ytdl_args.arg(options.get_url());
 
-	// set how the 3 io streams are handled
-	ytdl_command
-		.stdout(Stdio::piped())
-		.stderr(Stdio::piped())
-		.stdin(Stdio::null());
-
-	return Ok(ytdl_command);
+	return Ok(ytdl_args.into());
 }
 
 /// Helper Enum for differentiating [`LineType::Custom`] from "START" and "END"
@@ -566,12 +603,37 @@ mod test {
 		};
 	}
 
-	mod assemble_ytdl_command {
-		use std::{
-			ffi::OsStr,
-			path::Path,
-		};
+	mod argshelper {
+		use std::path::Path;
 
+		use super::*;
+
+		#[test]
+		fn test_basic() {
+			let mut args = ArgsHelper::new();
+			args.arg("someString");
+			args.arg(Path::new("somePath"));
+
+			assert_eq!(
+				args.into_inner(),
+				vec![OsString::from("someString"), OsString::from("somePath")]
+			);
+		}
+
+		#[test]
+		fn test_into_vec() {
+			let mut args = ArgsHelper::new();
+			args.arg("someString");
+			args.arg(Path::new("somePath"));
+
+			assert_eq!(
+				Vec::from(args),
+				vec![OsString::from("someString"), OsString::from("somePath")]
+			);
+		}
+	}
+
+	mod assemble_ytdl_command {
 		use serial_test::serial;
 
 		use super::*;
@@ -592,25 +654,25 @@ mod test {
 			let ret = ret.expect("Expected is_ok check to pass");
 
 			assert_eq!(
-				ret.get_args().into_iter().collect::<Vec<&OsStr>>(),
+				ret,
 				vec![
-					Path::new("-f").as_os_str(),
-					Path::new("bestvideo+bestaudio/best").as_os_str(),
-					Path::new("--remux-video").as_os_str(),
-					Path::new("mkv").as_os_str(),
-					Path::new("--embed-thumbnail").as_os_str(),
-					Path::new("--add-metadata").as_os_str(),
-					Path::new("--write-thumbnail").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("after_video:PARSE_END '%(extractor)s' '%(id)s'").as_os_str(),
-					Path::new("--progress").as_os_str(),
-					Path::new("--newline").as_os_str(),
-					Path::new("--no-simulate").as_os_str(),
-					Path::new("-o").as_os_str(),
-					Path::new("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
-					Path::new("someURL").as_os_str(),
+					OsString::from("-f"),
+					OsString::from("bestvideo+bestaudio/best"),
+					OsString::from("--remux-video"),
+					OsString::from("mkv"),
+					OsString::from("--embed-thumbnail"),
+					OsString::from("--add-metadata"),
+					OsString::from("--write-thumbnail"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
+					OsString::from("--print"),
+					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--progress"),
+					OsString::from("--newline"),
+					OsString::from("--no-simulate"),
+					OsString::from("-o"),
+					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s"),
+					OsString::from("someURL"),
 				]
 			);
 		}
@@ -631,26 +693,26 @@ mod test {
 			let ret = ret.expect("Expected is_ok check to pass");
 
 			assert_eq!(
-				ret.get_args().into_iter().collect::<Vec<&OsStr>>(),
+				ret,
 				vec![
-					Path::new("-f").as_os_str(),
-					Path::new("bestaudio/best").as_os_str(),
-					Path::new("-x").as_os_str(),
-					Path::new("--audio-format").as_os_str(),
-					Path::new("mp3").as_os_str(),
-					Path::new("--embed-thumbnail").as_os_str(),
-					Path::new("--add-metadata").as_os_str(),
-					Path::new("--write-thumbnail").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("after_video:PARSE_END '%(extractor)s' '%(id)s'").as_os_str(),
-					Path::new("--progress").as_os_str(),
-					Path::new("--newline").as_os_str(),
-					Path::new("--no-simulate").as_os_str(),
-					Path::new("-o").as_os_str(),
-					Path::new("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
-					Path::new("someURL").as_os_str(),
+					OsString::from("-f"),
+					OsString::from("bestaudio/best"),
+					OsString::from("-x"),
+					OsString::from("--audio-format"),
+					OsString::from("mp3"),
+					OsString::from("--embed-thumbnail"),
+					OsString::from("--add-metadata"),
+					OsString::from("--write-thumbnail"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
+					OsString::from("--print"),
+					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--progress"),
+					OsString::from("--newline"),
+					OsString::from("--no-simulate"),
+					OsString::from("-o"),
+					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s"),
+					OsString::from("someURL"),
 				]
 			);
 		}
@@ -671,26 +733,26 @@ mod test {
 			let ret = ret.expect("Expected is_ok check to pass");
 
 			assert_eq!(
-				ret.get_args().into_iter().collect::<Vec<&OsStr>>(),
+				ret,
 				vec![
-					Path::new("-f").as_os_str(),
-					Path::new("bestvideo+bestaudio/best").as_os_str(),
-					Path::new("--remux-video").as_os_str(),
-					Path::new("mkv").as_os_str(),
-					Path::new("--embed-thumbnail").as_os_str(),
-					Path::new("--add-metadata").as_os_str(),
-					Path::new("--write-thumbnail").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("after_video:PARSE_END '%(extractor)s' '%(id)s'").as_os_str(),
-					Path::new("--progress").as_os_str(),
-					Path::new("--newline").as_os_str(),
-					Path::new("--no-simulate").as_os_str(),
-					Path::new("-o").as_os_str(),
-					Path::new("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
-					Path::new("hello1").as_os_str(),
-					Path::new("someURL").as_os_str(),
+					OsString::from("-f"),
+					OsString::from("bestvideo+bestaudio/best"),
+					OsString::from("--remux-video"),
+					OsString::from("mkv"),
+					OsString::from("--embed-thumbnail"),
+					OsString::from("--add-metadata"),
+					OsString::from("--write-thumbnail"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
+					OsString::from("--print"),
+					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--progress"),
+					OsString::from("--newline"),
+					OsString::from("--no-simulate"),
+					OsString::from("-o"),
+					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s"),
+					OsString::from("hello1"),
+					OsString::from("someURL"),
 				]
 			);
 		}
@@ -713,27 +775,30 @@ mod test {
 			let ret = ret.expect("Expected is_ok check to pass");
 
 			assert_eq!(
-				ret.get_args().into_iter().collect::<Vec<&OsStr>>(),
+				ret,
 				vec![
-					Path::new("--download-archive").as_os_str(),
-					test_dir.join("ytdl_archive.txt").as_os_str(),
-					Path::new("-f").as_os_str(),
-					Path::new("bestvideo+bestaudio/best").as_os_str(),
-					Path::new("--remux-video").as_os_str(),
-					Path::new("mkv").as_os_str(),
-					Path::new("--embed-thumbnail").as_os_str(),
-					Path::new("--add-metadata").as_os_str(),
-					Path::new("--write-thumbnail").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("after_video:PARSE_END '%(extractor)s' '%(id)s'").as_os_str(),
-					Path::new("--progress").as_os_str(),
-					Path::new("--newline").as_os_str(),
-					Path::new("--no-simulate").as_os_str(),
-					Path::new("-o").as_os_str(),
-					test_dir.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
-					Path::new("someURL").as_os_str(),
+					OsString::from("--download-archive"),
+					test_dir.join("ytdl_archive.txt").as_os_str().to_owned(),
+					OsString::from("-f"),
+					OsString::from("bestvideo+bestaudio/best"),
+					OsString::from("--remux-video"),
+					OsString::from("mkv"),
+					OsString::from("--embed-thumbnail"),
+					OsString::from("--add-metadata"),
+					OsString::from("--write-thumbnail"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
+					OsString::from("--print"),
+					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--progress"),
+					OsString::from("--newline"),
+					OsString::from("--no-simulate"),
+					OsString::from("-o"),
+					test_dir
+						.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s")
+						.as_os_str()
+						.to_owned(),
+					OsString::from("someURL"),
 				]
 			);
 		}
@@ -756,29 +821,32 @@ mod test {
 			let ret = ret.expect("Expected is_ok check to pass");
 
 			assert_eq!(
-				ret.get_args().into_iter().collect::<Vec<&OsStr>>(),
+				ret,
 				vec![
-					Path::new("--download-archive").as_os_str(),
-					test_dir.join("ytdl_archive.txt").as_os_str(),
-					Path::new("-f").as_os_str(),
-					Path::new("bestaudio/best").as_os_str(),
-					Path::new("-x").as_os_str(),
-					Path::new("--audio-format").as_os_str(),
-					Path::new("mp3").as_os_str(),
-					Path::new("--embed-thumbnail").as_os_str(),
-					Path::new("--add-metadata").as_os_str(),
-					Path::new("--write-thumbnail").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s").as_os_str(),
-					Path::new("--print").as_os_str(),
-					Path::new("after_video:PARSE_END '%(extractor)s' '%(id)s'").as_os_str(),
-					Path::new("--progress").as_os_str(),
-					Path::new("--newline").as_os_str(),
-					Path::new("--no-simulate").as_os_str(),
-					Path::new("-o").as_os_str(),
-					test_dir.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s").as_os_str(),
-					Path::new("hello1").as_os_str(),
-					Path::new("someURL").as_os_str(),
+					OsString::from("--download-archive"),
+					test_dir.join("ytdl_archive.txt").as_os_str().to_owned(),
+					OsString::from("-f"),
+					OsString::from("bestaudio/best"),
+					OsString::from("-x"),
+					OsString::from("--audio-format"),
+					OsString::from("mp3"),
+					OsString::from("--embed-thumbnail"),
+					OsString::from("--add-metadata"),
+					OsString::from("--write-thumbnail"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
+					OsString::from("--print"),
+					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--progress"),
+					OsString::from("--newline"),
+					OsString::from("--no-simulate"),
+					OsString::from("-o"),
+					test_dir
+						.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s")
+						.as_os_str()
+						.to_owned(),
+					OsString::from("hello1"),
+					OsString::from("someURL"),
 				]
 			);
 		}
