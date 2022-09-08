@@ -101,6 +101,12 @@ impl DownloadOptions for DownloadState {
 			sql_schema::*,
 		};
 
+		// function to use to format all output to a youtube-dl archive, consistent across all options
+		let fmfn = |v: Result<libytdlr::data::sql_models::Media, diesel::result::Error>| {
+			let v = v.ok()?;
+			return Some(format!("{} {}\n", v.provider, v.media_id));
+		};
+
 		if self.force_genarchive_all {
 			debug!("Dumping full sqlite archive as youtube-dl archive");
 
@@ -110,10 +116,7 @@ impl DownloadOptions for DownloadState {
 				.load_iter::<Media>(connection)
 				.ok()?
 				// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
-				.filter_map(|v: Result<libytdlr::data::sql_models::Media, diesel::result::Error>| {
-					let v = v.ok()?;
-					return Some(format!("{} {}", v.provider, v.media_id));
-				});
+				.filter_map(fmfn);
 
 			return Some(Box::new(lines_iter));
 		}
@@ -148,10 +151,7 @@ impl DownloadOptions for DownloadState {
 				.load_iter::<Media>(connection)
 				.ok()?
 				// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
-				.filter_map(|v: Result<libytdlr::data::sql_models::Media, diesel::result::Error>| {
-					let v = v.ok()?;
-					return Some(format!("{} {}", v.provider, v.media_id));
-				});
+				.filter_map(fmfn);
 
 			return Some(Box::new(lines_iter));
 		}
@@ -165,10 +165,7 @@ impl DownloadOptions for DownloadState {
 			.load_iter::<Media>(connection)
 			.ok()?
 			// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
-			.filter_map(|v: Result<libytdlr::data::sql_models::Media, diesel::result::Error>| {
-				let v = v.ok()?;
-				return Some(format!("{} {}\n", v.provider, v.media_id));
-			});
+			.filter_map(fmfn);
 
 		return Some(Box::new(lines_iter));
 	}
