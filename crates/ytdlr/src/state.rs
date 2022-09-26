@@ -28,6 +28,8 @@ pub struct DownloadState {
 	force_genarchive_bydate: bool,
 	/// Force implementation of [`DownloadOptions::gen_archive`] to entirely dump all records in sqlite to the youtube-dl archive
 	force_genarchive_all:    bool,
+	/// Force to not use a yt-dl archive, but still save to ytdlr archive
+	force_no_archive:        bool,
 
 	/// Set the current URL to be downloaded
 	current_url: String,
@@ -41,6 +43,7 @@ impl DownloadState {
 		download_path: PathBuf,
 		force_genarchive_bydate: bool,
 		force_genarchive_all: bool,
+		force_no_archive: bool,
 	) -> Self {
 		return Self {
 			audio_only_enable,
@@ -52,6 +55,7 @@ impl DownloadState {
 
 			force_genarchive_bydate,
 			force_genarchive_all,
+			force_no_archive,
 
 			current_url: String::default(),
 		};
@@ -100,6 +104,12 @@ impl DownloadOptions for DownloadState {
 			sql_models::*,
 			sql_schema::*,
 		};
+
+		if self.force_no_archive {
+			debug!("force_no_archive, not outputting any ytdl archive");
+
+			return Some(Box::new([].into_iter()));
+		}
 
 		// function to use to format all output to a youtube-dl archive, consistent across all options
 		let fmfn = |v: Result<libytdlr::data::sql_models::Media, diesel::result::Error>| {

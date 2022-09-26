@@ -132,6 +132,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		tmp_path,
 		sub_args.force_genarchive_bydate,
 		sub_args.force_genarchive_all,
+		sub_args.force_no_archive,
 	);
 	let mut maybe_connection: Option<SqliteConnection> = {
 		if let Some(ap) = main_args.archive_path.as_ref() {

@@ -197,6 +197,9 @@ pub struct CommandDownload {
 	/// This may be useful for debugging or if you dont care about how big the youtube-dl archive gets
 	#[clap(long = "force-genarchive-all")]
 	pub force_genarchive_all:      bool,
+	/// Force to not use any ytdl archive (include all entries), but still add media to ytdlr archive (if not exist already)
+	#[clap(long = "force-no-archive")]
+	pub force_no_archive:          bool,
 	/// Print Youtube-DL stdout
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
 	#[clap(long = "youtubedl-stdout")]
@@ -298,6 +301,7 @@ mod test {
 				urls: Vec::new(),
 				force_genarchive_bydate: false,
 				force_genarchive_all: false,
+				force_no_archive: false,
 				print_youtubedl_stdout: false,
 				print_editor_stdout: false,
 				picard_editor: None,
@@ -323,6 +327,7 @@ mod test {
 				urls: Vec::new(),
 				force_genarchive_bydate: false,
 				force_genarchive_all: false,
+				force_no_archive: false,
 				print_youtubedl_stdout: false,
 				print_editor_stdout: false,
 				picard_editor: None,
@@ -417,6 +422,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -462,6 +468,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -495,6 +502,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -531,6 +539,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -563,6 +572,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -587,6 +597,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -614,6 +625,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -641,6 +653,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
@@ -665,6 +678,7 @@ mod test {
 					urls: Vec::new(),
 					force_genarchive_bydate: false,
 					force_genarchive_all: false,
+					force_no_archive: false,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
