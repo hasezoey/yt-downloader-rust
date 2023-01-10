@@ -100,6 +100,9 @@ fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), io
 	return Ok(());
 }
 
+/// Static for easily referencing the 100% length for a progressbar
+const PG_PERCENT_100: u64 = 100;
+
 /// Handler function for the "download" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
@@ -124,7 +127,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		.map_or_else(|| return std::env::temp_dir(), |v| return v.clone())
 		.join("ytdl_rust_tmp");
 
-	let pgbar: ProgressBar = ProgressBar::new(100).with_style(DOWNLOAD_STYLE.clone());
+	let pgbar: ProgressBar = ProgressBar::new(PG_PERCENT_100).with_style(DOWNLOAD_STYLE.clone());
 	crate::utils::set_progressbar(&pgbar, main_args);
 	let mut download_state = DownloadState::new(
 		sub_args.audio_only_enable,
@@ -152,6 +155,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 			download_info.replace((new_count, id, title));
 
 			pgbar.reset();
+			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
 			let download_info_borrowed = download_info.borrow();
 			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
 			pgbar.set_message(format!("{}", download_info_borrowed.2));
