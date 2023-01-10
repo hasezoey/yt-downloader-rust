@@ -167,7 +167,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	if let Some(connection) = connection {
 		debug!("Found connection, generating archive");
 		if let Some(archive_lines) = options.gen_archive(connection) {
-			let archive_file_path = output_dir.join("ytdl_archive.txt");
+			let archive_file_path = output_dir.join(format!("ytdl_archive_{}.txt", std::process::id()));
 
 			// write all lines to the file and drop the handle before giving the argument
 			{
@@ -777,11 +777,16 @@ mod test {
 			assert!(ret.is_ok());
 			let ret = ret.expect("Expected is_ok check to pass");
 
+			let pid = std::process::id();
+
 			assert_eq!(
 				ret,
 				vec![
 					OsString::from("--download-archive"),
-					test_dir.join("ytdl_archive.txt").as_os_str().to_owned(),
+					test_dir
+						.join(format!("ytdl_archive_{}.txt", pid))
+						.as_os_str()
+						.to_owned(),
 					OsString::from("-f"),
 					OsString::from("bestvideo+bestaudio/best"),
 					OsString::from("--remux-video"),
@@ -823,11 +828,16 @@ mod test {
 			assert!(ret.is_ok());
 			let ret = ret.expect("Expected is_ok check to pass");
 
+			let pid = std::process::id();
+
 			assert_eq!(
 				ret,
 				vec![
 					OsString::from("--download-archive"),
-					test_dir.join("ytdl_archive.txt").as_os_str().to_owned(),
+					test_dir
+						.join(format!("ytdl_archive_{}.txt", pid))
+						.as_os_str()
+						.to_owned(),
 					OsString::from("-f"),
 					OsString::from("bestaudio/best"),
 					OsString::from("-x"),
