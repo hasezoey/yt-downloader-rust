@@ -152,6 +152,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	let download_pgcb = |dpg| match dpg {
 		main::download::DownloadProgress::AllStarting => {
 			pgbar.reset();
+			pgbar.set_message(""); // ensure it is not still present across finish and reset
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
 			let new_count = download_info.borrow().0 + 1;
