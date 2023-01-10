@@ -221,7 +221,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 				)?;
 			}
 		} else {
-			info!("Trying to recover from tmp_recovery_path");
+			warn!("Trying to recover from tmp_recovery_path");
 
 			if tmp_recovery_path.exists() {
 				// error in case of not being a file, maybe consider changeing this to a function and ignoring if not existing
