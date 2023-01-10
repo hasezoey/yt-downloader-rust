@@ -154,7 +154,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 			pgbar.reset();
 			let download_info_borrowed = download_info.borrow();
 			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
-			pgbar.set_message(format!("Downloading: {}", download_info_borrowed.2));
+			pgbar.set_message(format!("{}", download_info_borrowed.2));
 			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
 		},
 		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
