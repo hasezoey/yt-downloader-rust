@@ -461,7 +461,13 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 				);
 				// copy has to be used, because it cannot be ensured the "final_path" is on the same file-system
 				// and a "move"(mv) function does not exist in standard rust
-				std::fs::copy(&from_path, to_path)?;
+				match std::fs::copy(&from_path, to_path) {
+					Ok(_) => (),
+					Err(err) => {
+						println!("Couldnt move file \"{}\", error: {}", from_path.to_string_lossy(), err);
+						continue;
+					},
+				};
 
 				trace!("Removing file \"{}\"", from_path.to_string_lossy());
 				// remove the original file, because copy was used
