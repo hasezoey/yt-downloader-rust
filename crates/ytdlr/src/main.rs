@@ -521,7 +521,11 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	}
 
 	// do some cleanup
-	std::fs::remove_file(tmp_recovery_path)?; // remove the recovery file, because of a successfull finish
+	// remove the recovery file, because of a successfull finish
+	std::fs::remove_file(tmp_recovery_path).unwrap_or_else(|err| match err.kind() {
+		std::io::ErrorKind::NotFound => (),
+		_ => info!("Error removing recovery file. Error: {}", err),
+	});
 
 	return Ok(());
 }
