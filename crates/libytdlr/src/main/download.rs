@@ -898,6 +898,14 @@ mod test {
 			let input = "[download]   0.0% of 51.32MiB at 160.90KiB/s ETA 05:29";
 			assert_eq!(Some(0), LineType::Download.try_get_download_percent(input));
 
+			// should find "1"
+			let input = "[download]   1.0% of  290.41MiB at  562.77KiB/s ETA 08:43";
+			assert_eq!(Some(1), LineType::Download.try_get_download_percent(input));
+
+			// should find "1"
+			let input = "[download]   1.1% of  290.41MiB at  568.08KiB/s ETA 08:37";
+			assert_eq!(Some(1), LineType::Download.try_get_download_percent(input));
+
 			// should find "75"
 			let input = "[download]  75.6% of 51.32MiB at  2.32MiB/s ETA 00:05";
 			assert_eq!(Some(75), LineType::Download.try_get_download_percent(input));
