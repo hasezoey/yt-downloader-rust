@@ -320,9 +320,14 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 	// ask for editing
 	// TODO: consider renaming before asking for edit
 	'for_media_loop: for (_key, media) in /* crate::utils::find_editable_files(download_path)? */ finished_vec_acc {
-		let media_filename = media
-			.filename
-			.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
+		let media_filename = match media.filename {
+			Some(v) => v,
+			None => {
+				println!("\"{}\" did not have a filename!", media.id);
+				println!("debug: {:#?}", media);
+				continue 'for_media_loop;
+			},
+		};
 		let media_path = download_path.join(&media_filename);
 		// extra loop is required for printing the help and asking again
 		'ask_do_loop: loop {
