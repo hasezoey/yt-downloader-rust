@@ -262,5 +262,16 @@ mod test {
 			),
 			MediaInfo::try_from_tmp_recovery(&input)
 		);
+
+		// test a proper name with dots
+		let input = "'provider'-'id'-Some Title ver.2";
+		assert_eq!(
+			Some(
+				MediaInfo::new("id")
+					.with_provider(MediaProvider::Other("provider".to_owned()))
+					.with_title("Some Title ver.2")
+			),
+			MediaInfo::try_from_tmp_recovery(&input)
+		);
 	}
 }
