@@ -147,6 +147,11 @@ impl From<ArgsHelper> for Vec<OsString> {
 	}
 }
 
+/// Consistent way of getting the archive name
+pub fn get_archive_name(output_dir: &std::path::Path) -> std::path::PathBuf {
+	return output_dir.join(format!("ytdl_archive_{}.txt", std::process::id()));
+}
+
 /// Helper Function to assemble all ytdl command arguments
 /// Returns a list of arguments for youtube-dl in order
 #[inline]
@@ -167,7 +172,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	if let Some(connection) = connection {
 		debug!("Found connection, generating archive");
 		if let Some(archive_lines) = options.gen_archive(connection) {
-			let archive_file_path = output_dir.join(format!("ytdl_archive_{}.txt", std::process::id()));
+			let archive_file_path = get_archive_name(output_dir);
 
 			// write all lines to the file and drop the handle before giving the argument
 			{
