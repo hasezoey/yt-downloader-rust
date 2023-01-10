@@ -10,7 +10,10 @@ use indicatif::{
 	ProgressBar,
 	ProgressStyle,
 };
-use libytdlr::*;
+use libytdlr::{
+	traits::context::DownloadOptions,
+	*,
+};
 use state::DownloadState;
 use std::{
 	cell::RefCell,
@@ -197,6 +200,15 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 		finished_vec_acc.extend(new_media);
 	}
+
+	// remove ytdl_archive_pid.txt file again, because otherwise over many usages it can become bloated
+	std::fs::remove_file(libytdlr::main::download::get_archive_name(
+		download_state.download_path(),
+	))
+	.unwrap_or_else(|err| {
+		info!("Removing ytdl archive failed. Error: {}", err);
+		return;
+	});
 
 	let download_path = download_state.get_download_path();
 	let tmp_recovery_path = download_path.join("recovery");
