@@ -205,7 +205,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 			for media in finished_vec_acc.iter() {
 				file_handle.write_all(
 					format!(
-						"'{}'-'{}'-{}",
+						"'{}'-'{}'-{}\n",
 						media
 							.provider
 							.as_ref()
