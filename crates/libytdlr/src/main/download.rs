@@ -267,6 +267,8 @@ enum LineType {
 	Generic,
 	/// Variant for lines that are from "--print"
 	Custom,
+	/// Variant for lines that start with "ERROR:"
+	Error,
 }
 
 impl LineType {
@@ -278,6 +280,8 @@ impl LineType {
 			static ref BASIC_TYPE_REGEX: Regex = Regex::new(r"(?mi)^\[([\da-z:_]*)\]").unwrap();
 			// regex to check for generic lines
 			static ref GENERIC_TYPE_REGEX: Regex = Regex::new(r"(?mi)^deleting original file").unwrap();
+			// regex to check for ERRORs
+			static ref ERROR_TYPE_REGEX: Regex = Regex::new(r"(?m)^ERROR:").unwrap();
 		}
 
 		let input = input.as_ref();
@@ -306,6 +310,10 @@ impl LineType {
 		// matches both "PARSE_START" and "PARSE_END"
 		if input.starts_with("PARSE") {
 			return Some(Self::Custom);
+		}
+
+		if ERROR_TYPE_REGEX.is_match(input) {
+			return Some(Self::Error);
 		}
 
 		// if nothing above matches, return None, because no type has been found
@@ -476,6 +484,9 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 							},
 						}
 					}
+				},
+				LineType::Error => {
+					return Err(crate::Error::Other(line));
 				},
 			}
 		} else {
@@ -901,6 +912,9 @@ mod test {
 
 			let input = "PARSE_END 'youtube' '-----------'";
 			assert_eq!(Some(LineType::Custom), LineType::try_from_line(input));
+
+			let input = "ERROR: [provider] id: Unable to download webpage: The read operation timed out";
+			assert_eq!(Some(LineType::Error), LineType::try_from_line(input));
 		}
 
 		#[test]
