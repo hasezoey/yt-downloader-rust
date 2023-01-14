@@ -458,7 +458,7 @@ mod test {
 				media_id:    "someid".to_owned(),
 				provider:    "youtube".to_owned(),
 				title:       "helloTitle".to_owned(),
-				inserted_at: chrono::NaiveDateTime::from_timestamp(0, 0),
+				inserted_at: chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap(),
 			};
 
 			assert_eq!(
@@ -477,7 +477,7 @@ mod test {
 				media_id:    "someid".to_owned(),
 				provider:    "youtube".to_owned(),
 				title:       "helloTitle".to_owned(),
-				inserted_at: chrono::NaiveDateTime::from_timestamp(0, 0),
+				inserted_at: chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap(),
 			};
 
 			assert_eq!(
