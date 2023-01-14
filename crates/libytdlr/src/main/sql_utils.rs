@@ -31,7 +31,7 @@ pub fn sqlite_connect<P: AsRef<Path>>(sqlite_path: P) -> Result<SqliteConnection
 #[inline]
 fn apply_sqlite_migrations(connection: &mut SqliteConnection) -> Result<(), crate::Error> {
 	let applied = diesel_migrations::MigrationHarness::run_pending_migrations(connection, MIGRATIONS)
-		.map_err(|err| return crate::Error::Other(format!("Applying SQL Migrations Errored! Error:\n{}", err)))?;
+		.map_err(|err| return crate::Error::Other(format!("Applying SQL Migrations Errored! Error:\n{err}")))?;
 
 	debug!("Applied Migrations: {:?}", applied);
 

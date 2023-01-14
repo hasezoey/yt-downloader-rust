@@ -122,7 +122,7 @@ pub fn count_with_command(mut cmd: std::process::Command) -> Result<Vec<CountVid
 	if !exit_status.success() {
 		return Err(crate::Error::IoError(std::io::Error::new(
 			std::io::ErrorKind::Other,
-			format!("Child Process for counting did not successfully exit: {}", exit_status),
+			format!("Child Process for counting did not successfully exit: {exit_status}"),
 		)));
 	}
 

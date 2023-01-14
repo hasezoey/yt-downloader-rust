@@ -80,15 +80,15 @@ pub fn handle_connect<'a>(
 				ImportProgress::Starting => bar.set_position(0),
 				ImportProgress::SizeHint(v) => bar.set_length(v.try_into().expect("Failed to convert usize to u64")),
 				ImportProgress::Increase(c, _i) => bar.inc(c.try_into().expect("Failed to convert usize to u64")),
-				ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Migrating {} elements", v)),
+				ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Migrating {v} elements")),
 				_ => (),
 			}
 		} else {
 			match imp {
 				ImportProgress::Starting => println!("Starting Migration"),
-				ImportProgress::SizeHint(v) => println!("Migration SizeHint: {}", v),
-				ImportProgress::Increase(c, i) => println!("Migration Increase: {}, Current Index: {}", c, i),
-				ImportProgress::Finished(v) => println!("Migration Finished, Successfull Migrations: {}", v),
+				ImportProgress::SizeHint(v) => println!("Migration SizeHint: {v}"),
+				ImportProgress::Increase(c, i) => println!("Migration Increase: {c}, Current Index: {i}"),
+				ImportProgress::Finished(v) => println!("Migration Finished, Successfull Migrations: {v}"),
 				_ => (),
 			}
 		}
@@ -217,7 +217,7 @@ pub fn get_input<'a>(msg: &'a str, possible: &[&'static str], default: &'static 
 	// dont use "possible_converted" for "possible_converted_string", because otherwise the default will not be shown anymore
 	let possible_converted_string = possible.join("/");
 	loop {
-		print!("{} [{}]: ", msg, possible_converted_string);
+		print!("{msg} [{possible_converted_string}]: ");
 		// ensure the message is printed before reading
 		std::io::stdout().flush()?;
 		// input buffer for "read_line", 1 capacity, because of only expecting 1 character
@@ -241,7 +241,7 @@ pub fn get_input<'a>(msg: &'a str, possible: &[&'static str], default: &'static 
 			return Ok(input);
 		}
 
-		println!("... Invalid Input: \"{}\"", input);
+		println!("... Invalid Input: \"{input}\"");
 	}
 }
 
@@ -317,25 +317,25 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdo
 	let editor_child_exit_status = editor_child.wait()?;
 
 	editor_child_stderr_thread.join().map_err(|err| {
-		return crate::Error::Other(format!("Joining the editor_child STDERR handle failed: {:?}", err));
+		return crate::Error::Other(format!("Joining the editor_child STDERR handle failed: {err:?}"));
 	})?;
 
 	if let Some(thread) = editor_child_stdout_thread {
 		thread.join().map_err(|err| {
-			return crate::Error::Other(format!("Joining the editor_child STDOUT handle failed: {:?}", err));
+			return crate::Error::Other(format!("Joining the editor_child STDOUT handle failed: {err:?}"));
 		})?;
 	}
 
 	if !editor_child_exit_status.success() {
 		return Err(match editor_child_exit_status.code() {
-			Some(code) => crate::Error::Other(format!("editor_child exited with code: {}", code)),
+			Some(code) => crate::Error::Other(format!("editor_child exited with code: {code}")),
 			None => {
 				let signal = match editor_child_exit_status.signal() {
 					Some(code) => code.to_string(),
 					None => "None".to_owned(),
 				};
 
-				crate::Error::Other(format!("editor_child exited with signal: {}", signal))
+				crate::Error::Other(format!("editor_child exited with signal: {signal}"))
 			},
 		});
 	}
@@ -388,7 +388,7 @@ fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 
 		let err = test_result.expect_err("Expected \"if is_ok\" to return");
 
-		println!("Editor base is not available, Error: {}", err);
+		println!("Editor base is not available, Error: {err}");
 
 		let input = get_input("[R]etry, [a]bort or [s]et new path?", &["R", "a", "s"], "r")?;
 

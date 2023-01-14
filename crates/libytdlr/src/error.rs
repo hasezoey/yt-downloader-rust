@@ -67,7 +67,7 @@ impl From<serde_json::Error> for Error {
 
 impl From<Error> for std::io::Error {
 	fn from(err: Error) -> Self {
-		return std::io::Error::new(std::io::ErrorKind::Other, format!("{}", err));
+		return std::io::Error::new(std::io::ErrorKind::Other, format!("{err}"));
 	}
 }
 
@@ -83,16 +83,16 @@ impl Display for Error {
 			f,
 			"{}",
 			match &self {
-				Self::CommandNotSuccesfull(s) => format!("CommandNotSuccessfull: {}", s),
-				Self::NoCapturesFound(s) => format!("NoCapturesFound: {}", s),
-				Self::FromStringUTF8Error(v) => format!("FromStringUTF8Error: {}", v),
-				Self::IoError(v) => format!("IoError: {}", v),
-				Self::UnexpectedEOF(v) => format!("UnexpectedEOF: {}", v),
-				Self::SerdeJSONError(v) => format!("SerdeJSONError: {}", v),
-				Self::UnexpectedProcessExit(v) => format!("UnexpectedProcessExit: {}", v),
-				Self::SQLConnectionError(v) => format!("SQLConnectionError: {}", v),
-				Self::SQLOperationError(v) => format!("SQLOperationError: {}", v),
-				Self::Other(v) => format!("Other: {}", v),
+				Self::CommandNotSuccesfull(s) => format!("CommandNotSuccessfull: {s}"),
+				Self::NoCapturesFound(s) => format!("NoCapturesFound: {s}"),
+				Self::FromStringUTF8Error(v) => format!("FromStringUTF8Error: {v}"),
+				Self::IoError(v) => format!("IoError: {v}"),
+				Self::UnexpectedEOF(v) => format!("UnexpectedEOF: {v}"),
+				Self::SerdeJSONError(v) => format!("SerdeJSONError: {v}"),
+				Self::UnexpectedProcessExit(v) => format!("UnexpectedProcessExit: {v}"),
+				Self::SQLConnectionError(v) => format!("SQLConnectionError: {v}"),
+				Self::SQLOperationError(v) => format!("SQLOperationError: {v}"),
+				Self::Other(v) => format!("Other: {v}"),
 			}
 		);
 	}

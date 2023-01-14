@@ -90,7 +90,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
 			let download_info_borrowed = download_info.borrow();
 			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
-			pgbar.set_message(format!("{}", download_info_borrowed.2));
+			pgbar.set_message(download_info_borrowed.2.to_string());
 			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
 		},
 		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
@@ -106,8 +106,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 			let total = total_count.fetch_add(new_count, std::sync::atomic::Ordering::AcqRel) + new_count;
 			// print how many media has been downloaded since last "AllStarting" and how many in total in this run
 			pgbar.println(format!(
-				"Finished Downloading {} new Media (For a total of {} Media)",
-				new_count, total
+				"Finished Downloading {new_count} new Media (For a total of {total} Media)"
 			));
 		},
 	};
@@ -274,7 +273,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 			Some(v) => v,
 			None => {
 				println!("\"{}\" did not have a filename!", media.id);
-				println!("debug: {:#?}", media);
+				println!("debug: {media:#?}");
 				continue 'for_media_loop;
 			},
 		};

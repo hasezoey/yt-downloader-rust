@@ -161,7 +161,7 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	if !exit_status.success() {
 		return Err(crate::Error::IoError(std::io::Error::new(
 			std::io::ErrorKind::Other,
-			format!("ffmpeg did not successfully exit: {}", exit_status),
+			format!("ffmpeg did not successfully exit: {exit_status}"),
 		)));
 	}
 
@@ -314,19 +314,19 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 
 	// wait until the stderr thread has exited
 	ffmpeg_child_stderr_thread.join().map_err(|err| {
-		return crate::Error::Other(format!("Joining the ffmpeg_stderr STDERR handle failed: {:?}", err));
+		return crate::Error::Other(format!("Joining the ffmpeg_stderr STDERR handle failed: {err:?}"));
 	})?;
 
 	if !ffmpeg_child_exit_status.success() {
 		return Err(match ffmpeg_child_exit_status.code() {
-			Some(code) => crate::Error::Other(format!("ffmpeg_child exited with code: {}", code)),
+			Some(code) => crate::Error::Other(format!("ffmpeg_child exited with code: {code}")),
 			None => {
 				let signal = match ffmpeg_child_exit_status.signal() {
 					Some(code) => code.to_string(),
 					None => "None".to_owned(),
 				};
 
-				crate::Error::Other(format!("ffmpeg_child exited with signal: {}", signal))
+				crate::Error::Other(format!("ffmpeg_child exited with signal: {signal}"))
 			},
 		});
 	}

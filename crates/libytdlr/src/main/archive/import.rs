@@ -200,8 +200,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	// Error if no valid lines have been found from the reader
 	if successfull == 0 {
 		return Err(crate::Error::NoCapturesFound(format!(
-			"No valid lines have been found from the reader! Failed Captures: {}",
-			failed_captures
+			"No valid lines have been found from the reader! Failed Captures: {failed_captures}"
 		)));
 	}
 
