@@ -204,7 +204,7 @@ pub fn get_filetype<F: AsRef<Path>>(filename: F) -> FileType {
 /// Get input from STDIN with "possible" or "default"
 /// if using "default", remember to set a character in "possible" to upper-case
 #[allow(clippy::needless_collect)] // this is because of a known false-positive https://github.com/rust-lang/rust-clippy/issues/6164
-pub fn get_input<'a>(msg: &'a str, possible: &[&'static str], default: &'static str) -> Result<String, crate::Error> {
+pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) -> Result<String, crate::Error> {
 	// TODO: maybe consider replacing this with the crate "dialoguer"
 	let possible_converted = possible
 		.iter()

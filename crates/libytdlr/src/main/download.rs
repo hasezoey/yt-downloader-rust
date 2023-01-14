@@ -87,7 +87,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 	// let ytdl_child_exit_status = ytdl_child.wait()?;
 	loop {
 		// wait loop, because somehow a "ReaderHandle" does not implement "wait", only "try_wait", but have to wait for it to exit here
-		if let Some(_) = ytdl_child.try_wait()? {
+		if ytdl_child.try_wait()?.is_some() {
 			break;
 		}
 		std::thread::sleep(Duration::from_millis(100));
