@@ -16,31 +16,31 @@ trait Check {
 }
 
 #[derive(Debug, Parser, Clone, PartialEq)]
-#[clap(author, version, about, long_about = None)]
-#[clap(bin_name("ytdlr"))]
-#[clap(disable_help_subcommand(true))] // Disable subcommand "help", only "-h --help" should be used
-#[clap(subcommand_negates_reqs(true))]
+#[command(author, version, about, long_about = None)]
+#[command(bin_name("ytdlr"))]
+#[command(disable_help_subcommand(true))] // Disable subcommand "help", only "-h --help" should be used
+#[command(subcommand_negates_reqs(true))]
 pub struct CliDerive {
 	/// Set Loggin verbosity (0 - Default - WARN, 1 - INFO, 2 - DEBUG, 3 - TRACE)
-	#[clap(short, long, action = ArgAction::Count, env = "YTDL_VERBOSITY")]
+	#[arg(short, long, action = ArgAction::Count, env = "YTDL_VERBOSITY")]
 	pub verbosity:    u8,
 	/// Temporary directory path to store intermediate files (like downloaded files before being processed)
-	#[clap(long = "tmp", value_parser, env = "YTDL_TMP")]
+	#[arg(long = "tmp", env = "YTDL_TMP")]
 	pub tmp_path:     Option<PathBuf>,
 	/// Request vscode lldb debugger before continuing to execute
-	#[clap(long)]
+	#[arg(long)]
 	pub debugger:     bool,
 	/// Archive path to use, if a archive should be used
-	#[clap(long = "archive", value_parser, env = "YTDL_ARCHIVE")]
+	#[arg(long = "archive", env = "YTDL_ARCHIVE")]
 	pub archive_path: Option<PathBuf>,
 	/// Explicitly set interactive / not interactive
-	#[clap(long = "interactive")]
+	#[arg(long = "interactive")]
 	pub explicit_tty: Option<bool>,
 	/// Force Color to be active in any mode
-	#[clap(long = "color")]
+	#[arg(long = "color")]
 	pub force_color:  bool,
 
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	pub subcommands: SubCommands,
 }
 
@@ -103,7 +103,7 @@ pub enum SubCommands {
 	/// Archive Managing Commands
 	Archive(ArchiveDerive),
 	/// Re-Thumbnail specific files
-	#[clap(alias = "rethumbnail")] // alias, otherwise only "re-thumbnail" would be valid
+	#[command(alias = "rethumbnail")] // alias, otherwise only "re-thumbnail" would be valid
 	ReThumbnail(CommandReThumbnail),
 	// /// Generate all shell completions
 	// Completions(CommandCompletions),
@@ -122,7 +122,7 @@ impl Check for SubCommands {
 
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct ArchiveDerive {
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	pub subcommands: ArchiveSubCommands,
 }
 
@@ -150,7 +150,7 @@ impl Check for ArchiveSubCommands {
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct ArchiveImport {
 	/// The Archive file to import from
-	#[clap(value_parser)]
+	#[arg()]
 	pub file_path: PathBuf,
 }
 
@@ -170,43 +170,43 @@ impl Check for ArchiveImport {
 pub struct CommandDownload {
 	/// Audio Editor for audio files when using edits on post-processing
 	/// Must be either a absolute path or findable via PATH
-	#[clap(long, env = "YTDL_AUDIO_EDITOR")]
+	#[arg(long, env = "YTDL_AUDIO_EDITOR")]
 	pub audio_editor:              Option<PathBuf>,
 	/// Video Editor for video files when using edits on post-processing
 	/// Must be either a absolute path or findable via PATH
-	#[clap(long, env = "YTDL_VIDEO_EDITOR")]
+	#[arg(long, env = "YTDL_VIDEO_EDITOR")]
 	pub video_editor:              Option<PathBuf>,
 	/// Picard Path / Command to use
 	/// Must be either a absolute path or findable via PATH
-	#[clap(long = "picard", env = "YTDL_PICARD")]
+	#[arg(long = "picard", env = "YTDL_PICARD")]
 	pub picard_editor:             Option<PathBuf>,
 	/// Output path for any command that outputs a file
-	#[clap(short, long, value_parser, env = "YTDL_OUT")]
+	#[arg(short, long, env = "YTDL_OUT")]
 	pub output_path:               Option<PathBuf>,
 	/// Disable Re-Applying Thumbnails after a editor has run
-	#[clap(long = "no-reapply-thumbnail", env = "YTDL_DISABLE_REAPPLY_THUMBNAIL")]
+	#[arg(long = "no-reapply-thumbnail", env = "YTDL_DISABLE_REAPPLY_THUMBNAIL")]
 	pub reapply_thumbnail_disable: bool,
 	/// Set download to be audio-only (if its not, it will just extract the audio)
-	#[clap(short = 'a', long = "audio-only")]
+	#[arg(short = 'a', long = "audio-only")]
 	pub audio_only_enable:         bool,
 	/// Force "gen_archive" to use the newest 1000 media elements instead of from count-result
 	/// This may be useful if a playlist is meant to be processed, but has more than ~1000 elements
-	#[clap(long = "force-genarchive-by-date")]
+	#[arg(long = "force-genarchive-by-date")]
 	pub force_genarchive_bydate:   bool,
 	/// Force "gen_archive" to dump the full sqlite archive as a youtube-dl archive
 	/// This may be useful for debugging or if you dont care about how big the youtube-dl archive gets
-	#[clap(long = "force-genarchive-all")]
+	#[arg(long = "force-genarchive-all")]
 	pub force_genarchive_all:      bool,
 	/// Force to not use any ytdl archive (include all entries), but still add media to ytdlr archive (if not exist already)
-	#[clap(long = "force-no-archive")]
+	#[arg(long = "force-no-archive")]
 	pub force_no_archive:          bool,
 	/// Print Youtube-DL stdout
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
-	#[clap(long = "youtubedl-stdout")]
+	#[arg(long = "youtubedl-stdout")]
 	pub print_youtubedl_stdout:    bool,
 	/// Print Editor stdout (both video & audio)
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
-	#[clap(long = "editor-stdout")]
+	#[arg(long = "editor-stdout")]
 	pub print_editor_stdout:       bool,
 
 	pub urls: Vec<String>,
@@ -231,13 +231,13 @@ impl Check for CommandDownload {
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct CommandReThumbnail {
 	/// Input Image file to use as a Thumbnail (like a jpg)
-	#[clap(short = 'i', long = "image", value_parser)]
+	#[arg(short = 'i', long = "image")]
 	pub input_image_path:  PathBuf,
 	/// Input Media file to apply a Thumbnail on (like a mp3)
-	#[clap(short = 'm', long = "media", value_parser)]
+	#[arg(short = 'm', long = "media")]
 	pub input_media_path:  PathBuf,
 	/// Output path of the final file, by default it is the same as "media"
-	#[clap(short = 'o', long = "out", value_parser)]
+	#[arg(short = 'o', long = "out")]
 	pub output_media_path: Option<PathBuf>,
 }
 
