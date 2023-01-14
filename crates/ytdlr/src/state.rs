@@ -123,7 +123,7 @@ impl DownloadOptions for DownloadState {
 			let lines_iter = media_archive::dsl::media_archive
 				.order(media_archive::_id.asc())
 				// the following is some black-magic that rust-analyzer does not understand (no useful intellisense available)
-				.load_iter::<Media>(connection)
+				.load_iter::<Media, diesel::connection::DefaultLoadingMode>(connection)
 				.ok()?
 				// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
 				.filter_map(fmfn);
@@ -158,7 +158,7 @@ impl DownloadOptions for DownloadState {
 				// 	),
 				// )
 				// the following is some black-magic that rust-analyzer does not understand (no useful intellisense available)
-				.load_iter::<Media>(connection)
+				.load_iter::<Media, diesel::connection::DefaultLoadingMode>(connection)
 				.ok()?
 				// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
 				.filter_map(fmfn);
@@ -172,7 +172,7 @@ impl DownloadOptions for DownloadState {
 			.order(media_archive::inserted_at.desc())
 			// limit this case to the newest 1000 media
 			.limit(1000)
-			.load_iter::<Media>(connection)
+			.load_iter::<Media, diesel::connection::DefaultLoadingMode>(connection)
 			.ok()?
 			// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
 			.filter_map(fmfn);
