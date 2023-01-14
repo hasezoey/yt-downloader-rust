@@ -39,20 +39,21 @@ Command to download 1 or more URLS with youtube-dl / yt-dlp with extra archive s
 Signature: `download [OPTIONS] [URLS]...`  
 Aliases: `download`
 
-| Positional Name | Short |            Long            |      Environment Variable      |          Default          |  Type  | Description                                                                |
-| :-------------: | :---: | :------------------------: | :----------------------------: | :-----------------------: | :----: | :------------------------------------------------------------------------- |
-|                 |  -h   |           --help           |                                |                           |  flag  | Print Help Information                                                     |
-|                 |  -a   |        --audio-only        |                                |                           |  flag  | Set that the Output will only be audio-only (mp3)                          |
-|                 |       |       --audio-editor       |       YTDL_AUDIO_EDITOR        |                           | OsStr  | Audio Editor Command / Path to Command                                     |
-|                 |       |       --video-editor       |       YTDL_VIDEO_EDITOR        |                           | OsStr  | Video Editor Command / Path to Command                                     |
-|                 |       |          --picard          |          YTDL_PICARD           |                           | OsStr  | Picard Command / Path to Command                                           |
-|                 |       |      --editor-stdout       |                                |                           |  flag  | Enable Output of the Editor command stdout to be printed to the log        |
-|                 |       |     --youtubedl-stdout     |                                |                           |  flag  | Enable Output of the youtube-dl command stdout to be printed to the log    |
-|                 |       |   --no-reapply-thumbnail   | YTDL_DISABLE_REAPPLY_THUMBNAIL |           false           |  bool  | Disable re-applying the thumbnail after a editor has run                   |
-|                 |  -o   |       --output-path        |            YTDL_OUT            | DownloadDir + `ytdlr-out` | OsStr  | Output path to place all finished files in                                 |
-|                 |       |   --force-genarchive-all   |                                |                           |  flag  | Force the archive to be completely dumped in the youtube-dl archive        |
-|                 |       | --force-genarchive-by-date |                                |                           |  flag  | Force the archive to use the by-date generation for the youtube-dl archive |
-|      URLS       |       |                            |                                |                           | string | The URLS (one or more) to be downloaded                                    |
+| Positional Name | Short |            Long            |      Environment Variable      |          Default          |  Type  | Description                                                                                                          |
+| :-------------: | :---: | :------------------------: | :----------------------------: | :-----------------------: | :----: | :------------------------------------------------------------------------------------------------------------------- |
+|                 |  -h   |           --help           |                                |                           |  flag  | Print Help Information                                                                                               |
+|                 |  -a   |        --audio-only        |                                |                           |  flag  | Set that the Output will only be audio-only (mp3)                                                                    |
+|                 |       |       --audio-editor       |       YTDL_AUDIO_EDITOR        |                           | OsStr  | Audio Editor Command / Path to Command                                                                               |
+|                 |       |       --video-editor       |       YTDL_VIDEO_EDITOR        |                           | OsStr  | Video Editor Command / Path to Command                                                                               |
+|                 |       |          --picard          |          YTDL_PICARD           |                           | OsStr  | Picard Command / Path to Command                                                                                     |
+|                 |       |      --editor-stdout       |                                |                           |  flag  | Enable Output of the Editor command stdout to be printed to the log                                                  |
+|                 |       |     --youtubedl-stdout     |                                |                           |  flag  | Enable Output of the youtube-dl command stdout to be printed to the log                                              |
+|                 |       |   --no-reapply-thumbnail   | YTDL_DISABLE_REAPPLY_THUMBNAIL |           false           |  bool  | Disable re-applying the thumbnail after a editor has run                                                             |
+|                 |  -o   |       --output-path        |            YTDL_OUT            | DownloadDir + `ytdlr-out` | OsStr  | Output path to place all finished files in                                                                           |
+|                 |       |   --force-genarchive-all   |                                |                           |  flag  | Force the archive to be completely dumped in the youtube-dl archive                                                  |
+|                 |       | --force-genarchive-by-date |                                |                           |  flag  | Force the archive to use the by-date generation for the youtube-dl archive                                           |
+|                 |       |     --force-no-archive     |                                |                           |  flag  | Force to not use any ytdl archive (include all entries), but still add media to ytdlr archive (if not exist already) |
+|      URLS       |       |                            |                                |                           | string | The URLS (one or more) to be downloaded                                                                              |
 
 Notes:
 
