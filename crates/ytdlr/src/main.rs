@@ -29,7 +29,7 @@ mod utils;
 
 /// Main
 fn main() -> Result<(), ioError> {
-	let mut logger_handle = logger::setup_logger()?;
+	let logger_handle = logger::setup_logger()?;
 
 	let cli_matches = CliDerive::custom_parse();
 
