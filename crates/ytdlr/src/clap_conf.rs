@@ -3,6 +3,7 @@
 #![deny(missing_docs)] // comments are used for "--help" generation, so it should always be defined
 
 use clap::{
+	ArgAction,
 	Parser,
 	Subcommand,
 };
@@ -17,21 +18,20 @@ trait Check {
 #[derive(Debug, Parser, Clone, PartialEq)]
 #[clap(author, version, about, long_about = None)]
 #[clap(bin_name("ytdlr"))]
-#[clap(args_override_self(true))] // specifying a argument multiple times overwrites the earlier ones
 #[clap(disable_help_subcommand(true))] // Disable subcommand "help", only "-h --help" should be used
 #[clap(subcommand_negates_reqs(true))]
 pub struct CliDerive {
 	/// Set Loggin verbosity (0 - Default - WARN, 1 - INFO, 2 - DEBUG, 3 - TRACE)
-	#[clap(short, long, parse(from_occurrences), env = "YTDL_VERBOSITY")]
+	#[clap(short, long, action = ArgAction::Count, env = "YTDL_VERBOSITY")]
 	pub verbosity:    u8,
 	/// Temporary directory path to store intermediate files (like downloaded files before being processed)
-	#[clap(long = "tmp", parse(from_os_str), env = "YTDL_TMP")]
+	#[clap(long = "tmp", value_parser, env = "YTDL_TMP")]
 	pub tmp_path:     Option<PathBuf>,
 	/// Request vscode lldb debugger before continuing to execute
 	#[clap(long)]
 	pub debugger:     bool,
 	/// Archive path to use, if a archive should be used
-	#[clap(long = "archive", parse(from_os_str), env = "YTDL_ARCHIVE")]
+	#[clap(long = "archive", value_parser, env = "YTDL_ARCHIVE")]
 	pub archive_path: Option<PathBuf>,
 	/// Explicitly set interactive / not interactive
 	#[clap(long = "interactive")]
@@ -150,7 +150,7 @@ impl Check for ArchiveSubCommands {
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct ArchiveImport {
 	/// The Archive file to import from
-	#[clap(parse(from_os_str))]
+	#[clap(value_parser)]
 	pub file_path: PathBuf,
 }
 
@@ -181,7 +181,7 @@ pub struct CommandDownload {
 	#[clap(long = "picard", env = "YTDL_PICARD")]
 	pub picard_editor:             Option<PathBuf>,
 	/// Output path for any command that outputs a file
-	#[clap(short, long, parse(from_os_str), env = "YTDL_OUT")]
+	#[clap(short, long, value_parser, env = "YTDL_OUT")]
 	pub output_path:               Option<PathBuf>,
 	/// Disable Re-Applying Thumbnails after a editor has run
 	#[clap(long = "no-reapply-thumbnail", env = "YTDL_DISABLE_REAPPLY_THUMBNAIL")]
@@ -231,13 +231,13 @@ impl Check for CommandDownload {
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct CommandReThumbnail {
 	/// Input Image file to use as a Thumbnail (like a jpg)
-	#[clap(short = 'i', long = "image", parse(from_os_str))]
+	#[clap(short = 'i', long = "image", value_parser)]
 	pub input_image_path:  PathBuf,
 	/// Input Media file to apply a Thumbnail on (like a mp3)
-	#[clap(short = 'm', long = "media", parse(from_os_str))]
+	#[clap(short = 'm', long = "media", value_parser)]
 	pub input_media_path:  PathBuf,
 	/// Output path of the final file, by default it is the same as "media"
-	#[clap(short = 'o', long = "out", parse(from_os_str))]
+	#[clap(short = 'o', long = "out", value_parser)]
 	pub output_media_path: Option<PathBuf>,
 }
 
