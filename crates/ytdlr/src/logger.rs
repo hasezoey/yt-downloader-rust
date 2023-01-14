@@ -12,10 +12,6 @@ use flexi_logger::{
 	Record,
 };
 use std::io::Error as ioError;
-use time::{
-	format_description::FormatItem,
-	macros::format_description,
-};
 
 /// Function for setting up the logger
 /// This function is mainly to keep the code structured and sorted
@@ -31,11 +27,8 @@ pub fn setup_logger() -> Result<LoggerHandle, ioError> {
 	return Ok(handle);
 }
 
-/// ISO 8601 Time Format for logging
-pub const ISO8601_TIME_FORMAT: &[FormatItem<'static>] = format_description!(
-	// format to be "1977-11-30T13:30:30.000+0200"
-	"[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:3][offset_hour sign:mandatory][offset_minute]"
-);
+// TODO: replace when feature flag is not required anymore, see https://github.com/emabee/flexi_logger/issues/132
+pub const ISO8601_TIME_FORMAT: &'static str = "%+";
 
 /// Logging format for log files and non-interactive formats
 /// Not Colored and not padded
@@ -69,7 +62,7 @@ pub fn color_log_format(
 	return write!(
 		w,
 		"[{} {} {}]: {}",
-		now.format(ISO8601_TIME_FORMAT).color(Color::BrightBlack), // Bright Black = Grey
+		now.format(ISO8601_TIME_FORMAT).to_string().color(Color::BrightBlack), // Bright Black = Grey
 		style(level).paint(format!("{level:5}")), // pad level to 2 characters, cannot be done in the string itself, because of the color characters
 		record.module_path().unwrap_or("<unnamed module>"),
 		&record.args() // dont apply any color to the input, so that the input can dynamically set the color
