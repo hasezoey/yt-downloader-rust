@@ -90,7 +90,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 		if ytdl_child.try_wait()?.is_some() {
 			break;
 		}
-		std::thread::sleep(Duration::from_millis(100));
+		std::thread::sleep(Duration::from_millis(100)); // sleep to same some time between the next wait (to not cause constant cpu spike)
 	}
 
 	// wait until the stderr thread has exited
