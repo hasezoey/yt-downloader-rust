@@ -132,6 +132,7 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 
 	let pgbar: ProgressBar = ProgressBar::new(PG_PERCENT_100).with_style(DOWNLOAD_STYLE.clone());
 	crate::utils::set_progressbar(&pgbar, main_args);
+
 	let mut download_state = DownloadState::new(
 		sub_args.audio_only_enable,
 		sub_args.print_youtubedl_stdout,
@@ -147,8 +148,13 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 			None
 		}
 	};
+
+	// track (currentCountTried, currentId, currentTitle)
+	// *currentCountTried does not include media already in archive
 	let download_info: RefCell<(usize, String, String)> = RefCell::new((0, String::default(), String::default()));
 	pgbar.set_prefix(format!("[{}/{}]", "??", "??"));
+	// track total count finished (no error)
+	let total_count = std::sync::atomic::AtomicUsize::new(0);
 	let download_pgcb = |dpg| match dpg {
 		main::download::DownloadProgress::AllStarting => {
 			pgbar.reset();
@@ -175,7 +181,12 @@ fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result
 		},
 		main::download::DownloadProgress::AllFinished(new_count) => {
 			pgbar.finish_and_clear();
-			pgbar.println(format!("Finished Downloading {} new Media", new_count));
+			let total = total_count.fetch_add(new_count, std::sync::atomic::Ordering::AcqRel) + new_count;
+			// print how many media has been downloaded since last "AllStarting" and how many in total in this run
+			pgbar.println(format!(
+				"Finished Downloading {} new Media (For a total of {} Media)",
+				new_count, total
+			));
 		},
 	};
 
