@@ -25,16 +25,12 @@ fn main() -> Result<(), ioError> {
 
 	let cli_matches = CliDerive::custom_parse();
 
-	if cli_matches.debugger {
+	if cli_matches.debug_enabled() {
 		warn!("Requesting Debugger");
 
 		#[cfg(debug_assertions)]
 		{
 			invoke_vscode_debugger();
-		}
-		#[cfg(not(debug_assertions))]
-		{
-			println!("Debugger Invokation only available in Debug Target");
 		}
 	}
 

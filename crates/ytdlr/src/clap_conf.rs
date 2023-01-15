@@ -27,8 +27,10 @@ pub struct CliDerive {
 	/// Temporary directory path to store intermediate files (like downloaded files before being processed)
 	#[arg(long = "tmp", env = "YTDL_TMP")]
 	pub tmp_path:     Option<PathBuf>,
-	/// Request vscode lldb debugger before continuing to execute
+	/// Request vscode lldb debugger before continuing to execute.
+	/// Only available in debug target
 	#[arg(long)]
+	#[cfg(debug_assertions)]
 	pub debugger:     bool,
 	/// Archive path to use, if a archive should be used
 	#[arg(long = "archive", env = "YTDL_ARCHIVE")]
@@ -69,6 +71,16 @@ impl CliDerive {
 	#[must_use]
 	pub fn enable_colors(&self) -> bool {
 		return self.force_color | self.is_interactive();
+	}
+
+	/// Get if debug is enabled
+	/// Only able to be "true" in "debug" target
+	#[must_use]
+	pub fn debug_enabled(&self) -> bool {
+		#[cfg(debug_assertions)]
+		return self.debugger;
+		#[cfg(not(debug_assertions))]
+		return false;
 	}
 }
 
