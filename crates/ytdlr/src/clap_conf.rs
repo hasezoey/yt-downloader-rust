@@ -146,7 +146,7 @@ impl Check for ArchiveDerive {
 
 #[derive(Debug, Subcommand, Clone, PartialEq)]
 pub enum ArchiveSubCommands {
-	/// Import a Archive file, be it youtube-dl, ytdlr-json
+	/// Import a Archive file, be it youtube-dl, ytdlr-json, or ytdlr-sqlite
 	Import(ArchiveImport),
 }
 
