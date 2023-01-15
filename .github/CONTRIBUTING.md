@@ -52,9 +52,9 @@ look into [releaserc](../.releaserc.js) for corresponding versions
 
 In this project Scope can be either an file name or an rust path like:
 
-For non rust files & rust files that change outside an rust path: `cli.yml`.  
+For non rust files & rust files that change outside an rust path: `Cargo.toml`.  
 For rust files with rust path: `utils::Arguments` (or less preferred `crate::utils::Arguments`).  
-For multiple changes in *one* file, the file name can also be used `utils.rs`.  
+For multiple changes in *one* file, the file name can also be used `utils.rs` or also using rust path-like `utils::*`.  
 
 The Scope can also be left out when it affects more than one file.
 
