@@ -103,85 +103,8 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		sub_args.force_genarchive_all,
 		sub_args.force_no_archive,
 	);
-	let mut maybe_connection: Option<SqliteConnection> = {
-		if let Some(ap) = main_args.archive_path.as_ref() {
-			Some(utils::handle_connect(ap, &pgbar, main_args)?.1)
-		} else {
-			None
-		}
-	};
 
-	// track (currentCountTried, currentId, currentTitle)
-	// *currentCountTried does not include media already in archive
-	let download_info: RefCell<(usize, String, String)> = RefCell::new((0, String::default(), String::default()));
-	pgbar.set_prefix(format!("[{}/{}]", "??", "??"));
-	// track total count finished (no error)
-	let total_count = std::sync::atomic::AtomicUsize::new(0);
-	let download_pgcb = |dpg| match dpg {
-		main::download::DownloadProgress::AllStarting => {
-			pgbar.reset();
-			pgbar.set_message(""); // ensure it is not still present across finish and reset
-		},
-		main::download::DownloadProgress::SingleStarting(id, title) => {
-			let new_count = download_info.borrow().0 + 1;
-			download_info.replace((new_count, id, title));
-
-			pgbar.reset();
-			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
-			let download_info_borrowed = download_info.borrow();
-			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
-			pgbar.set_message(truncate_message(&download_info_borrowed.2));
-			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
-		},
-		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
-			pgbar.set_position(percent.into());
-		},
-		main::download::DownloadProgress::SingleFinished(_id) => {
-			pgbar.finish_and_clear();
-			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().2));
-			// pgbar.finish_with_message();
-		},
-		main::download::DownloadProgress::AllFinished(new_count) => {
-			pgbar.finish_and_clear();
-			let total = total_count.fetch_add(new_count, std::sync::atomic::Ordering::AcqRel) + new_count;
-			// print how many media has been downloaded since last "AllStarting" and how many in total in this run
-			pgbar.println(format!(
-				"Finished Downloading {new_count} new Media (For a total of {total} Media)"
-			));
-		},
-	};
-
-	// TODO: do a "count" before running actual download
-
-	let mut finished_vec_acc: Vec<data::cache::media_info::MediaInfo> = Vec::new();
-
-	for url in &sub_args.urls {
-		download_state.set_current_url(url);
-
-		let new_media =
-			libytdlr::main::download::download_single(maybe_connection.as_mut(), &download_state, download_pgcb)?;
-
-		if let Some(ref mut connection) = maybe_connection {
-			pgbar.reset();
-			pgbar.set_length(new_media.len().try_into().expect("Failed to convert usize to u64"));
-			for media in new_media.iter() {
-				pgbar.inc(1);
-				libytdlr::main::archive::import::insert_insmedia(&media.into(), connection)?;
-			}
-			pgbar.finish_and_clear();
-		}
-
-		finished_vec_acc.extend(new_media);
-	}
-
-	// remove ytdl_archive_pid.txt file again, because otherwise over many usages it can become bloated
-	std::fs::remove_file(libytdlr::main::download::get_archive_name(
-		download_state.download_path(),
-	))
-	.unwrap_or_else(|err| {
-		info!("Removing ytdl archive failed. Error: {}", err);
-		return;
-	});
+	let mut finished_vec_acc = do_download(main_args, sub_args, &pgbar, &mut download_state)?;
 
 	let download_path = download_state.get_download_path();
 	let tmp_recovery_path = download_path.join("recovery");
@@ -306,6 +229,116 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		finished_vec_acc.into_values().collect();
 	finished_vec_acc.sort_by_key(|v| return v.0);
 
+	edit_media(sub_args, download_path, finished_vec_acc)?;
+
+	finish_media(sub_args, download_path)?;
+
+	// do some cleanup
+	// remove the recovery file, because of a successfull finish
+	std::fs::remove_file(tmp_recovery_path).unwrap_or_else(|err| match err.kind() {
+		std::io::ErrorKind::NotFound => (),
+		_ => info!("Error removing recovery file. Error: {}", err),
+	});
+
+	return Ok(());
+}
+
+/// Do the download for all provided URL's
+fn do_download(
+	main_args: &CliDerive,
+	sub_args: &CommandDownload,
+	pgbar: &ProgressBar,
+	download_state: &mut DownloadState,
+) -> Result<Vec<data::cache::media_info::MediaInfo>, ioError> {
+	let mut maybe_connection: Option<SqliteConnection> = {
+		if let Some(ap) = main_args.archive_path.as_ref() {
+			Some(utils::handle_connect(ap, &pgbar, main_args)?.1)
+		} else {
+			None
+		}
+	};
+
+	// track (currentCountTried, currentId, currentTitle)
+	// *currentCountTried does not include media already in archive
+	let download_info: RefCell<(usize, String, String)> = RefCell::new((0, String::default(), String::default()));
+	pgbar.set_prefix(format!("[{}/{}]", "??", "??"));
+	// track total count finished (no error)
+	let total_count = std::sync::atomic::AtomicUsize::new(0);
+	let download_pgcb = |dpg| match dpg {
+		main::download::DownloadProgress::AllStarting => {
+			pgbar.reset();
+			pgbar.set_message(""); // ensure it is not still present across finish and reset
+		},
+		main::download::DownloadProgress::SingleStarting(id, title) => {
+			let new_count = download_info.borrow().0 + 1;
+			download_info.replace((new_count, id, title));
+
+			pgbar.reset();
+			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
+			let download_info_borrowed = download_info.borrow();
+			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
+			pgbar.set_message(truncate_message(&download_info_borrowed.2));
+			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
+		},
+		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
+			pgbar.set_position(percent.into());
+		},
+		main::download::DownloadProgress::SingleFinished(_id) => {
+			pgbar.finish_and_clear();
+			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().2));
+			// pgbar.finish_with_message();
+		},
+		main::download::DownloadProgress::AllFinished(new_count) => {
+			pgbar.finish_and_clear();
+			let total = total_count.fetch_add(new_count, std::sync::atomic::Ordering::AcqRel) + new_count;
+			// print how many media has been downloaded since last "AllStarting" and how many in total in this run
+			pgbar.println(format!(
+				"Finished Downloading {new_count} new Media (For a total of {total} Media)"
+			));
+		},
+	};
+
+	// TODO: do a "count" before running actual download
+
+	let mut finished_vec_acc: Vec<data::cache::media_info::MediaInfo> = Vec::new();
+
+	for url in &sub_args.urls {
+		download_state.set_current_url(url);
+
+		let new_media =
+			libytdlr::main::download::download_single(maybe_connection.as_mut(), download_state, download_pgcb)?;
+
+		if let Some(ref mut connection) = maybe_connection {
+			pgbar.reset();
+			pgbar.set_length(new_media.len().try_into().expect("Failed to convert usize to u64"));
+			for media in new_media.iter() {
+				pgbar.inc(1);
+				libytdlr::main::archive::import::insert_insmedia(&media.into(), connection)?;
+			}
+			pgbar.finish_and_clear();
+		}
+
+		finished_vec_acc.extend(new_media);
+	}
+
+	// remove ytdl_archive_pid.txt file again, because otherwise over many usages it can become bloated
+	std::fs::remove_file(libytdlr::main::download::get_archive_name(
+		download_state.download_path(),
+	))
+	.unwrap_or_else(|err| {
+		info!("Removing ytdl archive failed. Error: {}", err);
+		return;
+	});
+
+	return Ok(finished_vec_acc);
+}
+
+/// Start editing loop for all provided media
+fn edit_media(
+	sub_args: &CommandDownload,
+	download_path: &std::path::Path,
+	finished_vec_acc: Vec<(usize, data::cache::media_info::MediaInfo)>,
+) -> Result<(), ioError> {
 	// ask for editing
 	// TODO: consider renaming before asking for edit
 	'for_media_loop: for (_key, media) in /* utils::find_editable_files(download_path)? */ finished_vec_acc {
@@ -408,6 +441,11 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		}
 	}
 
+	return Ok(());
+}
+
+/// Finish the given media by either opening up the tagger or moving to final destination
+fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> Result<(), ioError> {
 	// the following is used to ask the user what to do with the media-files
 	// current choices are:
 	// move all media that is found to the final_directory (specified via options or defaulted), or
@@ -491,13 +529,6 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		},
 		_ => unreachable!("get_input should only return a OK value from the possible array"),
 	}
-
-	// do some cleanup
-	// remove the recovery file, because of a successfull finish
-	std::fs::remove_file(tmp_recovery_path).unwrap_or_else(|err| match err.kind() {
-		std::io::ErrorKind::NotFound => (),
-		_ => info!("Error removing recovery file. Error: {}", err),
-	});
 
 	return Ok(());
 }
