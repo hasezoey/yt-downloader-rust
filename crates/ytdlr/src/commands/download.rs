@@ -104,17 +104,17 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		sub_args.force_no_archive,
 	);
 
-	let mut finished_vec_acc = do_download(main_args, sub_args, &pgbar, &mut download_state)?;
+	let mut finished_media_vec = do_download(main_args, sub_args, &pgbar, &mut download_state)?;
 
 	let download_path = download_state.get_download_path();
 	let tmp_recovery_path = download_path.join("recovery");
 
 	{
-		if !finished_vec_acc.is_empty() {
+		if !finished_media_vec.is_empty() {
 			info!("Saving downloaded media to temp storage for recovery");
 			let mut file_handle = BufWriter::new(std::fs::File::create(&tmp_recovery_path)?);
 
-			for media in finished_vec_acc.iter() {
+			for media in finished_media_vec.iter() {
 				file_handle.write_all(
 					format!(
 						"'{}'-'{}'-{}\n",
@@ -148,14 +148,14 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 				file_handle.seek(std::io::SeekFrom::Start(0))?;
 
 				// this is to not have to allocate in each "for" loop run
-				finished_vec_acc.reserve(count - finished_vec_acc.len());
+				finished_media_vec.reserve(count - finished_media_vec.len());
 
 				for media in file_handle
 					.lines()
 					.filter_map(|v| return v.ok())
 					.filter_map(|v| return data::cache::media_info::MediaInfo::try_from_tmp_recovery(v))
 				{
-					finished_vec_acc.push(media);
+					finished_media_vec.push(media);
 				}
 			}
 		}
@@ -163,7 +163,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 
 	let mut index = 0usize;
 	// convert finished media elements to hashmap so it can be found without using a new iterator over and over
-	let mut finished_vec_acc: HashMap<String, (usize, data::cache::media_info::MediaInfo)> = finished_vec_acc
+	let mut finished_media_map: HashMap<String, (usize, data::cache::media_info::MediaInfo)> = finished_media_vec
 		.into_iter()
 		.map(|v| {
 			let res = (
@@ -183,11 +183,11 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 
 	// error-recovery, discover all files that can be edited, even if nothing has been downloaded
 	// though for now it will not be in the download order
-	if finished_vec_acc.is_empty() {
+	if finished_media_map.is_empty() {
 		debug!("Downloaded media was empty, trying to find editable files");
 		// for safety reset the index variable
 		let mut index = 0usize;
-		finished_vec_acc = utils::find_editable_files(download_path)?
+		finished_media_map = utils::find_editable_files(download_path)?
 			.into_iter()
 			.map(|v| {
 				let res = (
@@ -207,7 +207,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	} else {
 		// merge found filenames into existing mediainfo
 		for new_media in utils::find_editable_files(download_path)? {
-			if let Some(media) = finished_vec_acc.get_mut(&format!(
+			if let Some(media) = finished_media_map.get_mut(&format!(
 				"{}-{}",
 				new_media
 					.provider
@@ -225,11 +225,11 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	}
 
 	// sort in index order
-	let mut finished_vec_acc: Vec<(usize, data::cache::media_info::MediaInfo)> =
-		finished_vec_acc.into_values().collect();
-	finished_vec_acc.sort_by_key(|v| return v.0);
+	let mut final_media_vec: Vec<(usize, data::cache::media_info::MediaInfo)> =
+		finished_media_map.into_values().collect();
+	final_media_vec.sort_by_key(|v| return v.0);
 
-	edit_media(sub_args, download_path, finished_vec_acc)?;
+	edit_media(sub_args, download_path, final_media_vec)?;
 
 	finish_media(sub_args, download_path)?;
 
@@ -300,7 +300,7 @@ fn do_download(
 
 	// TODO: do a "count" before running actual download
 
-	let mut finished_vec_acc: Vec<data::cache::media_info::MediaInfo> = Vec::new();
+	let mut finished_media_vec: Vec<data::cache::media_info::MediaInfo> = Vec::new();
 
 	for url in &sub_args.urls {
 		download_state.set_current_url(url);
@@ -318,7 +318,7 @@ fn do_download(
 			pgbar.finish_and_clear();
 		}
 
-		finished_vec_acc.extend(new_media);
+		finished_media_vec.extend(new_media);
 	}
 
 	// remove ytdl_archive_pid.txt file again, because otherwise over many usages it can become bloated
@@ -330,18 +330,18 @@ fn do_download(
 		return;
 	});
 
-	return Ok(finished_vec_acc);
+	return Ok(finished_media_vec);
 }
 
 /// Start editing loop for all provided media
 fn edit_media(
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
-	finished_vec_acc: Vec<(usize, data::cache::media_info::MediaInfo)>,
+	final_media_vec: Vec<(usize, data::cache::media_info::MediaInfo)>,
 ) -> Result<(), ioError> {
 	// ask for editing
 	// TODO: consider renaming before asking for edit
-	'for_media_loop: for (_key, media) in /* utils::find_editable_files(download_path)? */ finished_vec_acc {
+	'for_media_loop: for (_key, media) in /* utils::find_editable_files(download_path)? */ final_media_vec {
 		let media_filename = match media.filename {
 			Some(v) => v,
 			None => {
