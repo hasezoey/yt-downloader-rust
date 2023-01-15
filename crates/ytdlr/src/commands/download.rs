@@ -27,6 +27,46 @@ use std::{
 
 /// Static for easily referencing the 100% length for a progressbar
 const PG_PERCENT_100: u64 = 100;
+/// Static size the Download Progress Style will take (plus some spacers)
+/// currently accounts for "[00/??] [00:00:00] ### "
+const STYLE_STATIC_SIZE: usize = 23;
+
+/// Truncate the given message to a lower size so that the progressbar does not do new-lines
+/// truncation is required because indicatif would do new-lines, and adding truncation would only work with a (static) maximum size
+/// NOTE: this currently only gets run once for each "SingleStartin" instead of every tick, so resizing the truncate will not be done (until next media)
+fn truncate_message<'a, M>(msg: &'a M) -> String
+where
+	M: AsRef<str>,
+{
+	let msg = msg.as_ref();
+
+	let end_idx: usize;
+
+	let msg_len = msg.len();
+
+	if let Some((w, _h)) = term_size::dimensions() {
+		let width_available = w.checked_sub(STYLE_STATIC_SIZE).unwrap_or(0);
+		// if the width_available is more than the message, use the full message
+		// otherwise use "width_available"
+		if msg_len <= width_available {
+			end_idx = msg_len;
+		} else {
+			end_idx = width_available;
+		}
+	} else {
+		// if no terminal dimesions are available, use the full message
+		end_idx = msg_len;
+	}
+
+	let mut ret = String::from(&msg[0..end_idx]);
+
+	// replace the last 3 characters with "..." to indicate a truncation
+	if ret.len() < msg_len {
+		ret.replace_range(ret.len() - 3..ret.len(), "...");
+	}
+
+	return ret;
+}
 
 /// Handler function for the "download" subcommand
 /// This function is mainly to keep the code structured and sorted
@@ -90,7 +130,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
 			let download_info_borrowed = download_info.borrow();
 			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
-			pgbar.set_message(download_info_borrowed.2.to_string());
+			pgbar.set_message(truncate_message(&download_info_borrowed.2));
 			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
 		},
 		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
