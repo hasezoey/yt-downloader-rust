@@ -16,7 +16,7 @@ trait Check {
 }
 
 #[derive(Debug, Parser, Clone, PartialEq)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, version = env!("YTDLR_VERSION"), long_about = None)]
 #[command(bin_name("ytdlr"))]
 #[command(disable_help_subcommand(true))] // Disable subcommand "help", only "-h --help" should be used
 #[command(subcommand_negates_reqs(true))]
