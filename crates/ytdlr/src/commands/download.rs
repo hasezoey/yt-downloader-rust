@@ -24,6 +24,8 @@ use std::{
 	},
 	path::PathBuf,
 };
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// Static for easily referencing the 100% length for a progressbar
 const PG_PERCENT_100: u64 = 100;
@@ -40,28 +42,55 @@ where
 {
 	let msg = msg.as_ref();
 
-	let end_idx: usize;
+	let characters_end_idx: usize;
 
-	let msg_len = msg.len();
+	// get all characters and their boundaries
+	let (characters, characters_highest_display) = {
+		let mut display_position = 0; // keep track of the actual displayed position
+		(
+			msg.grapheme_indices(true)
+				.map(|(i, s)| {
+					display_position += s.width();
+					return (i, s.len(), display_position);
+				})
+				.collect::<Vec<(usize, usize, usize)>>(),
+			display_position,
+		)
+	};
+
+	// cache ".len" because it does not need to be executed often
+	let characters_len = characters.len();
 
 	if let Some((w, _h)) = term_size::dimensions() {
 		let width_available = w.checked_sub(STYLE_STATIC_SIZE).unwrap_or(0);
 		// if the width_available is more than the message, use the full message
 		// otherwise use "width_available"
-		if msg_len <= width_available {
-			end_idx = msg_len;
+		if characters_highest_display <= width_available {
+			characters_end_idx = characters_len; // use full length of msg
 		} else {
-			end_idx = width_available;
+			// find the closest "display_position" length from the back
+			characters_end_idx = characters
+				.iter()
+				.rev()
+				.position(|(_pos, _len, dis)| *dis <= width_available)
+				.map(|v| characters.len() - v) // substract "v" because ".rev().position()" counts *encountered elements* instead of actual index
+				.unwrap_or(characters_len);
 		}
 	} else {
 		// if no terminal dimesions are available, use the full message
-		end_idx = msg_len;
+		characters_end_idx = characters_len;
 	}
 
-	let mut ret = String::from(&msg[0..end_idx]);
+	// get the char boundary for the last character's end
+	let msg_end_idx = {
+		let char = characters[characters_end_idx - 1];
+		char.0 + char.1
+	};
+
+	let mut ret = String::from(&msg[0..msg_end_idx]);
 
 	// replace the last 3 characters with "..." to indicate a truncation
-	if ret.len() < msg_len {
+	if ret.len() < msg.len() {
 		ret.replace_range(ret.len() - 3..ret.len(), "...");
 	}
 
