@@ -251,7 +251,7 @@ mod test {
 	fn test_try_from_tmp_recovery() {
 		// test a non-proper name
 		let input = "impropername.something";
-		assert_eq!(None, MediaInfo::try_from_tmp_recovery(&input));
+		assert_eq!(None, MediaInfo::try_from_tmp_recovery(input));
 
 		// test a proper name
 		let input = "'provider'-'id'-Some Title";
@@ -261,7 +261,7 @@ mod test {
 					.with_provider(MediaProvider::Other("provider".to_owned()))
 					.with_title("Some Title")
 			),
-			MediaInfo::try_from_tmp_recovery(&input)
+			MediaInfo::try_from_tmp_recovery(input)
 		);
 
 		// test a proper name with dots
@@ -272,7 +272,7 @@ mod test {
 					.with_provider(MediaProvider::Other("provider".to_owned()))
 					.with_title("Some Title ver.2")
 			),
-			MediaInfo::try_from_tmp_recovery(&input)
+			MediaInfo::try_from_tmp_recovery(input)
 		);
 	}
 }

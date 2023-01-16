@@ -124,14 +124,14 @@ mod test {
 			let absolue_containing_relative = PathBuf::from("/absolute/to/inner/../path");
 			assert_eq!(
 				absolue_path,
-				to_absolute(&absolue_containing_relative).expect("Expected to return a OK value")
+				to_absolute(absolue_containing_relative).expect("Expected to return a OK value")
 			);
 
 			// should add CWD as a base
 			let relative_path = PathBuf::from("./inner/path");
 			assert_eq!(
 				Path::join(&std::env::current_dir().expect("Expected to have a CWD"), "inner/path"),
-				to_absolute(&relative_path).expect("Expected to return a OK value")
+				to_absolute(relative_path).expect("Expected to return a OK value")
 			);
 
 			// should resolve a "~"

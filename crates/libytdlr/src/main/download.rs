@@ -800,7 +800,7 @@ mod test {
 				vec![
 					OsString::from("--download-archive"),
 					test_dir
-						.join(format!("ytdl_archive_{}.txt", pid))
+						.join(format!("ytdl_archive_{pid}.txt"))
 						.as_os_str()
 						.to_owned(),
 					OsString::from("-f"),
@@ -851,7 +851,7 @@ mod test {
 				vec![
 					OsString::from("--download-archive"),
 					test_dir
-						.join(format!("ytdl_archive_{}.txt", pid))
+						.join(format!("ytdl_archive_{pid}.txt"))
 						.as_os_str()
 						.to_owned(),
 					OsString::from("-f"),
@@ -1028,7 +1028,7 @@ PARSE_END 'youtube' '-----------'
 
 			let res = handle_stdout(
 				&options,
-				callback_counter(&expect_index, &expected_pg),
+				callback_counter(&expect_index, expected_pg),
 				BufReader::new(input.as_bytes()),
 			);
 
@@ -1100,7 +1100,7 @@ PARSE_END 'soundcloud' '----------1'
 
 			let res = handle_stdout(
 				&options,
-				callback_counter(&expect_index, &expected_pg),
+				callback_counter(&expect_index, expected_pg),
 				BufReader::new(input.as_bytes()),
 			);
 

@@ -195,15 +195,15 @@ mod test {
 			// String
 			assert_eq!(
 				MediaProvider::Youtube,
-				MediaProvider::from_str_like("youtube".to_owned())
+				MediaProvider::from_str_like(String::from("youtube"))
 			);
 			assert_eq!(
 				MediaProvider::Soundcloud,
-				MediaProvider::from_str_like("soundcloud".to_owned())
+				MediaProvider::from_str_like(String::from("soundcloud"))
 			);
 			assert_eq!(
 				MediaProvider::Other("other".to_owned()),
-				MediaProvider::from_str_like("other".to_owned())
+				MediaProvider::from_str_like(String::from("other"))
 			);
 		}
 	}

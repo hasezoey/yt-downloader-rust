@@ -341,7 +341,7 @@ mod test {
 
 	fn create_dir(target: &'static str) -> PathBuf {
 		// get a testing directory
-		let tmp = std::env::temp_dir().join(format!("ytdl-test-{}", target));
+		let tmp = std::env::temp_dir().join(format!("ytdl-test-{target}"));
 
 		// if the directory already exists, delete it for clean working environment
 		if tmp.exists() {

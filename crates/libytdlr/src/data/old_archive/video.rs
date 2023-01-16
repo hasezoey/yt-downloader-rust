@@ -445,7 +445,7 @@ mod test {
 
 		assert_eq!(
 			Video::new("id1", provider::Provider::Other("SomethingElse".to_owned())),
-			video1.clone()
+			Video::clone(&video1)
 		);
 	}
 
