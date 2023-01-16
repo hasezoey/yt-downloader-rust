@@ -49,7 +49,7 @@ impl Recovery {
 		P: Into<PathBuf>,
 	{
 		let path = path.into();
-		let writer = BufWriter::new(std::fs::File::create(&path)?);
+		let writer = BufWriter::new(std::fs::File::create(path)?);
 		let mut inst = Self { /* path, */ writer, };
 
 		inst.write_recovery(media_vec)?;
@@ -106,7 +106,7 @@ impl Recovery {
 		if !path.is_file() {
 			return Err(std::io::Error::new(std::io::ErrorKind::Other, "Recovery File Path is not a file").into());
 		}
-		let file_handle = BufReader::new(std::fs::File::open(&path)?);
+		let file_handle = BufReader::new(std::fs::File::open(path)?);
 
 		let mut found_media_vec: Vec<data::cache::media_info::MediaInfo> = Vec::new();
 
@@ -159,7 +159,7 @@ where
 	let characters_len = characters.len();
 
 	if let Some((w, _h)) = term_size::dimensions() {
-		let width_available = w.checked_sub(STYLE_STATIC_SIZE).unwrap_or(0);
+		let width_available = w.saturating_sub(STYLE_STATIC_SIZE);
 		// if the width_available is more than the message, use the full message
 		// otherwise use "width_available"
 		if characters_highest_display <= width_available {
@@ -169,8 +169,8 @@ where
 			characters_end_idx = characters
 				.iter()
 				.rev()
-				.position(|(_pos, _len, dis)| *dis <= width_available)
-				.map(|v| characters.len() - v) // substract "v" because ".rev().position()" counts *encountered elements* instead of actual index
+				.position(|(_pos, _len, dis)| return *dis <= width_available)
+				.map(|v| return characters.len() - v) // substract "v" because ".rev().position()" counts *encountered elements* instead of actual index
 				.unwrap_or(characters_len);
 		}
 	} else {
@@ -338,7 +338,7 @@ fn do_download(
 ) -> Result<Vec<data::cache::media_info::MediaInfo>, ioError> {
 	let mut maybe_connection: Option<SqliteConnection> = {
 		if let Some(ap) = main_args.archive_path.as_ref() {
-			Some(utils::handle_connect(ap, &pgbar, main_args)?.1)
+			Some(utils::handle_connect(ap, pgbar, main_args)?.1)
 		} else {
 			None
 		}

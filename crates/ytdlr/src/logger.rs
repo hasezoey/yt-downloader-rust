@@ -28,7 +28,7 @@ pub fn setup_logger() -> Result<LoggerHandle, ioError> {
 }
 
 // TODO: replace when feature flag is not required anymore, see https://github.com/emabee/flexi_logger/issues/132
-pub const ISO8601_TIME_FORMAT: &'static str = "%+";
+pub const ISO8601_TIME_FORMAT: &str = "%+";
 
 /// Logging format for log files and non-interactive formats
 /// Not Colored and not padded

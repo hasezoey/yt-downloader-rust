@@ -5,12 +5,11 @@ fn main() {
 	// currently it depends on what git outputs, or if failed use "unknown"
 	{
 		let version = Command::new("git")
-			.args(&["describe", "--tags", "--always", "--dirty"])
+			.args(["describe", "--tags", "--always", "--dirty"])
 			.output()
 			.ok()
-			.map(|v| String::from_utf8(v.stdout).ok())
-			.flatten()
+			.and_then(|v| return String::from_utf8(v.stdout).ok())
 			.unwrap_or(String::from("unknown"));
-		println!("cargo:rustc-env=YTDLR_VERSION={}", version);
+		println!("cargo:rustc-env=YTDLR_VERSION={version}");
 	}
 }
