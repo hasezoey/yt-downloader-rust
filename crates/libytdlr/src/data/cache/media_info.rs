@@ -104,6 +104,7 @@ impl MediaInfo {
 		);
 	}
 
+	// TODO: remove function "try_from_tmp_recovery", because recovery is not a concept of the library
 	/// Try to create a [`MediaInfo`] instance from a line from the recovery format
 	/// Parsed based on the template of "'provider'-'id'-Some Title"
 	pub fn try_from_tmp_recovery<I: AsRef<str>>(line: I) -> Option<Self> {

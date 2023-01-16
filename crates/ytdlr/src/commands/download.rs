@@ -10,6 +10,7 @@ use libytdlr::{
 	traits::context::DownloadOptions,
 	*,
 };
+use regex::Regex;
 use std::{
 	cell::RefCell,
 	collections::HashMap,
@@ -18,11 +19,12 @@ use std::{
 		BufReader,
 		BufWriter,
 		Error as ioError,
-		Read,
-		Seek,
 		Write,
 	},
-	path::PathBuf,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -32,6 +34,101 @@ const PG_PERCENT_100: u64 = 100;
 /// Static size the Download Progress Style will take (plus some spacers)
 /// currently accounts for "[00/??] [00:00:00] ### "
 const STYLE_STATIC_SIZE: usize = 23;
+
+struct Recovery {
+	// /// The path where the recovery file will be at
+	// pub path:   PathBuf,
+	/// The Writer to the file, open while this struct is not dropped
+	pub writer: BufWriter<std::fs::File>,
+}
+
+impl Recovery {
+	/// Open a new File at "path" and open a file handle
+	pub fn create<P>(path: P, media_vec: &Vec<data::cache::media_info::MediaInfo>) -> std::io::Result<Self>
+	where
+		P: Into<PathBuf>,
+	{
+		let path = path.into();
+		let writer = BufWriter::new(std::fs::File::create(&path)?);
+		let mut inst = Self { /* path, */ writer, };
+
+		inst.write_recovery(media_vec)?;
+
+		return Ok(inst);
+	}
+
+	/// Write the given MediaInfo-Vec to the file
+	pub fn write_recovery(&mut self, media_vec: &Vec<data::cache::media_info::MediaInfo>) -> std::io::Result<()> {
+		for media in media_vec.iter() {
+			self.writer.write_all(Self::fmt_line(media).as_bytes())?;
+		}
+
+		return Ok(());
+	}
+
+	/// Format the input "media" to a recovery file line
+	#[inline]
+	pub fn fmt_line(media: &data::cache::media_info::MediaInfo) -> String {
+		return format!(
+			"'{}'-'{}'-{}\n",
+			media
+				.provider
+				.as_ref()
+				.expect("Expected downloaded media to have a provider"),
+			media.id,
+			media.title.as_ref().expect("Expected downloaded media to have a title")
+		);
+	}
+
+	/// Try to create a MediaInfo from a given line
+	pub fn try_from_line(line: &str) -> Option<data::cache::media_info::MediaInfo> {
+		lazy_static::lazy_static! {
+			// Regex for getting the provider,id,title from a line in a recovery format
+			// cap1: provider, cap2: id, cap3: title
+			static ref FROM_LINE_REGEX: Regex = Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
+		}
+
+		let cap = FROM_LINE_REGEX.captures(line)?;
+
+		return Some(
+			data::cache::media_info::MediaInfo::new(&cap[2])
+				.with_provider(data::cache::media_provider::MediaProvider::from_str_like(&cap[1]))
+				.with_title(&cap[3]),
+		);
+	}
+
+	/// Try to read the recovery from the given path
+	pub fn read_recovery(path: &Path) -> Result<Vec<data::cache::media_info::MediaInfo>, crate::Error> {
+		if !path.exists() {
+			return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Recovery File Path does not exist").into());
+		}
+		// error in case of not being a file, maybe consider changeing this to a function and ignoring if not existing
+		if !path.is_file() {
+			return Err(std::io::Error::new(std::io::ErrorKind::Other, "Recovery File Path is not a file").into());
+		}
+		let file_handle = BufReader::new(std::fs::File::open(&path)?);
+
+		let mut found_media_vec: Vec<data::cache::media_info::MediaInfo> = Vec::new();
+
+		for media in file_handle
+			.lines()
+			.filter_map(|v| return v.ok())
+			.filter_map(|v| return Self::try_from_line(&v))
+		{
+			found_media_vec.push(media);
+		}
+
+		return Ok(found_media_vec);
+	}
+
+	/// Tries to remove the given file, ignoring if the file does not exist and otherwise just logging the error
+	pub fn remove_file(path: &Path) {
+		std::fs::remove_file(path).unwrap_or_else(|err| match err.kind() {
+			std::io::ErrorKind::NotFound => (),
+			_ => info!("Error removing recovery file. Error: {}", err),
+		});
+	}
+}
 
 /// Truncate the given message to a lower size so that the progressbar does not do new-lines
 /// truncation is required because indicatif would do new-lines, and adding truncation would only work with a (static) maximum size
@@ -138,54 +235,17 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	let download_path = download_state.get_download_path();
 	let tmp_recovery_path = download_path.join("recovery");
 
+	// TODO: rework how recovery works and only write recovery in case of error, also consider including state
 	{
 		if !finished_media_vec.is_empty() {
 			info!("Saving downloaded media to temp storage for recovery");
-			let mut file_handle = BufWriter::new(std::fs::File::create(&tmp_recovery_path)?);
-
-			for media in finished_media_vec.iter() {
-				file_handle.write_all(
-					format!(
-						"'{}'-'{}'-{}\n",
-						media
-							.provider
-							.as_ref()
-							.expect("Expected downloaded media to have a provider"),
-						media.id,
-						media.title.as_ref().expect("Expected downloaded media to have a title")
-					)
-					.as_bytes(),
-				)?;
-			}
+			Recovery::create(&tmp_recovery_path, &finished_media_vec)?;
 		} else {
 			warn!("Trying to recover from tmp_recovery_path");
 
 			if tmp_recovery_path.exists() {
-				// error in case of not being a file, maybe consider changeing this to a function and ignoring if not existing
-				if !tmp_recovery_path.is_file() {
-					return Err(crate::Error::Other(format!(
-						"TMP Recovery Path is not a file! (Path: \"{}\")",
-						tmp_recovery_path.to_string_lossy()
-					))
-					.into());
-				}
-
-				let mut file_handle = BufReader::new(std::fs::File::open(&tmp_recovery_path)?);
-
-				let count = file_handle.by_ref().lines().count();
-				// seek to the beginning, because "lines.count" has advanced it to the end
-				file_handle.seek(std::io::SeekFrom::Start(0))?;
-
-				// this is to not have to allocate in each "for" loop run
-				finished_media_vec.reserve(count - finished_media_vec.len());
-
-				for media in file_handle
-					.lines()
-					.filter_map(|v| return v.ok())
-					.filter_map(|v| return data::cache::media_info::MediaInfo::try_from_tmp_recovery(v))
-				{
-					finished_media_vec.push(media);
-				}
+				let mut media_vec = Recovery::read_recovery(&tmp_recovery_path)?;
+				finished_media_vec.append(&mut media_vec);
 			}
 		}
 	}
@@ -264,10 +324,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 
 	// do some cleanup
 	// remove the recovery file, because of a successfull finish
-	std::fs::remove_file(tmp_recovery_path).unwrap_or_else(|err| match err.kind() {
-		std::io::ErrorKind::NotFound => (),
-		_ => info!("Error removing recovery file. Error: {}", err),
-	});
+	Recovery::remove_file(&tmp_recovery_path);
 
 	return Ok(());
 }

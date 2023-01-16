@@ -1160,6 +1160,7 @@ dependencies = [
  "lazy_static",
  "libytdlr",
  "log",
+ "regex",
  "term_size",
  "time 0.3.17",
  "unicode-segmentation",
