@@ -345,7 +345,7 @@ mod test {
 			let path = write_file_with_content(string0, "json_json");
 
 			let expected_path = {
-				let mut tmp = path.to_path_buf();
+				let mut tmp = path.clone();
 				tmp.set_extension("db");
 
 				tmp
