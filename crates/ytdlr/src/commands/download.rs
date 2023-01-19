@@ -751,6 +751,11 @@ fn finish_media(
 		}
 	}
 
+	// notify the user if there are still files that have not been moved
+	if !utils::find_editable_files(download_path)?.is_empty() {
+		println!("{} Found Editable file that have not been moved.\nConsider running recovery mode if no other ytdlr is running (with 0 URLs)", "WARN".color(Color::TrueColor { r: 255, g: 135, b: 0 }));
+	}
+
 	return Ok(());
 }
 
