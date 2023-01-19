@@ -405,11 +405,18 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		std::process::id()
 	)))?;
 
+	// recover files that are not in a recovery but are still considered editable
+	// only do this in "only_recovery" mode (no urls) to not accidentally use from other processes
+	if only_recovery {
+		for media in utils::find_editable_files(download_state.get_download_path())? {
+			finished_media.insert_with_comment(media, "Found Editable File");
+		}
+	}
+
 	let found_recovery_files =
 		try_find_and_read_recovery_files(&mut finished_media, download_state.get_download_path())?;
 
 	// TODO: consider cross-checking archive if the files from recovery are already in the archive and get a proper title
-	// TODO: consider finding files with proper extension and add them ("utils::find_editable_files(download_path)")
 
 	match download_wrapper(
 		main_args,
@@ -461,30 +468,8 @@ fn download_wrapper(
 
 	let download_path = download_state.get_download_path();
 
-	// // error-recovery, discover all files that can be edited, even if nothing has been downloaded
-	// // though for now it will not be in the download order
-	// if finished_media_map.is_empty() {
-	// 	debug!("Downloaded media was empty, trying to find editable files");
-	// 	// for safety reset the index variable
-	// 	let mut index = 0usize;
-	// 	finished_media_map = utils::find_editable_files(download_path)?
-	// 		.into_iter()
-	// 		.map(|v| {
-	// 			let res = (
-	// 				format!(
-	// 					"{}-{}",
-	// 					v.provider
-	// 						.as_ref()
-	// 						.map_or_else(|| return "unknown", |v| return v.to_str()),
-	// 					v.id
-	// 				),
-	// 				(index, v),
-	// 			);
-	// 			index += 1;
-	// 			return res;
-	// 		})
-	// 		.collect();
-	// } else {
+	// TODO: check if the following is still something that should be done
+
 	// merge found filenames into existing mediainfo
 	for new_media in utils::find_editable_files(download_path)? {
 		if let Some(media) = finished_media.get_mut(&format!(
@@ -502,7 +487,6 @@ fn download_wrapper(
 			media.data.set_filename(new_media_filename);
 		}
 	}
-	// }
 
 	edit_media(main_args, sub_args, download_path, finished_media)?;
 
