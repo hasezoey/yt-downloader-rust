@@ -799,10 +799,7 @@ mod test {
 				ret,
 				vec![
 					OsString::from("--download-archive"),
-					test_dir
-						.join(format!("ytdl_archive_{pid}.txt"))
-						.as_os_str()
-						.to_owned(),
+					test_dir.join(format!("ytdl_archive_{pid}.txt")).as_os_str().to_owned(),
 					OsString::from("-f"),
 					OsString::from("bestvideo+bestaudio/best"),
 					OsString::from("--remux-video"),
@@ -850,10 +847,7 @@ mod test {
 				ret,
 				vec![
 					OsString::from("--download-archive"),
-					test_dir
-						.join(format!("ytdl_archive_{pid}.txt"))
-						.as_os_str()
-						.to_owned(),
+					test_dir.join(format!("ytdl_archive_{pid}.txt")).as_os_str().to_owned(),
 					OsString::from("-f"),
 					OsString::from("bestaudio/best"),
 					OsString::from("-x"),
