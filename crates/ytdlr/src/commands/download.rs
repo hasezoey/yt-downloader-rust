@@ -1,6 +1,10 @@
 use crate::clap_conf::*;
 use crate::state::DownloadState;
 use crate::utils;
+use colored::{
+	Color,
+	Colorize,
+};
 use diesel::SqliteConnection;
 use indicatif::{
 	ProgressBar,
@@ -353,9 +357,17 @@ where
 pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result<(), ioError> {
 	utils::require_ytdl_installed()?;
 
-	if sub_args.urls.is_empty() {
-		// TODO: change this to a warning and check recovery
-		return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
+	let only_recovery = sub_args.urls.is_empty();
+
+	if only_recovery {
+		if sub_args.no_check_recovery {
+			return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
+		}
+
+		println!(
+			"{} No URLs were provided, only checking recovery! To disable allowing 0 URLs, use \"--no-check-recovery\"",
+			"WARN".color(Color::TrueColor { r: 255, g: 135, b: 0 })
+		)
 	}
 
 	lazy_static::lazy_static! {
@@ -398,7 +410,14 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	// TODO: consider cross-checking archive if the files from recovery are already in the archive and get a proper title
 	// TODO: consider finding files with proper extension and add them ("utils::find_editable_files(download_path)")
 
-	match download_wrapper(main_args, sub_args, &pgbar, &mut download_state, &mut finished_media) {
+	match download_wrapper(
+		main_args,
+		sub_args,
+		&pgbar,
+		&mut download_state,
+		&mut finished_media,
+		only_recovery,
+	) {
 		Ok(_) => (),
 		Err(err) => {
 			let res = recovery.write_recovery(&finished_media);
@@ -431,8 +450,13 @@ fn download_wrapper(
 	pgbar: &ProgressBar,
 	download_state: &mut DownloadState,
 	finished_media: &mut MediaInfoArr,
+	only_recovery: bool,
 ) -> Result<(), ioError> {
-	do_download(main_args, sub_args, &pgbar, download_state, finished_media)?;
+	if !only_recovery {
+		do_download(main_args, sub_args, &pgbar, download_state, finished_media)?;
+	} else {
+		info!("Skipping download because of \"only_recovery\"");
+	}
 
 	let download_path = download_state.get_download_path();
 

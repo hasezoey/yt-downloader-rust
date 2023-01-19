@@ -53,6 +53,7 @@ Aliases: `download`
 |                 |       |   --force-genarchive-all   |                                |                           |  flag  | Force the archive to be completely dumped in the youtube-dl archive                                                  |
 |                 |       | --force-genarchive-by-date |                                |                           |  flag  | Force the archive to use the by-date generation for the youtube-dl archive                                           |
 |                 |       |     --force-no-archive     |                                |                           |  flag  | Force to not use any ytdl archive (include all entries), but still add media to ytdlr archive (if not exist already) |
+|                 |       |    --no-check-recovery     |                                |                           |  flag  | Disables allowing 0 URL's to just check the recovery                                                                 |
 |      URLS       |       |                            |                                |                           | string | The URLS (one or more) to be downloaded                                                                              |
 
 Notes:
@@ -61,7 +62,7 @@ Notes:
 - If `force-genarchive-all` or others are set, `force-genarchive-all` will take priority.
 - Files will not be moved to `output-path` when Picard is chosen (enable "Move Files" in Picard).
 - `*-stdout` flags enable stdout to be printed to the logs, but to view these `RUST_LOG` must at least be at `trace`.
-- At least one URL is required.
+- 0 URLs means to only check for recovery
 
 ### `rethumbnail`
 

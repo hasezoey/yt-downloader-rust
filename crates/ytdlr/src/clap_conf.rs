@@ -220,6 +220,9 @@ pub struct CommandDownload {
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
 	#[arg(long = "editor-stdout")]
 	pub print_editor_stdout:       bool,
+	/// Disables allowing 0 URL's to just check the recovery
+	#[arg(long = "no-check-recovery")]
+	pub no_check_recovery:         bool,
 
 	pub urls: Vec<String>,
 }
@@ -317,6 +320,7 @@ mod test {
 				print_youtubedl_stdout: false,
 				print_editor_stdout: false,
 				picard_editor: None,
+				no_check_recovery: false,
 			};
 
 			let mut cloned = init_default.clone();
@@ -343,6 +347,7 @@ mod test {
 				print_youtubedl_stdout: false,
 				print_editor_stdout: false,
 				picard_editor: None,
+				no_check_recovery: false,
 			};
 
 			let mut cloned = init_default.clone();
@@ -438,6 +443,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				});
 
 				let mut cloned = init_default_download.clone();
@@ -484,6 +490,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
@@ -518,6 +525,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
@@ -555,6 +563,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
@@ -588,6 +597,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
@@ -613,6 +623,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
@@ -641,6 +652,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
@@ -669,6 +681,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
@@ -694,6 +707,7 @@ mod test {
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					picard_editor: None,
+					no_check_recovery: false,
 				}),
 			};
 
