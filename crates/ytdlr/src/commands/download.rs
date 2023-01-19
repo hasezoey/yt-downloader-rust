@@ -737,6 +737,11 @@ fn finish_media(
 	pgbar: &ProgressBar,
 	final_media: &MediaInfoArr,
 ) -> Result<(), ioError> {
+	if final_media.mediainfo_map.is_empty() {
+		println!("No files to move or tag");
+		return Ok(());
+	}
+
 	// first set the draw-target so that any subsequent setting change does not cause a draw
 	pgbar.set_draw_target(ProgressDrawTarget::hidden()); // so that it stays hidden until actually doing stuff
 	pgbar.reset();
