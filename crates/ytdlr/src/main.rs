@@ -61,7 +61,7 @@ fn main() -> Result<(), crate::Error> {
 	};
 
 	if let Err(err) = res {
-		eprintln!("A Error occured:\n{}", err);
+		eprintln!("A Error occured:\n{err}");
 		std::process::exit(1);
 	}
 

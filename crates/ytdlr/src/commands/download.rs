@@ -282,7 +282,7 @@ impl MediaInfoArr {
 	pub fn as_sorted_vec(&self) -> Vec<&MediaHelper> {
 		let mut vec: Vec<&MediaHelper> = self.mediainfo_map.values().collect();
 
-		vec.sort_by(|a, b| a.order.cmp(&b.order));
+		vec.sort_by(|a, b| return a.order.cmp(&b.order));
 
 		return vec;
 	}
@@ -454,7 +454,7 @@ fn download_wrapper(
 	only_recovery: bool,
 ) -> Result<(), ioError> {
 	if !only_recovery {
-		do_download(main_args, sub_args, &pgbar, download_state, finished_media)?;
+		do_download(main_args, sub_args, pgbar, download_state, finished_media)?;
 	} else {
 		info!("Skipping download because of \"only_recovery\"");
 	}
@@ -631,7 +631,7 @@ fn edit_media(
 				continue 'for_media_loop;
 			},
 		};
-		let media_path = download_path.join(&media_filename);
+		let media_path = download_path.join(media_filename);
 		// extra loop is required for printing the help and asking again
 		'ask_do_loop: loop {
 			let input = utils::get_input(
@@ -652,7 +652,7 @@ fn edit_media(
 
 			match input.as_str() {
 				"n" => continue 'for_media_loop,
-				"y" => match utils::get_filetype(&media_filename) {
+				"y" => match utils::get_filetype(media_filename) {
 					utils::FileType::Video => {
 						println!("Found filetype to be of video");
 						utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?
@@ -791,7 +791,7 @@ fn finish_with_move(
 	for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
 		pgbar.inc(1);
 		let media = &media_helper.data;
-		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
+		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(media) {
 			Some(v) => v,
 			None => {
 				warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
@@ -851,7 +851,7 @@ fn finish_with_tagger(
 	for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
 		pgbar.inc(1);
 		let media = &media_helper.data;
-		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
+		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(media) {
 			Some(v) => v,
 			None => {
 				warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
@@ -900,14 +900,14 @@ fn try_find_and_read_recovery_files(
 		let file_name = file.file_name().unwrap().to_string_lossy(); // unwrap because non-file_name containing paths should be sorted out in the "filter_map"
 		info!("Trying to read recovery file: \"{}\"", file_name);
 		let pid_str = {
-			let opt = file_name.split_once("_"); // `Recovery::RECOVERY_PREFIX` delimiter
+			let opt = file_name.split_once('_'); // `Recovery::RECOVERY_PREFIX` delimiter
 			if opt.is_none() {
 				continue;
 			}
 			opt.unwrap().1 // unwrap because "None" is checked above
 		};
 		let pid_of_file = {
-			let res = usize::from_str_radix(pid_str, 10);
+			let res = pid_str.parse::<usize>();
 			if res.is_err() {
 				continue;
 			}
