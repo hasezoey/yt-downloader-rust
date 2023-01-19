@@ -7,6 +7,7 @@ use indicatif::{
 	ProgressStyle,
 };
 use libytdlr::{
+	data::cache::media_info::MediaInfo,
 	traits::context::DownloadOptions,
 	*,
 };
@@ -26,6 +27,7 @@ use std::{
 		PathBuf,
 	},
 };
+use sysinfo::SystemExt;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -43,18 +45,8 @@ struct Recovery {
 }
 
 impl Recovery {
-	/// Create a new instance and directly write something
-	pub fn create<P>(path: P, media_vec: &Vec<data::cache::media_info::MediaInfo>) -> std::io::Result<Self>
-	where
-		P: AsRef<Path>,
-	{
-		let mut inst = Self::new(path)?;
-		inst.open_writer()?;
-
-		inst.write_recovery(media_vec)?;
-
-		return Ok(inst);
-	}
+	/// Recovery file prefix
+	const RECOVERY_PREFIX: &str = "recovery_";
 
 	/// Create a new instance, without opening a file
 	pub fn new<P>(path: P) -> std::io::Result<Self>
@@ -163,7 +155,7 @@ impl Recovery {
 	}
 
 	/// Try to read the recovery from the given path
-	pub fn read_recovery(path: &Path) -> Result<Vec<data::cache::media_info::MediaInfo>, crate::Error> {
+	pub fn read_recovery(path: &Path) -> Result<impl Iterator<Item = MediaInfo>, crate::Error> {
 		if !path.exists() {
 			return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Recovery File Path does not exist").into());
 		}
@@ -173,17 +165,24 @@ impl Recovery {
 		}
 		let file_handle = BufReader::new(std::fs::File::open(path)?);
 
-		let mut found_media_vec: Vec<data::cache::media_info::MediaInfo> = Vec::new();
-
-		for media in file_handle
+		let iter = file_handle
 			.lines()
 			.filter_map(|v| return v.ok())
-			.filter_map(|v| return Self::try_from_line(&v))
-		{
-			found_media_vec.push(media);
-		}
+			.filter_map(|v| return Self::try_from_line(&v));
 
-		return Ok(found_media_vec);
+		return Ok(iter);
+	}
+
+	/// Clean-up the current instance, if it has written anything
+	pub fn finish(mut self) {
+		// only remove file if there is a writer, because only then the file exists
+		if self.writer.is_some() {
+			let path = self.path;
+
+			self.writer.take(); // drop "writer" to explicitly close the file handle
+
+			Self::remove_file(&path);
+		}
 	}
 
 	/// Tries to remove the given file, ignoring if the file does not exist and otherwise just logging the error
@@ -259,6 +258,8 @@ where
 	return ret;
 }
 
+type MediaInfoVec = Vec<data::cache::media_info::MediaInfo>;
+
 /// Handler function for the "download" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
@@ -295,29 +296,67 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		sub_args.force_no_archive,
 	);
 
-	let mut finished_media_vec = do_download(main_args, sub_args, &pgbar, &mut download_state)?;
+	// already create the vec for finished media, so that the finished ones can be stored in case of error
+	let mut finished_media_vec: MediaInfoVec = Vec::new();
+	let mut recovery = Recovery::new(download_state.get_download_path().join(format!(
+		"{}{}",
+		Recovery::RECOVERY_PREFIX,
+		std::process::id()
+	)))?;
+
+	let found_recovery_files =
+		try_find_and_read_recovery_files(&mut finished_media_vec, download_state.get_download_path())?;
+
+	// TODO: consider cross-checking archive if the files from recovery are already in the archive and get a proper title
+	// TODO: consider finding files with proper extension and add them ("utils::find_editable_files(download_path)")
+
+	match download_wrapper(
+		main_args,
+		sub_args,
+		&pgbar,
+		&mut download_state,
+		&mut finished_media_vec,
+	) {
+		Ok(_) => (),
+		Err(err) => {
+			let res = recovery.write_recovery(&finished_media_vec);
+
+			// log recovery write error, but do not modify original error
+			if let Err(rerr) = res {
+				warn!("Failed to write recovery: {}", rerr)
+			}
+
+			return Err(err);
+		},
+	}
+
+	// do some cleanup
+	// remove the recovery file, because of a successfull finish
+	recovery.finish();
+
+	// clean-up the recovery files that were read earlier
+	for file in found_recovery_files {
+		Recovery::remove_file(&file);
+	}
+
+	return Ok(());
+}
+
+/// Wrapper for [`command_download`] to house the part where in case of error a recovery needs to be written
+fn download_wrapper(
+	main_args: &CliDerive,
+	sub_args: &CommandDownload,
+	pgbar: &ProgressBar,
+	download_state: &mut DownloadState,
+	finished_media_vec: &mut MediaInfoVec,
+) -> Result<(), ioError> {
+	do_download(main_args, sub_args, &pgbar, download_state, finished_media_vec)?;
 
 	let download_path = download_state.get_download_path();
-	let tmp_recovery_path = download_path.join("recovery");
-
-	// TODO: rework how recovery works and only write recovery in case of error, also consider including state
-	{
-		if !finished_media_vec.is_empty() {
-			info!("Saving downloaded media to temp storage for recovery");
-			Recovery::create(&tmp_recovery_path, &finished_media_vec)?;
-		} else {
-			warn!("Trying to recover from tmp_recovery_path");
-
-			if tmp_recovery_path.exists() {
-				let mut media_vec = Recovery::read_recovery(&tmp_recovery_path)?;
-				finished_media_vec.append(&mut media_vec);
-			}
-		}
-	}
 
 	let mut index = 0usize;
 	// convert finished media elements to hashmap so it can be found without using a new iterator over and over
-	let mut finished_media_map: HashMap<String, (usize, data::cache::media_info::MediaInfo)> = finished_media_vec
+	let mut finished_media_map: HashMap<String, (usize, &mut data::cache::media_info::MediaInfo)> = finished_media_vec
 		.into_iter()
 		.map(|v| {
 			let res = (
@@ -335,61 +374,57 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		})
 		.collect();
 
-	// error-recovery, discover all files that can be edited, even if nothing has been downloaded
-	// though for now it will not be in the download order
-	if finished_media_map.is_empty() {
-		debug!("Downloaded media was empty, trying to find editable files");
-		// for safety reset the index variable
-		let mut index = 0usize;
-		finished_media_map = utils::find_editable_files(download_path)?
-			.into_iter()
-			.map(|v| {
-				let res = (
-					format!(
-						"{}-{}",
-						v.provider
-							.as_ref()
-							.map_or_else(|| return "unknown", |v| return v.to_str()),
-						v.id
-					),
-					(index, v),
-				);
-				index += 1;
-				return res;
-			})
-			.collect();
-	} else {
-		// merge found filenames into existing mediainfo
-		for new_media in utils::find_editable_files(download_path)? {
-			if let Some(media) = finished_media_map.get_mut(&format!(
-				"{}-{}",
-				new_media
-					.provider
-					.as_ref()
-					.map_or_else(|| return "unknown", |v| return v.to_str()),
-				new_media.id
-			)) {
-				let new_media_filename = new_media
-					.filename
-					.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
+	// // error-recovery, discover all files that can be edited, even if nothing has been downloaded
+	// // though for now it will not be in the download order
+	// if finished_media_map.is_empty() {
+	// 	debug!("Downloaded media was empty, trying to find editable files");
+	// 	// for safety reset the index variable
+	// 	let mut index = 0usize;
+	// 	finished_media_map = utils::find_editable_files(download_path)?
+	// 		.into_iter()
+	// 		.map(|v| {
+	// 			let res = (
+	// 				format!(
+	// 					"{}-{}",
+	// 					v.provider
+	// 						.as_ref()
+	// 						.map_or_else(|| return "unknown", |v| return v.to_str()),
+	// 					v.id
+	// 				),
+	// 				(index, v),
+	// 			);
+	// 			index += 1;
+	// 			return res;
+	// 		})
+	// 		.collect();
+	// } else {
+	// merge found filenames into existing mediainfo
+	for new_media in utils::find_editable_files(download_path)? {
+		if let Some(media) = finished_media_map.get_mut(&format!(
+			"{}-{}",
+			new_media
+				.provider
+				.as_ref()
+				.map_or_else(|| return "unknown", |v| return v.to_str()),
+			new_media.id
+		)) {
+			let new_media_filename = new_media
+				.filename
+				.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
 
-				media.1.set_filename(new_media_filename);
-			}
+			media.1.set_filename(new_media_filename);
 		}
 	}
+	// }
 
 	// sort in index order
-	let mut final_media_vec: Vec<(usize, data::cache::media_info::MediaInfo)> =
+	let mut final_media_vec: Vec<(usize, &mut data::cache::media_info::MediaInfo)> =
 		finished_media_map.into_values().collect();
 	final_media_vec.sort_by_key(|v| return v.0);
 
 	edit_media(sub_args, download_path, final_media_vec)?;
 
 	finish_media(sub_args, download_path)?;
-
-	// do some cleanup
-	// remove the recovery file, because of a successfull finish
-	Recovery::remove_file(&tmp_recovery_path);
 
 	return Ok(());
 }
@@ -400,7 +435,8 @@ fn do_download(
 	sub_args: &CommandDownload,
 	pgbar: &ProgressBar,
 	download_state: &mut DownloadState,
-) -> Result<Vec<data::cache::media_info::MediaInfo>, ioError> {
+	finished_media_vec: &mut MediaInfoVec,
+) -> Result<(), ioError> {
 	let mut maybe_connection: Option<SqliteConnection> = {
 		if let Some(ap) = main_args.archive_path.as_ref() {
 			Some(utils::handle_connect(ap, pgbar, main_args)?.1)
@@ -451,8 +487,6 @@ fn do_download(
 
 	// TODO: do a "count" before running actual download
 
-	let mut finished_media_vec: Vec<data::cache::media_info::MediaInfo> = Vec::new();
-
 	for url in &sub_args.urls {
 		download_state.set_current_url(url);
 
@@ -481,19 +515,19 @@ fn do_download(
 		return;
 	});
 
-	return Ok(finished_media_vec);
+	return Ok(());
 }
 
 /// Start editing loop for all provided media
 fn edit_media(
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
-	final_media_vec: Vec<(usize, data::cache::media_info::MediaInfo)>,
+	final_media_vec: Vec<(usize, &mut data::cache::media_info::MediaInfo)>,
 ) -> Result<(), ioError> {
 	// ask for editing
 	// TODO: consider renaming before asking for edit
 	'for_media_loop: for (_key, media) in /* utils::find_editable_files(download_path)? */ final_media_vec {
-		let media_filename = match media.filename {
+		let media_filename = match &media.filename {
 			Some(v) => v,
 			None => {
 				println!("\"{}\" did not have a filename!", media.id);
@@ -682,4 +716,62 @@ fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> 
 	}
 
 	return Ok(());
+}
+
+/// Try to find and read all recovery files in provided `path` and return the recovery files that were used
+fn try_find_and_read_recovery_files(
+	finished_media_vec: &mut MediaInfoVec,
+	path: &Path,
+) -> Result<Vec<PathBuf>, ioError> {
+	if !path.is_dir() {
+		return Err(ioError::new(
+			std::io::ErrorKind::Other, // TODO: replace "Other" with "NotADirectory" when stable
+			"Path to find recovery files is not existing or a directory!",
+		));
+	}
+
+	let mut read_files: Vec<PathBuf> = Vec::new();
+	let mut s = sysinfo::System::new();
+	s.refresh_processes();
+
+	for file in path.read_dir()?.filter_map(|res| {
+		let entry = res.ok()?;
+
+		let path = entry.path();
+		let file_name = path.file_name()?;
+		if path.is_file() && Path::new(file_name).starts_with(Recovery::RECOVERY_PREFIX) {
+			return Some(path);
+		}
+		return None;
+	}) {
+		let file_name = file.file_name().unwrap().to_string_lossy(); // unwrap because non-file_name containing paths should be sorted out in the "filter_map"
+		info!("Trying to read recovery file: \"{}\"", file_name);
+		let pid_str = {
+			let opt = file_name.split_once("_"); // `Recovery::RECOVERY_PREFIX` delimiter
+			if opt.is_none() {
+				continue;
+			}
+			opt.unwrap().1 // unwrap because "None" is checked above
+		};
+		let pid_of_file = {
+			let res = usize::from_str_radix(pid_str, 10);
+			if res.is_err() {
+				continue;
+			}
+			res.unwrap() // unwrap because "Err" is checked above
+		};
+		// check that the pid of the file is actually not running anymore
+		// and just ignore them if the process exists
+		if s.process(sysinfo::Pid::from(pid_of_file)).is_some() {
+			info!("Found recovery file for pid {pid_of_file}, but the process still existed");
+			continue;
+		}
+		// for now just add them regardless if they exist or not in the array
+		for media in Recovery::read_recovery(&file)? {
+			finished_media_vec.push(media);
+		}
+		read_files.push(file);
+	}
+
+	return Ok(read_files);
 }
