@@ -629,11 +629,15 @@ fn edit_media(
 		'ask_do_loop: loop {
 			let input = utils::get_input(
 				&format!(
-					"Edit Media \"{}\"?",
+					"Edit Media \"{}\"?{}",
 					media
 						.title
 						.as_ref()
-						.expect("Expected MediaInfo to have a title from \"try_from_filename\"")
+						.expect("Expected MediaInfo to have a title from \"try_from_filename\""),
+					media_helper
+						.comment
+						.as_ref()
+						.map_or("".into(), |msg| format!(" ({msg})"))
 				),
 				&["h", "y", "N", "a", "v" /* , "p" */],
 				"n",
@@ -720,6 +724,8 @@ fn edit_media(
 
 /// Finish the given media by either opening up the tagger or moving to final destination
 fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> Result<(), ioError> {
+	// TODO: rework this function to use the map instead of finding all files
+
 	// the following is used to ask the user what to do with the media-files
 	// current choices are:
 	// move all media that is found to the final_directory (specified via options or defaulted), or
