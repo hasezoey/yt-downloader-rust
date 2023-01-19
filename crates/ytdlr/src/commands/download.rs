@@ -36,31 +36,96 @@ const PG_PERCENT_100: u64 = 100;
 const STYLE_STATIC_SIZE: usize = 23;
 
 struct Recovery {
-	// /// The path where the recovery file will be at
-	// pub path:   PathBuf,
+	/// The path where the recovery file will be at
+	pub path: PathBuf,
 	/// The Writer to the file, open while this struct is not dropped
-	pub writer: BufWriter<std::fs::File>,
+	writer:   Option<BufWriter<std::fs::File>>,
 }
 
 impl Recovery {
-	/// Open a new File at "path" and open a file handle
+	/// Create a new instance and directly write something
 	pub fn create<P>(path: P, media_vec: &Vec<data::cache::media_info::MediaInfo>) -> std::io::Result<Self>
 	where
-		P: Into<PathBuf>,
+		P: AsRef<Path>,
 	{
-		let path = path.into();
-		let writer = BufWriter::new(std::fs::File::create(path)?);
-		let mut inst = Self { /* path, */ writer, };
+		let mut inst = Self::new(path)?;
+		inst.open_writer()?;
 
 		inst.write_recovery(media_vec)?;
 
 		return Ok(inst);
 	}
 
+	/// Create a new instance, without opening a file
+	pub fn new<P>(path: P) -> std::io::Result<Self>
+	where
+		P: AsRef<Path>,
+	{
+		let path: PathBuf = libytdlr::utils::to_absolute(path)?; // absolutize the path so that "parent" does not return empty
+		Self::check_path(&path)?; // check that the path is valid, and not only when trying to open it (when it would already be too late)
+		return Ok(Self { path, writer: None });
+	}
+
+	/// Check a given path if it is valid to be wrote in
+	fn check_path(path: &Path) -> std::io::Result<()> {
+		// check that the given path does not already exist, as to not overwrite it
+		if path.exists() {
+			return Err(std::io::Error::new(
+				std::io::ErrorKind::AlreadyExists,
+				"Recovery File Path already exists!",
+			));
+		}
+		// check that the given path has a parent
+		let parent = path.parent().ok_or_else(|| {
+			return std::io::Error::new(
+				std::io::ErrorKind::NotFound,
+				"Failed to get the parent for the Recovery File!",
+			);
+		})?;
+		// check that the parent already exists
+		if !parent.exists() {
+			return Err(std::io::Error::new(
+				std::io::ErrorKind::NotFound,
+				"Recovery File directory does not exist!",
+			));
+		}
+
+		// check that the parent is writeable
+		let meta = std::fs::metadata(parent)?;
+
+		if meta.permissions().readonly() {
+			return Err(std::io::Error::new(
+				std::io::ErrorKind::PermissionDenied,
+				"Recovery File directory is not writeable!",
+			));
+		}
+
+		return Ok(());
+	}
+
+	/// Get the current "self.writer" or open a new one if not existing
+	fn get_writer_or_open(&mut self) -> std::io::Result<&mut BufWriter<std::fs::File>> {
+		if self.writer.is_none() {
+			self.open_writer()?;
+		}
+
+		// "unwrap" because we can safely assume that "self.writer" is "Some" here
+		return Ok(self.writer.as_mut().unwrap());
+	}
+
+	/// Open a new writer and place it into [`Self::writer`]
+	fn open_writer(&mut self) -> std::io::Result<()> {
+		let writer = BufWriter::new(std::fs::File::create(&self.path)?);
+		self.writer.replace(writer);
+
+		return Ok(());
+	}
+
 	/// Write the given MediaInfo-Vec to the file
 	pub fn write_recovery(&mut self, media_vec: &Vec<data::cache::media_info::MediaInfo>) -> std::io::Result<()> {
+		let writer = self.get_writer_or_open()?;
 		for media in media_vec.iter() {
-			self.writer.write_all(Self::fmt_line(media).as_bytes())?;
+			writer.write_all(Self::fmt_line(media).as_bytes())?;
 		}
 
 		return Ok(());
