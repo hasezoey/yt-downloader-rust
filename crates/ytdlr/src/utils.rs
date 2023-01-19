@@ -113,14 +113,14 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 
 	// some basic checks that the path is actually valid
 	if !path.exists() {
-		return Err(crate::Error::Other(format!(
+		return Err(crate::Error::other(format!(
 			"Path for finding editable files does not exist! (Path: \"{}\")",
 			path.to_string_lossy()
 		)));
 	}
 
 	if !path.is_dir() {
-		return Err(crate::Error::Other(format!(
+		return Err(crate::Error::other(format!(
 			"Path for finding editable files is not a directory! (Path: \"{}\")",
 			path.to_string_lossy()
 		)));
@@ -274,7 +274,7 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdo
 		editor_child
 			.stderr
 			.take()
-			.ok_or_else(|| return crate::Error::Other("Failed to take Editor Child's STDERR".to_owned()))?,
+			.ok_or_else(|| return crate::Error::other("Failed to take Editor Child's STDERR"))?,
 	);
 
 	let editor_child_stderr_thread = std::thread::Builder::new()
@@ -296,7 +296,7 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdo
 			editor_child
 				.stdout
 				.take()
-				.ok_or_else(|| return crate::Error::Other("Failed to take Editor Child's STDOUT".to_owned()))?,
+				.ok_or_else(|| return crate::Error::other("Failed to take Editor Child's STDOUT"))?,
 		);
 
 		editor_child_stdout_thread = Some(
@@ -317,25 +317,25 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdo
 	let editor_child_exit_status = editor_child.wait()?;
 
 	editor_child_stderr_thread.join().map_err(|err| {
-		return crate::Error::Other(format!("Joining the editor_child STDERR handle failed: {err:?}"));
+		return crate::Error::other(format!("Joining the editor_child STDERR handle failed: {err:?}"));
 	})?;
 
 	if let Some(thread) = editor_child_stdout_thread {
 		thread.join().map_err(|err| {
-			return crate::Error::Other(format!("Joining the editor_child STDOUT handle failed: {err:?}"));
+			return crate::Error::other(format!("Joining the editor_child STDOUT handle failed: {err:?}"));
 		})?;
 	}
 
 	if !editor_child_exit_status.success() {
 		return Err(match editor_child_exit_status.code() {
-			Some(code) => crate::Error::Other(format!("editor_child exited with code: {code}")),
+			Some(code) => crate::Error::other(format!("editor_child exited with code: {code}")),
 			None => {
 				let signal = match editor_child_exit_status.signal() {
 					Some(code) => code.to_string(),
 					None => "None".to_owned(),
 				};
 
-				crate::Error::Other(format!("editor_child exited with signal: {signal}"))
+				crate::Error::other(format!("editor_child exited with signal: {signal}"))
 			},
 		});
 	}
@@ -394,7 +394,7 @@ fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 
 		match input.as_str() {
 			"r" => continue 'test_editor,
-			"a" => return Err(crate::Error::Other("Abort Selected".to_owned())),
+			"a" => return Err(crate::Error::other("Abort Selected")),
 			"s" => return Ok(None),
 			_ => unreachable!("get_input should only return a OK value from the possible array"),
 		}
