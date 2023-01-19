@@ -6,10 +6,7 @@ extern crate log;
 
 use flexi_logger::LogSpecification;
 use libytdlr::*;
-use std::{
-	io::Error as ioError,
-	path::PathBuf,
-};
+use std::path::PathBuf;
 
 mod clap_conf;
 use clap_conf::*;
@@ -48,11 +45,9 @@ fn main() -> Result<(), crate::Error> {
 				2 => LogSpecification::parse("debug"),
 				3 => LogSpecification::parse("trace"),
 				_ => {
-					return Err(ioError::new(
-						std::io::ErrorKind::Other,
+					return Err(crate::Error::other(
 						"Expected verbosity integer range between 0 and 3 (inclusive)",
-					)
-					.into())
+					))
 				},
 			}
 			.expect("Expected LogSpecification to parse correctly"),

@@ -362,7 +362,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 
 	if only_recovery {
 		if sub_args.no_check_recovery {
-			return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required").into());
+			return Err(crate::Error::other("At least one URL is required"));
 		}
 
 		println!(
@@ -612,7 +612,7 @@ fn edit_media(
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
 	final_media: &MediaInfoArr,
-) -> Result<(), ioError> {
+) -> Result<(), crate::Error> {
 	if !main_args.is_interactive() {
 		info!("Skipping asking for media, because \"is_interactive\" is \"false\"");
 		return Ok(());
@@ -672,7 +672,7 @@ fn edit_media(
 						{
 							"a" => utils::run_editor(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?,
 							"v" => utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?,
-							"b" => return Err(crate::Error::Other("Abort Selected".to_owned()).into()),
+							"b" => return Err(crate::Error::other("Abort Selected")),
 							"n" => continue 'for_media_loop,
 							_ => unreachable!("get_input should only return a OK value from the possible array"),
 						}
