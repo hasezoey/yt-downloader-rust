@@ -114,10 +114,12 @@ impl Recovery {
 	}
 
 	/// Write the given MediaInfo-Vec to the file
-	pub fn write_recovery(&mut self, media_vec: &Vec<data::cache::media_info::MediaInfo>) -> std::io::Result<()> {
+	pub fn write_recovery(&mut self, media_arr: &MediaInfoArr) -> std::io::Result<()> {
 		let writer = self.get_writer_or_open()?;
-		for media in media_vec.iter() {
-			writer.write_all(Self::fmt_line(media).as_bytes())?;
+		// save the entries sorted
+		let media_sorted_vec = media_arr.as_sorted_vec();
+		for media_helper in media_sorted_vec {
+			writer.write_all(Self::fmt_line(&media_helper.data).as_bytes())?;
 		}
 
 		return Ok(());
@@ -194,6 +196,93 @@ impl Recovery {
 	}
 }
 
+/// Helper struct to keep the order of download / addition and the data, with names
+struct MediaHelper {
+	/// The actual [`MediaInfo`] that is stored
+	data:    MediaInfo,
+	/// The order of which it was added / downloaded in (used for editing loop)
+	order:   usize,
+	/// Extra Comment if necessary
+	comment: Option<String>,
+}
+
+impl MediaHelper {
+	pub fn new(data: MediaInfo, order: usize, comment: Option<String>) -> Self {
+		return Self { data, order, comment };
+	}
+}
+
+/// Custom HashMap for [`MediaInfo`] to keep usage easy
+struct MediaInfoArr {
+	mediainfo_map: HashMap<String, MediaHelper>,
+	next_order:    usize,
+}
+
+impl MediaInfoArr {
+	/// Create a new empty instance
+	pub fn new() -> Self {
+		return Self {
+			mediainfo_map: HashMap::default(),
+			next_order:    0,
+		};
+	}
+
+	/// Insert a [`MediaInfo`] into the map, updating the old value if existed and returing the old value
+	pub fn insert(&mut self, mediainfo: MediaInfo) -> Option<MediaHelper> {
+		return self._insert(mediainfo, None);
+	}
+	/// Insert a [`MediaInfo`] into the map, updating the old value if existed and returing the old value
+	/// with a comment
+	pub fn insert_with_comment<C>(&mut self, mediainfo: MediaInfo, comment: C) -> Option<MediaHelper>
+	where
+		C: Into<String>,
+	{
+		return self._insert(mediainfo, Some(comment.into()));
+	}
+
+	/// Helper for [`Self::insert`] and [`Self::insert_with_comment`] to only have one implementation
+	fn _insert(&mut self, mediainfo: MediaInfo, comment: Option<String>) -> Option<MediaHelper> {
+		let order = self.next_order;
+		self.next_order += 1;
+
+		let key = format!(
+			"{}-{}",
+			mediainfo
+				.provider
+				.as_ref()
+				.map_or_else(|| return "unknown", |v| return v.to_str()),
+			mediainfo.id,
+		);
+
+		return self
+			.mediainfo_map
+			.insert(key, MediaHelper::new(mediainfo, order, comment));
+	}
+
+	/// Get a value inside the HashMap mutably
+	pub fn get_mut<K>(&mut self, key: K) -> Option<&mut MediaHelper>
+	where
+		K: AsRef<str>,
+	{
+		return self.mediainfo_map.get_mut(key.as_ref());
+	}
+
+	/// Directly pass through `additional` to [`HashMap::reserve`]
+	pub fn reserve(&mut self, additional: usize) {
+		self.mediainfo_map.reserve(additional);
+	}
+
+	/// Get a sorted [`Vec`] from the current HashMap
+	/// only contains references to what is in the HashMap, not moving the values
+	pub fn as_sorted_vec(&self) -> Vec<&MediaHelper> {
+		let mut vec: Vec<&MediaHelper> = self.mediainfo_map.values().collect();
+
+		vec.sort_by(|a, b| a.order.cmp(&b.order));
+
+		return vec;
+	}
+}
+
 /// Truncate the given message to a lower size so that the progressbar does not do new-lines
 /// truncation is required because indicatif would do new-lines, and adding truncation would only work with a (static) maximum size
 /// NOTE: this currently only gets run once for each "SingleStartin" instead of every tick, so resizing the truncate will not be done (until next media)
@@ -258,8 +347,6 @@ where
 	return ret;
 }
 
-type MediaInfoVec = Vec<data::cache::media_info::MediaInfo>;
-
 /// Handler function for the "download" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
@@ -267,6 +354,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	utils::require_ytdl_installed()?;
 
 	if sub_args.urls.is_empty() {
+		// TODO: change this to a warning and check recovery
 		return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
 	}
 
@@ -297,7 +385,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	);
 
 	// already create the vec for finished media, so that the finished ones can be stored in case of error
-	let mut finished_media_vec: MediaInfoVec = Vec::new();
+	let mut finished_media = MediaInfoArr::new();
 	let mut recovery = Recovery::new(download_state.get_download_path().join(format!(
 		"{}{}",
 		Recovery::RECOVERY_PREFIX,
@@ -305,21 +393,15 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	)))?;
 
 	let found_recovery_files =
-		try_find_and_read_recovery_files(&mut finished_media_vec, download_state.get_download_path())?;
+		try_find_and_read_recovery_files(&mut finished_media, download_state.get_download_path())?;
 
 	// TODO: consider cross-checking archive if the files from recovery are already in the archive and get a proper title
 	// TODO: consider finding files with proper extension and add them ("utils::find_editable_files(download_path)")
 
-	match download_wrapper(
-		main_args,
-		sub_args,
-		&pgbar,
-		&mut download_state,
-		&mut finished_media_vec,
-	) {
+	match download_wrapper(main_args, sub_args, &pgbar, &mut download_state, &mut finished_media) {
 		Ok(_) => (),
 		Err(err) => {
-			let res = recovery.write_recovery(&finished_media_vec);
+			let res = recovery.write_recovery(&finished_media);
 
 			// log recovery write error, but do not modify original error
 			if let Err(rerr) = res {
@@ -348,31 +430,11 @@ fn download_wrapper(
 	sub_args: &CommandDownload,
 	pgbar: &ProgressBar,
 	download_state: &mut DownloadState,
-	finished_media_vec: &mut MediaInfoVec,
+	finished_media: &mut MediaInfoArr,
 ) -> Result<(), ioError> {
-	do_download(main_args, sub_args, &pgbar, download_state, finished_media_vec)?;
+	do_download(main_args, sub_args, &pgbar, download_state, finished_media)?;
 
 	let download_path = download_state.get_download_path();
-
-	let mut index = 0usize;
-	// convert finished media elements to hashmap so it can be found without using a new iterator over and over
-	let mut finished_media_map: HashMap<String, (usize, &mut data::cache::media_info::MediaInfo)> = finished_media_vec
-		.into_iter()
-		.map(|v| {
-			let res = (
-				format!(
-					"{}-{}",
-					v.provider
-						.as_ref()
-						.map_or_else(|| return "unknown", |v| return v.to_str()),
-					v.id
-				),
-				(index, v),
-			);
-			index += 1;
-			return res;
-		})
-		.collect();
 
 	// // error-recovery, discover all files that can be edited, even if nothing has been downloaded
 	// // though for now it will not be in the download order
@@ -400,7 +462,7 @@ fn download_wrapper(
 	// } else {
 	// merge found filenames into existing mediainfo
 	for new_media in utils::find_editable_files(download_path)? {
-		if let Some(media) = finished_media_map.get_mut(&format!(
+		if let Some(media) = finished_media.get_mut(&format!(
 			"{}-{}",
 			new_media
 				.provider
@@ -412,17 +474,12 @@ fn download_wrapper(
 				.filename
 				.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
 
-			media.1.set_filename(new_media_filename);
+			media.data.set_filename(new_media_filename);
 		}
 	}
 	// }
 
-	// sort in index order
-	let mut final_media_vec: Vec<(usize, &mut data::cache::media_info::MediaInfo)> =
-		finished_media_map.into_values().collect();
-	final_media_vec.sort_by_key(|v| return v.0);
-
-	edit_media(sub_args, download_path, final_media_vec)?;
+	edit_media(sub_args, download_path, finished_media)?;
 
 	finish_media(sub_args, download_path)?;
 
@@ -435,7 +492,7 @@ fn do_download(
 	sub_args: &CommandDownload,
 	pgbar: &ProgressBar,
 	download_state: &mut DownloadState,
-	finished_media_vec: &mut MediaInfoVec,
+	finished_media: &mut MediaInfoArr,
 ) -> Result<(), ioError> {
 	let mut maybe_connection: Option<SqliteConnection> = {
 		if let Some(ap) = main_args.archive_path.as_ref() {
@@ -503,7 +560,13 @@ fn do_download(
 			pgbar.finish_and_clear();
 		}
 
-		finished_media_vec.extend(new_media);
+		// quick hint so that insertion is faster
+		// because insertion is one element at a time
+		finished_media.reserve(new_media.len());
+
+		for media in new_media {
+			finished_media.insert(media);
+		}
 	}
 
 	// remove ytdl_archive_pid.txt file again, because otherwise over many usages it can become bloated
@@ -522,11 +585,13 @@ fn do_download(
 fn edit_media(
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
-	final_media_vec: Vec<(usize, &mut data::cache::media_info::MediaInfo)>,
+	final_media: &MediaInfoArr,
 ) -> Result<(), ioError> {
+	let media_sorted_vec = final_media.as_sorted_vec();
 	// ask for editing
 	// TODO: consider renaming before asking for edit
-	'for_media_loop: for (_key, media) in /* utils::find_editable_files(download_path)? */ final_media_vec {
+	'for_media_loop: for media_helper in /* utils::find_editable_files(download_path)? */ media_sorted_vec.iter() {
+		let media = &media_helper.data;
 		let media_filename = match &media.filename {
 			Some(v) => v,
 			None => {
@@ -720,7 +785,7 @@ fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> 
 
 /// Try to find and read all recovery files in provided `path` and return the recovery files that were used
 fn try_find_and_read_recovery_files(
-	finished_media_vec: &mut MediaInfoVec,
+	finished_media_vec: &mut MediaInfoArr,
 	path: &Path,
 ) -> Result<Vec<PathBuf>, ioError> {
 	if !path.is_dir() {
@@ -768,7 +833,7 @@ fn try_find_and_read_recovery_files(
 		}
 		// for now just add them regardless if they exist or not in the array
 		for media in Recovery::read_recovery(&file)? {
-			finished_media_vec.push(media);
+			finished_media_vec.insert_with_comment(media, format!("From Recovery file of pid {pid_of_file}"));
 		}
 		read_files.push(file);
 	}
