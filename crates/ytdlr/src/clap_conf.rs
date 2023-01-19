@@ -223,6 +223,10 @@ pub struct CommandDownload {
 	/// Disables allowing 0 URL's to just check the recovery
 	#[arg(long = "no-check-recovery")]
 	pub no_check_recovery:         bool,
+	/// Set to automatically open the tagger in the end
+	/// also overwrites the default option of moving for non-interactive mode
+	#[arg(long = "open-tagger")]
+	pub open_tagger:               bool,
 
 	pub urls: Vec<String>,
 }
@@ -321,6 +325,7 @@ mod test {
 				print_editor_stdout: false,
 				picard_editor: None,
 				no_check_recovery: false,
+				open_tagger: false,
 			};
 
 			let mut cloned = init_default.clone();
@@ -348,6 +353,7 @@ mod test {
 				print_editor_stdout: false,
 				picard_editor: None,
 				no_check_recovery: false,
+				open_tagger: false,
 			};
 
 			let mut cloned = init_default.clone();
@@ -444,6 +450,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				});
 
 				let mut cloned = init_default_download.clone();
@@ -491,6 +498,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 
@@ -526,6 +534,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 
@@ -564,6 +573,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 
@@ -598,6 +608,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 
@@ -624,6 +635,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 
@@ -653,6 +665,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 
@@ -682,6 +695,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 
@@ -708,6 +722,7 @@ mod test {
 					print_editor_stdout: false,
 					picard_editor: None,
 					no_check_recovery: false,
+					open_tagger: false,
 				}),
 			};
 

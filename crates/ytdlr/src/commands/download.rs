@@ -504,9 +504,9 @@ fn download_wrapper(
 	}
 	// }
 
-	edit_media(sub_args, download_path, finished_media)?;
+	edit_media(main_args, sub_args, download_path, finished_media)?;
 
-	finish_media(sub_args, download_path, pgbar, finished_media)?;
+	finish_media(main_args, sub_args, download_path, pgbar, finished_media)?;
 
 	return Ok(());
 }
@@ -608,10 +608,16 @@ fn do_download(
 
 /// Start editing loop for all provided media
 fn edit_media(
+	main_args: &CliDerive,
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
 	final_media: &MediaInfoArr,
 ) -> Result<(), ioError> {
+	if !main_args.is_interactive() {
+		info!("Skipping asking for media, because \"is_interactive\" is \"false\"");
+		return Ok(());
+	}
+
 	let media_sorted_vec = final_media.as_sorted_vec();
 	// ask for editing
 	// TODO: consider renaming before asking for edit
@@ -725,112 +731,142 @@ fn edit_media(
 
 /// Finish the given media by either opening up the tagger or moving to final destination
 fn finish_media(
+	main_args: &CliDerive,
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
 	pgbar: &ProgressBar,
 	final_media: &MediaInfoArr,
 ) -> Result<(), ioError> {
-	// TODO: rework this function to use the map instead of finding all files
-
 	// first set the draw-target so that any subsequent setting change does not cause a draw
 	pgbar.set_draw_target(ProgressDrawTarget::hidden()); // so that it stays hidden until actually doing stuff
 	pgbar.reset();
 	pgbar.set_length(final_media.mediainfo_map.len().try_into().unwrap_or(u64::MAX));
 	pgbar.set_message("Moving files");
 
-	// the following is used to ask the user what to do with the media-files
-	// current choices are:
-	// move all media that is found to the final_directory (specified via options or defaulted), or
-	// open picard and let picard handle the moving
-	match utils::get_input("[m]ove Media to Output Directory or Open [p]icard?", &["m", "p"], "")?.as_str() {
-		"m" => {
-			debug!("Moving all files to the final destination");
-
-			let final_dir_path = sub_args.output_path.as_ref().map_or_else(
-				|| {
-					return dirs_next::download_dir()
-						.unwrap_or_else(|| return PathBuf::from("."))
-						.join("ytdlr-out");
-				},
-				|v| return v.clone(),
-			);
-			std::fs::create_dir_all(&final_dir_path)?;
-
-			let mut moved_count = 0usize;
-			pgbar.set_draw_target(ProgressDrawTarget::stderr());
-
-			for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
-				pgbar.inc(1);
-				let media = &media_helper.data;
-				let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
-					Some(v) => v,
-					None => {
-						warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
-
-						continue;
-					},
-				};
-				let from_path = download_path.join(media_filename);
-				let to_path = final_dir_path.join(final_filename);
-				trace!(
-					"Copying file \"{}\" to \"{}\"",
-					from_path.to_string_lossy(),
-					to_path.to_string_lossy()
-				);
-				// copy has to be used, because it cannot be ensured the "final_path" is on the same file-system
-				// and a "move"(mv) function does not exist in standard rust
-				match std::fs::copy(&from_path, to_path) {
-					Ok(_) => (),
-					Err(err) => {
-						println!("Couldnt move file \"{}\", error: {}", from_path.to_string_lossy(), err);
-						continue;
-					},
-				};
-
-				trace!("Removing file \"{}\"", from_path.to_string_lossy());
-				// remove the original file, because copy was used
-				std::fs::remove_file(from_path)?;
-
-				moved_count += 1;
-			}
-
-			pgbar.finish_and_clear();
-
-			println!(
-				"Moved {} media files to \"{}\"",
-				moved_count,
-				final_dir_path.to_string_lossy()
-			);
-		},
-		"p" => {
-			debug!("Renaming files for Picard");
-
-			let final_dir_path = download_path.join("final");
-			std::fs::create_dir_all(&final_dir_path)?;
-			pgbar.set_draw_target(ProgressDrawTarget::stderr());
-
-			for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
-				pgbar.inc(1);
-				let media = &media_helper.data;
-				let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
-					Some(v) => v,
-					None => {
-						warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
-
-						continue;
-					},
-				};
-				// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same directory
-				std::fs::rename(download_path.join(media_filename), final_dir_path.join(final_filename))?;
-			}
-
-			pgbar.finish_and_clear();
-
-			debug!("Running Picard");
-			utils::run_editor(&sub_args.picard_editor, &final_dir_path, false)?;
-		},
-		_ => unreachable!("get_input should only return a OK value from the possible array"),
+	if main_args.is_interactive() && !sub_args.open_tagger {
+		// the following is used to ask the user what to do with the media-files
+		// current choices are:
+		// move all media that is found to the final_directory (specified via options or defaulted), or
+		// open picard and let picard handle the moving
+		match utils::get_input("[m]ove Media to Output Directory or Open [p]icard?", &["m", "p"], "")?.as_str() {
+			"m" => finish_with_move(sub_args, download_path, pgbar, final_media)?,
+			"p" => finish_with_tagger(sub_args, download_path, pgbar, final_media)?,
+			_ => unreachable!("get_input should only return a OK value from the possible array"),
+		}
+	} else {
+		info!("non-interactive finish media, open_tagger: {}", sub_args.open_tagger);
+		if sub_args.open_tagger {
+			finish_with_tagger(sub_args, download_path, pgbar, final_media)?;
+		} else {
+			finish_with_move(sub_args, download_path, pgbar, final_media)?;
+		}
 	}
+
+	return Ok(());
+}
+
+/// Move all media in `final_media` to it final resting place in `download_path`
+/// Helper to separate out the possible paths
+fn finish_with_move(
+	sub_args: &CommandDownload,
+	download_path: &std::path::Path,
+	pgbar: &ProgressBar,
+	final_media: &MediaInfoArr,
+) -> Result<(), ioError> {
+	debug!("Moving all files to the final destination");
+
+	let final_dir_path = sub_args.output_path.as_ref().map_or_else(
+		|| {
+			return dirs_next::download_dir()
+				.unwrap_or_else(|| return PathBuf::from("."))
+				.join("ytdlr-out");
+		},
+		|v| return v.clone(),
+	);
+	std::fs::create_dir_all(&final_dir_path)?;
+
+	let mut moved_count = 0usize;
+	pgbar.set_draw_target(ProgressDrawTarget::stderr());
+
+	for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
+		pgbar.inc(1);
+		let media = &media_helper.data;
+		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
+			Some(v) => v,
+			None => {
+				warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
+
+				continue;
+			},
+		};
+		let from_path = download_path.join(media_filename);
+		let to_path = final_dir_path.join(final_filename);
+		trace!(
+			"Copying file \"{}\" to \"{}\"",
+			from_path.to_string_lossy(),
+			to_path.to_string_lossy()
+		);
+		// copy has to be used, because it cannot be ensured the "final_path" is on the same file-system
+		// and a "move"(mv) function does not exist in standard rust
+		match std::fs::copy(&from_path, to_path) {
+			Ok(_) => (),
+			Err(err) => {
+				println!("Couldnt move file \"{}\", error: {}", from_path.to_string_lossy(), err);
+				continue;
+			},
+		};
+
+		trace!("Removing file \"{}\"", from_path.to_string_lossy());
+		// remove the original file, because copy was used
+		std::fs::remove_file(from_path)?;
+
+		moved_count += 1;
+	}
+
+	pgbar.finish_and_clear();
+
+	println!(
+		"Moved {} media files to \"{}\"",
+		moved_count,
+		final_dir_path.to_string_lossy()
+	);
+
+	return Ok(());
+}
+
+/// Move all media in `final_media` to a temporary `final` directory (still in the tmpdir) and open the tagger
+/// Helper to separate out the possible paths
+fn finish_with_tagger(
+	sub_args: &CommandDownload,
+	download_path: &std::path::Path,
+	pgbar: &ProgressBar,
+	final_media: &MediaInfoArr,
+) -> Result<(), ioError> {
+	debug!("Renaming files for Picard");
+
+	let final_dir_path = download_path.join("final");
+	std::fs::create_dir_all(&final_dir_path)?;
+	pgbar.set_draw_target(ProgressDrawTarget::stderr());
+
+	for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
+		pgbar.inc(1);
+		let media = &media_helper.data;
+		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
+			Some(v) => v,
+			None => {
+				warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
+
+				continue;
+			},
+		};
+		// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same directory
+		std::fs::rename(download_path.join(media_filename), final_dir_path.join(final_filename))?;
+	}
+
+	pgbar.finish_and_clear();
+
+	debug!("Running Picard");
+	utils::run_editor(&sub_args.picard_editor, &final_dir_path, false)?;
 
 	return Ok(());
 }
