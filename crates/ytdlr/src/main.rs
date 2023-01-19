@@ -36,6 +36,8 @@ fn main() -> Result<(), ioError> {
 
 	log::info!("CLI Verbosity is {}", cli_matches.verbosity);
 
+	colored::control::set_override(cli_matches.enable_colors());
+
 	// dont do anything if "-v" is not specified (use env / default instead)
 	if cli_matches.verbosity > 0 {
 		// apply cli "verbosity" argument to the log level
