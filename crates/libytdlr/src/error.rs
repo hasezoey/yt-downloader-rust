@@ -26,6 +26,15 @@ pub enum Error {
 	SQLOperationError(String),
 }
 
+impl Error {
+	pub fn other<M>(msg: M) -> Self
+	where
+		M: Into<String>,
+	{
+		return Self::Other(msg.into());
+	}
+}
+
 // this is custom, because "std::io::Error" does not implement "PartialEq", but "std::io::ErrorKind" does
 impl PartialEq for Error {
 	fn eq(&self, other: &Self) -> bool {
