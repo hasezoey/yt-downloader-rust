@@ -747,7 +747,7 @@ fn finish_media(
 		// the following is used to ask the user what to do with the media-files
 		// current choices are:
 		// move all media that is found to the final_directory (specified via options or defaulted), or
-		// open picard and let picard handle the moving
+		// open the tagger and let the tagger handle the moving
 		match utils::get_input("[m]ove Media to Output Directory or Open [p]icard?", &["m", "p"], "")?.as_str() {
 			"m" => finish_with_move(sub_args, download_path, pgbar, final_media)?,
 			"p" => finish_with_tagger(sub_args, download_path, pgbar, final_media)?,
@@ -866,7 +866,7 @@ fn finish_with_tagger(
 	pgbar.finish_and_clear();
 
 	debug!("Running Picard");
-	utils::run_editor(&sub_args.picard_editor, &final_dir_path, false)?;
+	utils::run_editor(&sub_args.tagger_editor, &final_dir_path, false)?;
 
 	return Ok(());
 }
