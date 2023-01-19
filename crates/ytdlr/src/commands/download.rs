@@ -8,6 +8,7 @@ use colored::{
 use diesel::SqliteConnection;
 use indicatif::{
 	ProgressBar,
+	ProgressDrawTarget,
 	ProgressStyle,
 };
 use libytdlr::{
@@ -505,7 +506,7 @@ fn download_wrapper(
 
 	edit_media(sub_args, download_path, finished_media)?;
 
-	finish_media(sub_args, download_path)?;
+	finish_media(sub_args, download_path, pgbar, finished_media)?;
 
 	return Ok(());
 }
@@ -614,7 +615,7 @@ fn edit_media(
 	let media_sorted_vec = final_media.as_sorted_vec();
 	// ask for editing
 	// TODO: consider renaming before asking for edit
-	'for_media_loop: for media_helper in /* utils::find_editable_files(download_path)? */ media_sorted_vec.iter() {
+	'for_media_loop: for media_helper in media_sorted_vec.iter() {
 		let media = &media_helper.data;
 		let media_filename = match &media.filename {
 			Some(v) => v,
@@ -723,8 +724,19 @@ fn edit_media(
 }
 
 /// Finish the given media by either opening up the tagger or moving to final destination
-fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> Result<(), ioError> {
+fn finish_media(
+	sub_args: &CommandDownload,
+	download_path: &std::path::Path,
+	pgbar: &ProgressBar,
+	final_media: &MediaInfoArr,
+) -> Result<(), ioError> {
 	// TODO: rework this function to use the map instead of finding all files
+
+	// first set the draw-target so that any subsequent setting change does not cause a draw
+	pgbar.set_draw_target(ProgressDrawTarget::hidden()); // so that it stays hidden until actually doing stuff
+	pgbar.reset();
+	pgbar.set_length(final_media.mediainfo_map.len().try_into().unwrap_or(u64::MAX));
+	pgbar.set_message("Moving files");
 
 	// the following is used to ask the user what to do with the media-files
 	// current choices are:
@@ -745,8 +757,11 @@ fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> 
 			std::fs::create_dir_all(&final_dir_path)?;
 
 			let mut moved_count = 0usize;
+			pgbar.set_draw_target(ProgressDrawTarget::stderr());
 
-			for media in utils::find_editable_files(download_path)? {
+			for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
+				pgbar.inc(1);
+				let media = &media_helper.data;
 				let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
 					Some(v) => v,
 					None => {
@@ -779,6 +794,8 @@ fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> 
 				moved_count += 1;
 			}
 
+			pgbar.finish_and_clear();
+
 			println!(
 				"Moved {} media files to \"{}\"",
 				moved_count,
@@ -790,8 +807,11 @@ fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> 
 
 			let final_dir_path = download_path.join("final");
 			std::fs::create_dir_all(&final_dir_path)?;
+			pgbar.set_draw_target(ProgressDrawTarget::stderr());
 
-			for media in utils::find_editable_files(download_path)? {
+			for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
+				pgbar.inc(1);
+				let media = &media_helper.data;
 				let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(&media) {
 					Some(v) => v,
 					None => {
@@ -803,6 +823,8 @@ fn finish_media(sub_args: &CommandDownload, download_path: &std::path::Path) -> 
 				// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same directory
 				std::fs::rename(download_path.join(media_filename), final_dir_path.join(final_filename))?;
 			}
+
+			pgbar.finish_and_clear();
 
 			debug!("Running Picard");
 			utils::run_editor(&sub_args.picard_editor, &final_dir_path, false)?;
