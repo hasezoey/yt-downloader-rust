@@ -355,14 +355,14 @@ where
 /// Handler function for the "download" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
-pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result<(), ioError> {
+pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result<(), crate::Error> {
 	utils::require_ytdl_installed()?;
 
 	let only_recovery = sub_args.urls.is_empty();
 
 	if only_recovery {
 		if sub_args.no_check_recovery {
-			return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required"));
+			return Err(ioError::new(std::io::ErrorKind::Other, "At least one URL is required").into());
 		}
 
 		println!(
@@ -428,7 +428,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 				warn!("Failed to write recovery: {}", rerr)
 			}
 
-			return Err(err);
+			return Err(err.into());
 		},
 	}
 

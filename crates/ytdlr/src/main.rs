@@ -20,7 +20,7 @@ mod state;
 mod utils;
 
 /// Main
-fn main() -> Result<(), ioError> {
+fn main() -> Result<(), crate::Error> {
 	let logger_handle = logger::setup_logger()?;
 
 	let cli_matches = CliDerive::custom_parse();
@@ -51,18 +51,24 @@ fn main() -> Result<(), ioError> {
 					return Err(ioError::new(
 						std::io::ErrorKind::Other,
 						"Expected verbosity integer range between 0 and 3 (inclusive)",
-					))
+					)
+					.into())
 				},
 			}
 			.expect("Expected LogSpecification to parse correctly"),
 		);
 	}
 
-	match &cli_matches.subcommands {
+	let res = match &cli_matches.subcommands {
 		SubCommands::Download(v) => commands::download::command_download(&cli_matches, v),
 		SubCommands::Archive(v) => sub_archive(&cli_matches, v),
 		SubCommands::ReThumbnail(v) => command_rethumbnail(&cli_matches, v),
-	}?;
+	};
+
+	if let Err(err) = res {
+		eprintln!("A Error occured:\n{}", err);
+		std::process::exit(1);
+	}
 
 	return Ok(());
 }
@@ -70,7 +76,7 @@ fn main() -> Result<(), ioError> {
 /// Handler function for the "archive" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
-fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), ioError> {
+fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), crate::Error> {
 	match &sub_args.subcommands {
 		ArchiveSubCommands::Import(v) => commands::import::command_import(main_args, v),
 	}?;
@@ -86,7 +92,7 @@ fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), io
 /// Handler function for the "rethumbnail" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
-fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), ioError> {
+fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), crate::Error> {
 	use libytdlr::main::rethumbnail::*;
 	utils::require_ffmpeg_installed()?;
 
