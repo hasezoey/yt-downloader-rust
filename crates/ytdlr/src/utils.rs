@@ -420,7 +420,10 @@ pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, Pat
 	let media_title = media.title.as_ref()?;
 	let extension = media_filename.extension()?;
 
-	return Some((media_filename, Path::new(media_title).with_extension(extension)));
+	// replace all "/" with a similar looking character, so to not create multiple segments
+	let media_title_conv = media_title.replace("/", "⧸");
+
+	return Some((media_filename, Path::new(&media_title_conv).with_extension(extension)));
 }
 
 /// Apply all required processing to paths that need extra processing
