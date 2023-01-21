@@ -385,6 +385,8 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		.map_or_else(|| return std::env::temp_dir(), |v| return v.clone())
 		.join("ytdl_rust_tmp");
 
+	std::fs::create_dir_all(&tmp_path)?;
+
 	let pgbar: ProgressBar = ProgressBar::new(PG_PERCENT_100).with_style(DOWNLOAD_STYLE.clone());
 	utils::set_progressbar(&pgbar, main_args);
 
