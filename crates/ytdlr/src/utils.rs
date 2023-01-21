@@ -16,7 +16,10 @@ use libytdlr::{
 };
 use std::{
 	borrow::Cow,
-	ffi::OsStr,
+	ffi::{
+		OsStr,
+		OsString,
+	},
 	io::{
 		BufRead,
 		BufReader,
@@ -423,7 +426,13 @@ pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, Pat
 	// replace all "/" with a similar looking character, so to not create multiple segments
 	let media_title_conv = media_title.replace("/", "⧸");
 
-	return Some((media_filename, Path::new(&media_title_conv).with_extension(extension)));
+	// convert converted title into OsString and add the extension
+	// this needs to be done so that titles containing "." do not accidentally get overwritten by "set_extension"
+	let mut final_name_osstr: OsString = media_title_conv.into();
+	final_name_osstr.push(".");
+	final_name_osstr.push(extension); // the extension can be easily added here, because we can safely assume the title does not have a extension
+
+	return Some((media_filename, PathBuf::from(&final_name_osstr)));
 }
 
 /// Apply all required processing to paths that need extra processing
