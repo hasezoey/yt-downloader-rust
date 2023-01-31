@@ -188,7 +188,7 @@ pub struct CommandDownload {
 	/// Must be either a absolute path or findable via PATH
 	#[arg(long, env = "YTDL_VIDEO_EDITOR")]
 	pub video_editor:              Option<PathBuf>,
-	/// Picard Path / Command to use
+	/// Tagger Path / Command to use
 	/// Must be either a absolute path or findable via PATH
 	#[arg(long = "tagger", env = "YTDL_TAGGER")]
 	pub tagger_editor:             Option<PathBuf>,
