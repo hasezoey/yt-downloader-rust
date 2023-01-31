@@ -32,6 +32,7 @@ use std::{
 		PathBuf,
 	},
 	process::Stdio,
+	sync::mpsc,
 };
 
 /// Helper function to set the progressbar to a draw target if mode is interactive
@@ -223,9 +224,45 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 		print!("{msg} [{possible_converted_string}]: ");
 		// ensure the message is printed before reading
 		std::io::stdout().flush()?;
-		// input buffer for "read_line", 1 capacity, because of only expecting 1 character
-		let mut input = String::with_capacity(1);
-		std::io::stdin().read_line(&mut input)?;
+		let input: String;
+
+		// the following has to be done because "read_line" is blocking, but the ctrlc handler should still be able to work
+		{
+			let (tx, rx) = mpsc::channel::<Result<String, ioError>>();
+			let read_thread = std::thread::spawn(move || {
+				// input buffer for "read_line", 1 capacity, because of only expecting 1 character
+				let mut input = String::with_capacity(1);
+				let _ = tx.send(std::io::stdin().read_line(&mut input).map(|_| input));
+			});
+
+			loop {
+				// handle terminate
+				if crate::TERMINATE
+					.read()
+					.map_err(|err| crate::Error::other(format!("{}", err)))?
+					.should_terminate()
+				{
+					return Err(crate::Error::other("Termination Requested"));
+				}
+
+				match rx.try_recv() {
+					Ok(v) => {
+						input = v?;
+						break;
+					},
+					Err(mpsc::TryRecvError::Empty) => (),
+					Err(mpsc::TryRecvError::Disconnected) => {
+						return Err(crate::Error::other("Channel unexpectedly disconnected"))
+					},
+				}
+
+				std::thread::sleep(std::time::Duration::from_millis(50)); // sleep 50ms to not immediately try again, but still be responding
+			}
+
+			read_thread
+				.join()
+				.map_err(|_| crate::Error::other("Failed to join stdin reading thread"))?;
+		}
 
 		let input = input.trim().to_lowercase();
 
@@ -317,7 +354,7 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdo
 	}
 
 	// wait until the editor_child has exited and get the status
-	let editor_child_exit_status = editor_child.wait()?;
+	let editor_child_exit_status = editor_child.wait()?; // not checking for termination, because in rust there is currently no way to detach a child
 
 	editor_child_stderr_thread.join().map_err(|err| {
 		return crate::Error::other(format!("Joining the editor_child STDERR handle failed: {err:?}"));

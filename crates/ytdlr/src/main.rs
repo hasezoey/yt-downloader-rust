@@ -6,7 +6,11 @@ extern crate log;
 
 use flexi_logger::LogSpecification;
 use libytdlr::*;
-use std::path::PathBuf;
+use once_cell::sync::Lazy;
+use std::{
+	path::PathBuf,
+	sync::RwLock,
+};
 
 mod clap_conf;
 use clap_conf::*;
@@ -15,6 +19,58 @@ mod commands;
 mod logger;
 mod state;
 mod utils;
+
+/// Simple struct to keep all data for termination requests (ctrlc handler)
+struct TerminateData {
+	/// Stores the last time a terminate was requested, if ever
+	terminate: Option<std::time::Instant>,
+	/// Stores the message to display when pressing CTRLC
+	msg:       String,
+}
+
+impl Default for TerminateData {
+	fn default() -> Self {
+		return TerminateData {
+			terminate: None,
+			msg:       String::from(DEFAULT_TERMINATE_MSG),
+		};
+	}
+}
+
+impl TerminateData {
+	/// Check if a Termination is requested and still valid
+	pub fn should_terminate(&self) -> bool {
+		let inst = match self.terminate {
+			Some(v) => v,
+			None => return false,
+		};
+
+		return inst.elapsed().as_secs() <= 3;
+	}
+
+	/// Set the time when the terminate was requested
+	pub fn set_terminate_time(&mut self) {
+		self.terminate = Some(std::time::Instant::now());
+	}
+
+	/// Get the termination message
+	pub fn get_msg(&self) -> &String {
+		return &self.msg;
+	}
+
+	/// Set the termination message
+	pub fn set_msg(&mut self, msg: String) {
+		self.msg = msg;
+	}
+}
+
+/// Default Termination request message
+const DEFAULT_TERMINATE_MSG: &str = "Press Again to Terminate within the next 3 seconds";
+
+/// Global instance of [TerminateData] for termination handling
+static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
+	return RwLock::new(TerminateData::default());
+});
 
 /// Main
 fn main() -> Result<(), crate::Error> {
@@ -30,6 +86,44 @@ fn main() -> Result<(), crate::Error> {
 			invoke_vscode_debugger();
 		}
 	}
+
+	// basic crtlc handler, may not be the best method
+	ctrlc::set_handler(move || {
+		let mut tries = 5;
+
+		let mut terminate_write;
+
+		loop {
+			if tries == 0 {
+				println!("failed to acquire write-lock, immediately exiting");
+				std::process::exit(-1);
+			}
+			tries -= 1;
+			match TERMINATE.try_write() {
+				Ok(v) => {
+					terminate_write = v;
+					break;
+				},
+				Err(_) => (),
+			}
+
+			warn!(
+				"crtlc: Acquiring write-lock takes longer than expected! Remaining tries: {}",
+				tries
+			);
+			// only wait as long as there are tries
+			if tries > 0 {
+				std::thread::sleep(std::time::Duration::from_millis(500)); // sleep 500ms to not immediately try again
+			}
+		}
+
+		if terminate_write.should_terminate() {
+			std::process::exit(-1);
+		}
+		println!("{}", terminate_write.get_msg());
+		terminate_write.set_terminate_time();
+	})
+	.map_err(|err| crate::Error::other(format!("{}", err)))?;
 
 	log::info!("CLI Verbosity is {}", cli_matches.verbosity);
 

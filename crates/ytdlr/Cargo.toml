@@ -21,6 +21,8 @@ dirs-next = "2.0.0"
 term_size = "0.3"
 regex = "1.5"
 sysinfo = "0.27"
+ctrlc = { version = "3", features = ["termination"] }
+once_cell = "1.17"
 # the following 2 are required to get the correct boundaries to truncate at
 unicode-segmentation = "1.10" # cluster all characters into display-able characters
 unicode-width = "0.1" # get display width of a given string

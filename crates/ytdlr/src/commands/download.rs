@@ -52,6 +52,20 @@ struct Recovery {
 	writer:   Option<BufWriter<std::fs::File>>,
 }
 
+/// Helper to quickly check for termination
+fn check_termination() -> Result<(), crate::Error> {
+	// handle terminate
+	if crate::TERMINATE
+		.read()
+		.map_err(|err| crate::Error::other(format!("{}", err)))?
+		.should_terminate()
+	{
+		return Err(crate::Error::other("Termination Requested"));
+	}
+
+	return Ok(());
+}
+
 impl Recovery {
 	/// Recovery file prefix
 	const RECOVERY_PREFIX: &str = "recovery_";
@@ -421,6 +435,13 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	let found_recovery_files =
 		try_find_and_read_recovery_files(&mut finished_media, download_state.get_download_path())?;
 
+	crate::TERMINATE
+		.write()
+		.map_err(|err| crate::Error::other(format!("{}", err)))?
+		.set_msg(String::from(
+			"Termination has been requested, press again to terminate immediately",
+		));
+
 	// TODO: consider cross-checking archive if the files from recovery are already in the archive and get a proper title
 
 	match download_wrapper(
@@ -559,6 +580,9 @@ fn do_download(
 	// TODO: do a "count" before running actual download
 
 	for url in &sub_args.urls {
+		// handle terminate
+		check_termination()?;
+
 		download_state.set_current_url(url);
 
 		let new_media =
@@ -611,6 +635,9 @@ fn edit_media(
 	// ask for editing
 	// TODO: consider renaming before asking for edit
 	'for_media_loop: for media_helper in media_sorted_vec.iter() {
+		// handle terminate
+		check_termination()?;
+
 		let media = &media_helper.data;
 		let media_filename = match &media.filename {
 			Some(v) => v,
@@ -1144,6 +1171,8 @@ fn try_find_and_read_recovery_files(
 	}
 
 	let mut read_files: Vec<PathBuf> = Vec::new();
+	// IMPORTANT: currently sysinfo creates threads, but never closes them (even when going out of scope)
+	// see https://github.com/GuillaumeGomez/sysinfo/issues/927
 	let mut s = sysinfo::System::new();
 	s.refresh_processes();
 
