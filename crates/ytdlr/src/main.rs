@@ -123,7 +123,7 @@ fn main() -> Result<(), crate::Error> {
 		println!("{}", terminate_write.get_msg());
 		terminate_write.set_terminate_time();
 	})
-	.map_err(|err| crate::Error::other(format!("{}", err)))?;
+	.map_err(|err| return crate::Error::other(format!("{err}")))?;
 
 	log::info!("CLI Verbosity is {}", cli_matches.verbosity);
 

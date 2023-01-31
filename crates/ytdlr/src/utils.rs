@@ -232,14 +232,14 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 			let read_thread = std::thread::spawn(move || {
 				// input buffer for "read_line", 1 capacity, because of only expecting 1 character
 				let mut input = String::with_capacity(1);
-				let _ = tx.send(std::io::stdin().read_line(&mut input).map(|_| input));
+				let _ = tx.send(std::io::stdin().read_line(&mut input).map(|_| return input));
 			});
 
 			loop {
 				// handle terminate
 				if crate::TERMINATE
 					.read()
-					.map_err(|err| crate::Error::other(format!("{}", err)))?
+					.map_err(|err| return crate::Error::other(format!("{err}")))?
 					.should_terminate()
 				{
 					return Err(crate::Error::other("Termination Requested"));
@@ -261,7 +261,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 
 			read_thread
 				.join()
-				.map_err(|_| crate::Error::other("Failed to join stdin reading thread"))?;
+				.map_err(|_| return crate::Error::other("Failed to join stdin reading thread"))?;
 		}
 
 		let input = input.trim().to_lowercase();
@@ -461,7 +461,7 @@ pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, Pat
 	let extension = media_filename.extension()?;
 
 	// replace all "/" with a similar looking character, so to not create multiple segments
-	let media_title_conv = media_title.replace("/", "⧸");
+	let media_title_conv = media_title.replace('/', "⧸");
 
 	// convert converted title into OsString and add the extension
 	// this needs to be done so that titles containing "." do not accidentally get overwritten by "set_extension"

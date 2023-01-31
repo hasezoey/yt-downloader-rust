@@ -57,7 +57,7 @@ fn check_termination() -> Result<(), crate::Error> {
 	// handle terminate
 	if crate::TERMINATE
 		.read()
-		.map_err(|err| crate::Error::other(format!("{}", err)))?
+		.map_err(|err| return crate::Error::other(format!("{err}")))?
 		.should_terminate()
 	{
 		return Err(crate::Error::other("Termination Requested"));
@@ -437,7 +437,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 
 	crate::TERMINATE
 		.write()
-		.map_err(|err| crate::Error::other(format!("{}", err)))?
+		.map_err(|err| return crate::Error::other(format!("{err}")))?
 		.set_msg(String::from(
 			"Termination has been requested, press again to terminate immediately",
 		));
@@ -777,7 +777,7 @@ mod quirks {
 	/// Calls [`base_ffmpeg`] and adds argument `-hide_banner`
 	#[inline]
 	fn base_ffprobe(overwrite: bool) -> Command {
-		let mut cmd = Command::new(&"ffprobe");
+		let mut cmd = Command::new("ffprobe");
 
 		if overwrite {
 			cmd.arg("-y"); // always overwrite output path
@@ -800,7 +800,7 @@ mod quirks {
 			let mut file_name = tmp_metadata_file
 				.file_name()
 				.ok_or_else(|| {
-					crate::Error::other(format!(
+					return crate::Error::other(format!(
 						"Expected file to have a filename, File: \"{}\"",
 						tmp_metadata_file.to_string_lossy()
 					))
@@ -814,12 +814,12 @@ mod quirks {
 
 		info!("Saving Metadata of file \"{}\"", media_file.to_string_lossy());
 
-		let metadata_format = get_metadata_type(&media_file)?;
+		let metadata_format = get_metadata_type(media_file)?;
 
 		let mut ffmpeg_cmd = base_ffmpeg_hidebanner(true); // overwrite metadata file if already exists
 
 		ffmpeg_cmd.arg("-i");
-		ffmpeg_cmd.arg(&media_file);
+		ffmpeg_cmd.arg(media_file);
 
 		// nothing extra needs to be done for global, only stream needs stream selection
 		if metadata_format == MetadataType::Stream {
@@ -841,7 +841,7 @@ mod quirks {
 
 			return Err(crate::Error::other(format!(
 				"ffmpeg metadata save command failed, code: {}",
-				exit_status.code().map_or("None".into(), |v| v.to_string())
+				exit_status.code().map_or("None".into(), |v| return v.to_string())
 			)));
 		}
 
@@ -865,7 +865,7 @@ mod quirks {
 
 		let mut ffprobe_cmd = base_ffprobe(true);
 
-		ffprobe_cmd.args(&[
+		ffprobe_cmd.args([
 			"-v",
 			"quiet", // dont show any extra information
 			"-show_entries",
@@ -873,7 +873,7 @@ mod quirks {
 			"-of",
 			"default=noprint_wrappers=1:nokey=1", // dont wrap the output and also dont add a key
 		]);
-		ffprobe_cmd.arg(&media_file);
+		ffprobe_cmd.arg(media_file);
 
 		let output = ffprobe_cmd.output()?;
 
@@ -949,7 +949,7 @@ mod quirks {
 			let mut file_name = tmp_media_file_tmp
 				.file_name()
 				.ok_or_else(|| {
-					crate::Error::other(format!(
+					return crate::Error::other(format!(
 						"Expected file to have a filename, File: \"{}\"",
 						tmp_media_file_tmp.to_string_lossy()
 					))
@@ -963,15 +963,15 @@ mod quirks {
 		let mut ffmpeg_cmd = base_ffmpeg_hidebanner(true); // overwrite metadata file if already exists
 
 		ffmpeg_cmd.arg("-i");
-		ffmpeg_cmd.arg(&media_file);
+		ffmpeg_cmd.arg(media_file);
 
 		ffmpeg_cmd.arg("-i");
-		ffmpeg_cmd.arg(&metadata_file);
+		ffmpeg_cmd.arg(metadata_file);
 
 		ffmpeg_cmd.args(["-map_metadata", "1", "-map_metadata:s:a", "1:g", "-codec", "copy"]);
 
 		// explicitly setting output format, because ffmpeg tries to infer from output extension - which may fail
-		match get_format(&media_file) {
+		match get_format(media_file) {
 			Ok(media_file_format) => {
 				ffmpeg_cmd.arg("-f");
 				ffmpeg_cmd.arg(media_file_format);
@@ -995,12 +995,12 @@ mod quirks {
 
 			return Err(crate::Error::other(format!(
 				"ffmpeg metadata apply command failed, code: {}",
-				exit_status.code().map_or("None".into(), |v| v.to_string())
+				exit_status.code().map_or("None".into(), |v| return v.to_string())
 			)));
 		}
 
 		// rename can be used here, because both files exist in the same directory
-		std::fs::rename(&media_file_tmp, &media_file)?;
+		std::fs::rename(&media_file_tmp, media_file)?;
 
 		return Ok(());
 	}
