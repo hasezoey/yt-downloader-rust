@@ -803,7 +803,7 @@ mod quirks {
 					return crate::Error::other(format!(
 						"Expected file to have a filename, File: \"{}\"",
 						tmp_metadata_file.to_string_lossy()
-					))
+					));
 				})?
 				.to_os_string();
 			file_name.push(".metadata");
@@ -952,7 +952,7 @@ mod quirks {
 					return crate::Error::other(format!(
 						"Expected file to have a filename, File: \"{}\"",
 						tmp_media_file_tmp.to_string_lossy()
-					))
+					));
 				})?
 				.to_os_string();
 			file_name.push(".tmp");
