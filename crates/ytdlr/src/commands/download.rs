@@ -1,6 +1,9 @@
-use crate::clap_conf::*;
 use crate::state::DownloadState;
 use crate::utils;
+use crate::{
+	clap_conf::*,
+	commands::download::quirks::apply_metadata,
+};
 use colored::{
 	Color,
 	Colorize,
@@ -504,7 +507,7 @@ fn do_download(
 	pgbar: &ProgressBar,
 	download_state: &mut DownloadState,
 	finished_media: &mut MediaInfoArr,
-) -> Result<(), ioError> {
+) -> Result<(), crate::Error> {
 	let mut maybe_connection: Option<SqliteConnection> = {
 		if let Some(ap) = main_args.archive_path.as_ref() {
 			Some(utils::handle_connect(ap, pgbar, main_args)?.1)
@@ -636,8 +639,9 @@ fn edit_media(
 				"n",
 			)?;
 
-			// TODO: add option to re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
+			// re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
 			// see https://github.com/audacity/audacity/issues/3733
+			let metadata_file = quirks::save_metadata(&media_path)?;
 
 			match input.as_str() {
 				"n" => continue 'for_media_loop,
@@ -695,6 +699,21 @@ fn edit_media(
 				_ => unreachable!("get_input should only return a OK value from the possible array"),
 			}
 
+			// re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
+			// see https://github.com/audacity/audacity/issues/3733
+			if let Some(metadata_file) = metadata_file {
+				apply_metadata(&media_path, &metadata_file)?;
+
+				match std::fs::remove_file(&metadata_file) {
+					Ok(()) => (),
+					Err(err) => {
+						info!("Removing metadata file failed, error: {}", err);
+					},
+				};
+			} else {
+				debug!("No metadata file, not reapplying metadata");
+			}
+
 			// when getting here, the media needs to be re-thumbnailed
 			debug!("Re-applying thumbnail for media");
 			if let Some(image_path) = libytdlr::main::rethumbnail::find_image(&media_path)? {
@@ -716,6 +735,248 @@ fn edit_media(
 	}
 
 	return Ok(());
+}
+
+/// Module for keeping all quirk workaround functions and imports
+mod quirks {
+	use super::*;
+	use libytdlr::spawn::ffmpeg::base_ffmpeg_hidebanner;
+	use std::{
+		collections::HashSet,
+		process::Command,
+	};
+
+	/// Create a Command with basic ffprobe options
+	/// Calls [`base_ffmpeg`] and adds argument `-hide_banner`
+	#[inline]
+	fn base_ffprobe(overwrite: bool) -> Command {
+		let mut cmd = Command::new(&"ffprobe");
+
+		if overwrite {
+			cmd.arg("-y"); // always overwrite output path
+		}
+
+		cmd.arg("-hide_banner");
+
+		return cmd;
+	}
+
+	/// Save the Metadata of the given media file
+	/// Returns the Path to the metadata file
+	pub fn save_metadata<MF>(media_file: MF) -> Result<Option<PathBuf>, crate::Error>
+	where
+		MF: AsRef<Path>,
+	{
+		let media_file = media_file.as_ref();
+		let metadata_file = {
+			let mut tmp_metadata_file: PathBuf = media_file.to_path_buf();
+			let mut file_name = tmp_metadata_file
+				.file_name()
+				.ok_or_else(|| {
+					crate::Error::other(format!(
+						"Expected file to have a filename, File: \"{}\"",
+						tmp_metadata_file.to_string_lossy()
+					))
+				})?
+				.to_os_string();
+			file_name.push(".metadata");
+			tmp_metadata_file.set_file_name(file_name);
+
+			tmp_metadata_file
+		};
+
+		info!("Saving Metadata of file \"{}\"", media_file.to_string_lossy());
+
+		let metadata_format = get_metadata_type(&media_file)?;
+
+		let mut ffmpeg_cmd = base_ffmpeg_hidebanner(true); // overwrite metadata file if already exists
+
+		ffmpeg_cmd.arg("-i");
+		ffmpeg_cmd.arg(&media_file);
+
+		// nothing extra needs to be done for global, only stream needs stream selection
+		if metadata_format == MetadataType::Stream {
+			ffmpeg_cmd.args(["-map_metadata", "0:s:0"]);
+		}
+
+		ffmpeg_cmd.args(["-f", "ffmetadata"]);
+		ffmpeg_cmd.arg(&metadata_file);
+
+		debug!("Spawning ffmpeg to save metadata");
+
+		let output = ffmpeg_cmd.output()?;
+
+		let exit_status = output.status;
+
+		if !exit_status.success() {
+			debug!("ffmpeg did not exist successfully, displaying log:");
+			debug!("STDERR {}", String::from_utf8_lossy(&output.stderr));
+
+			return Err(crate::Error::other(format!(
+				"ffmpeg metadata save command failed, code: {}",
+				exit_status.code().map_or("None".into(), |v| v.to_string())
+			)));
+		}
+
+		if !metadata_file.exists() {
+			warn!("metadata files does not exist after ffmpeg ran and exited successfully");
+			return Ok(None);
+		}
+
+		return Ok(Some(metadata_file));
+	}
+
+	lazy_static::lazy_static! {
+		/// Extensions that store metadata in the global
+		static ref GLOBAL_METADATA_EXT: HashSet<&'static str> = HashSet::from(["mp3"]);
+		/// Extensions that store metadata in the stream
+		static ref STREAM_METADATA_EXT: HashSet<&'static str> = HashSet::from(["ogg"]);
+	}
+
+	fn get_format(media_file: &Path) -> Result<String, crate::Error> {
+		trace!("Getting Format for file \"{}\"", media_file.to_string_lossy());
+
+		let mut ffprobe_cmd = base_ffprobe(true);
+
+		ffprobe_cmd.args(&[
+			"-v",
+			"quiet", // dont show any extra information
+			"-show_entries",
+			"format=format_name", // filter to only print the format name
+			"-of",
+			"default=noprint_wrappers=1:nokey=1", // dont wrap the output and also dont add a key
+		]);
+		ffprobe_cmd.arg(&media_file);
+
+		let output = ffprobe_cmd.output()?;
+
+		let stdout = {
+			let mut stdout = String::from_utf8(output.stdout)?;
+			let len = stdout.trim_end().len();
+			stdout.truncate(len);
+
+			stdout
+		};
+
+		debug!("Found file to be of format \"{stdout}\"");
+
+		return Ok(stdout); // can safely assume ffprobe will output utf8 characters
+	}
+
+	fn get_metadata_type(media_file: &Path) -> Result<MetadataType, crate::Error> {
+		let metadata_format = match get_format(media_file) {
+			Ok(v) => v,
+			Err(err) => {
+				warn!("Spawning ffprobe to get the format for metadata failed, Error: {}", err);
+
+				return ask_format(media_file);
+			},
+		};
+
+		if GLOBAL_METADATA_EXT.contains(metadata_format.as_str()) {
+			return Ok(MetadataType::Global);
+		}
+
+		if STREAM_METADATA_EXT.contains(metadata_format.as_str()) {
+			return Ok(MetadataType::Stream);
+		}
+
+		warn!("Format \"{metadata_format}\" was not listed in the 2 HashSet's, manually asking for type");
+
+		return ask_format(media_file);
+	}
+
+	#[derive(Debug, PartialEq)]
+	enum MetadataType {
+		Global,
+		Stream,
+	}
+
+	/// Ask for manual metadata stream selection
+	fn ask_format(input_file: &Path) -> Result<MetadataType, crate::Error> {
+		// if not FileType could be found, ask user what to do
+		return Ok(match utils::get_input(
+			&format!("Could not determine which metadata type is used for file. Select manually: [g]lobal [s]tream\nFile: \"{}\"", input_file.to_string_lossy()),
+			&["g", "s"],
+			"",
+		)?
+		.as_str()
+		{
+			"g" => MetadataType::Global,
+			"s" => MetadataType::Stream,
+			_ => unreachable!("get_input should only return a OK value from the possible array"),
+		});
+	}
+
+	/// Apply the given Metadata to the given media_file
+	pub fn apply_metadata<MF, MD>(media_file: MF, metadata_file: MD) -> Result<(), crate::Error>
+	where
+		MF: AsRef<Path>,
+		MD: AsRef<Path>,
+	{
+		let media_file = media_file.as_ref();
+		let metadata_file = metadata_file.as_ref();
+
+		let media_file_tmp = {
+			let mut tmp_media_file_tmp = media_file.to_path_buf();
+			let mut file_name = tmp_media_file_tmp
+				.file_name()
+				.ok_or_else(|| {
+					crate::Error::other(format!(
+						"Expected file to have a filename, File: \"{}\"",
+						tmp_media_file_tmp.to_string_lossy()
+					))
+				})?
+				.to_os_string();
+			file_name.push(".tmp");
+			tmp_media_file_tmp.set_file_name(file_name);
+			tmp_media_file_tmp
+		};
+
+		let mut ffmpeg_cmd = base_ffmpeg_hidebanner(true); // overwrite metadata file if already exists
+
+		ffmpeg_cmd.arg("-i");
+		ffmpeg_cmd.arg(&media_file);
+
+		ffmpeg_cmd.arg("-i");
+		ffmpeg_cmd.arg(&metadata_file);
+
+		ffmpeg_cmd.args(["-map_metadata", "1", "-map_metadata:s:a", "1:g", "-codec", "copy"]);
+
+		// explicitly setting output format, because ffmpeg tries to infer from output extension - which may fail
+		match get_format(&media_file) {
+			Ok(media_file_format) => {
+				ffmpeg_cmd.arg("-f");
+				ffmpeg_cmd.arg(media_file_format);
+			},
+			Err(err) => {
+				debug!("Getting format for input file failed, letting ffmpeg to automatically decide output format. Error: {}", err);
+			},
+		}
+
+		ffmpeg_cmd.arg(&media_file_tmp);
+
+		debug!("Spawning ffmpeg to apply metadata");
+
+		let output = ffmpeg_cmd.output()?;
+
+		let exit_status = output.status;
+
+		if !exit_status.success() {
+			debug!("ffmpeg did not exist successfully, displaying log:");
+			debug!("STDERR {}", String::from_utf8_lossy(&output.stderr));
+
+			return Err(crate::Error::other(format!(
+				"ffmpeg metadata apply command failed, code: {}",
+				exit_status.code().map_or("None".into(), |v| v.to_string())
+			)));
+		}
+
+		// rename can be used here, because both files exist in the same directory
+		std::fs::rename(&media_file_tmp, &media_file)?;
+
+		return Ok(());
+	}
 }
 
 /// Finish the given media by either opening up the tagger or moving to final destination
