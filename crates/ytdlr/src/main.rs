@@ -99,12 +99,9 @@ fn main() -> Result<(), crate::Error> {
 				std::process::exit(-1);
 			}
 			tries -= 1;
-			match TERMINATE.try_write() {
-				Ok(v) => {
-					terminate_write = v;
-					break;
-				},
-				Err(_) => (),
+			if let Ok(v) = TERMINATE.try_write() {
+				terminate_write = v;
+				break;
 			}
 
 			warn!(
