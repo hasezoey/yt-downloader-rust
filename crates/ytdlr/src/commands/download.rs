@@ -637,7 +637,7 @@ fn edit_media(
 			)?;
 
 			// TODO: add option to re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
-			// see https://github.com/audacity/audacity/issues/4218
+			// see https://github.com/audacity/audacity/issues/3733
 
 			match input.as_str() {
 				"n" => continue 'for_media_loop,
