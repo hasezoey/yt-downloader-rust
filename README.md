@@ -5,7 +5,7 @@
 - Linux / Mac - build with POSIX system paths in mind (Windows *might* work)
 - youtube-dl or yt-dlp installed and be accessable via the command `youtube-dl`
 - ffmpeg is installed and be accessable via the command `ffmpeg`
-- rust stable 1.58 or higher
+- rust stable 1.65 or higher
 
 ## Usage
 
@@ -27,9 +27,8 @@ Signature: `ytdlr [OPTIONS] <SUBCOMMAND>`
 
 Notes:
 
-- Currently `color` is unused.
 - `debugger` only works in a target with `debug_assertions` enabled.
-- `verbosity` is counted by occurences in the command (like `-vv` equals `2`) or a number in the environment variable.
+- `verbosity` is counted by occurences in the command (like `-vv` equals `2`) or a number in the environment variable. (`0 - WARN`, `1 - INFO`, `2 - DEBUG`, `3 - TRACE`)
 - `archive` is only used when a path is set.
 
 ### `download`
@@ -43,26 +42,26 @@ Aliases: `download`
 | :-------------: | :---: | :------------------------: | :----------------------------: | :-----------------------: | :----: | :--------------------------------------------------------------------------------------------------------------------- |
 |                 |  -h   |           --help           |                                |                           |  flag  | Print Help Information                                                                                                 |
 |                 |  -a   |        --audio-only        |                                |                           |  flag  | Set that the Output will only be audio-only (mp3)                                                                      |
-|                 |       |       --audio-editor       |       YTDL_AUDIO_EDITOR        |                           | OsStr  | Audio Editor Command / Path to Command                                                                                 |
-|                 |       |       --video-editor       |       YTDL_VIDEO_EDITOR        |                           | OsStr  | Video Editor Command / Path to Command                                                                                 |
-|                 |       |          --tagger          |          YTDL_TAGGER           |                           | OsStr  | Tagger Command / Path to Command (a tagger like `picard`)                                                              |
+|                 |       |       --audio-editor       |       YTDL_AUDIO_EDITOR        |                           | OsStr  | Audio Editor Command / Path to use (like `audacity`)                                                                   |
+|                 |       |       --video-editor       |       YTDL_VIDEO_EDITOR        |                           | OsStr  | Video Editor Command / Path to use (like `kdenlive`)                                                                   |
+|                 |       |          --tagger          |          YTDL_TAGGER           |                           | OsStr  | Tagger Command / Path to use (like `picard`)                                                                           |
 |                 |       |      --editor-stdout       |                                |                           |  flag  | Enable Output of the Editor command stdout to be printed to the log                                                    |
 |                 |       |     --youtubedl-stdout     |                                |                           |  flag  | Enable Output of the youtube-dl command stdout to be printed to the log                                                |
 |                 |       |   --no-reapply-thumbnail   | YTDL_DISABLE_REAPPLY_THUMBNAIL |           false           |  bool  | Disable re-applying the thumbnail after a editor has run                                                               |
 |                 |  -o   |       --output-path        |            YTDL_OUT            | DownloadDir + `ytdlr-out` | OsStr  | Output path to place all finished files in                                                                             |
 |                 |       |   --force-genarchive-all   |                                |                           |  flag  | Force the archive to be completely dumped in the youtube-dl archive                                                    |
 |                 |       | --force-genarchive-by-date |                                |                           |  flag  | Force the archive to use the by-date generation for the youtube-dl archive                                             |
-|                 |       |     --force-no-archive     |                                |                           |  flag  | Force to not use any ytdl archive (include all entries), but still add media to ytdlr archive (if not exist already)   |
+|                 |       |     --force-no-archive     |                                |                           |  flag  | Force to not use and generate any youtube-dl archive (does not affect `--archive`, only what youtube-dl will see)      |
 |                 |       |    --no-check-recovery     |                                |                           |  flag  | Disables allowing 0 URL's to just check the recovery                                                                   |
 |                 |       |        open-tagger         |                                |                           |  flag  | Set to automatically open the tagger in the end. also overwrites the default option of moving for non-interactive mode |
-|      URLS       |       |                            |                                |                           | string | The URLS (one or more) to be downloaded                                                                                |
+|      URLS       |       |                            |                                |                           | string | The URLS (one or more) to be downloaded            (or 0 for error recovery)                                           |
 
 Notes:
 
-- This command will store all intermediate downloaded files (until moved) in [`tmp`](#global-options).
-- If `force-genarchive-all` or others are set, `force-genarchive-all` will take priority.
-- Files will not be moved to `output-path` when Picard is chosen (enable "Move Files" in Picard).
-- `*-stdout` flags enable stdout to be printed to the logs, but to view these `RUST_LOG` must at least be at `trace`.
+- This command will store all intermediate downloaded files (until moved) in the tempoarary path specified by [`--tmp`](#global-options).
+- If `force-genarchive-all` or others are set, `force-genarchive-all` will take priority (except `force-no-archive`).
+- Files will not be moved to `output-path` when the Tagger option is chosen (enable "Move Files" in your Tagger).
+- `*-stdout` flags enable stdout to be printed to the logs, but to view these `RUST_LOG` must at least be at `trace` (or `-vvv`).
 - 0 URLs means to only check for recovery
 - in non-interactive mode the default for finishing media is to move files (`m` in interactive mode), can be changed with `--open-tagger`
 
@@ -80,6 +79,10 @@ Aliases: `re-thumbnail`, `rethumbnail`
 |  -i   | --image |                      |                   | OsStr | Input Image File       |
 |  -m   | --media |                      |                   | OsStr | Input Media File       |
 |  -o   |  --out  |                      | Same as `--media` | OsStr | Output Media File      |
+
+Notes:
+
+- if no `--out` is specified, by default it will overwrite the input `--media` path
 
 ### `archive import`
 
@@ -106,7 +109,6 @@ This Project is mainly a personal project, so it is currently tailored to my use
 
 ## Project TODO
 
-- [ ] Some TODO's
-  - [ ] add QOL command `archive search` to search through the archive by any column
-  - [ ] add QOL command `completions` to generate shell completions (bash, zsh, etc)
-  - [ ] add ability to start a play (like mpv) before choosing to edit
+- [ ] add QOL command `archive search` to search through the archive by any column
+- [ ] add QOL command `completions` to generate shell completions (bash, zsh, etc)
+- [ ] add ability to start a play (like mpv) before choosing to edit
