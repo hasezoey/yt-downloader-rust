@@ -666,20 +666,16 @@ fn edit_media(
 				"n",
 			)?;
 
-			// re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
-			// see https://github.com/audacity/audacity/issues/3733
-			let metadata_file = quirks::save_metadata(&media_path)?;
-
 			match input.as_str() {
 				"n" => continue 'for_media_loop,
 				"y" => match utils::get_filetype(media_filename) {
 					utils::FileType::Video => {
 						println!("Found filetype to be of video");
-						utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?
+						run_editor_wrap(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?
 					},
 					utils::FileType::Audio => {
 						println!("Found filetype to be of audio");
-						utils::run_editor(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?
+						run_editor_wrap(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?
 					},
 					utils::FileType::Unknown => {
 						// if not FileType could be found, ask user what to do
@@ -690,8 +686,8 @@ fn edit_media(
 						)?
 						.as_str()
 						{
-							"a" => utils::run_editor(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?,
-							"v" => utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?,
+							"a" => run_editor_wrap(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?,
+							"v" => run_editor_wrap(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?,
 							"b" => return Err(crate::Error::other("Abort Selected")),
 							"n" => continue 'for_media_loop,
 							_ => unreachable!("get_input should only return a OK value from the possible array"),
@@ -711,10 +707,10 @@ fn edit_media(
 					continue 'ask_do_loop;
 				},
 				"a" => {
-					utils::run_editor(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?;
+					run_editor_wrap(&sub_args.audio_editor, &media_path, sub_args.print_editor_stdout)?;
 				},
 				"v" => {
-					utils::run_editor(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?;
+					run_editor_wrap(&sub_args.video_editor, &media_path, sub_args.print_editor_stdout)?;
 				},
 				// "p" => {
 				// 	// TODO: allow PLAYER to be something other than mpv
@@ -724,21 +720,6 @@ fn edit_media(
 				// 	continue 'ask_do_loop;
 				// },
 				_ => unreachable!("get_input should only return a OK value from the possible array"),
-			}
-
-			// re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
-			// see https://github.com/audacity/audacity/issues/3733
-			if let Some(metadata_file) = metadata_file {
-				apply_metadata(&media_path, &metadata_file)?;
-
-				match std::fs::remove_file(&metadata_file) {
-					Ok(()) => (),
-					Err(err) => {
-						info!("Removing metadata file failed, error: {}", err);
-					},
-				};
-			} else {
-				debug!("No metadata file, not reapplying metadata");
 			}
 
 			// when getting here, the media needs to be re-thumbnailed
@@ -759,6 +740,32 @@ fn edit_media(
 
 			continue 'for_media_loop;
 		}
+	}
+
+	return Ok(());
+}
+
+/// Wrap [utils::run_editor] calls to apply quirks in all cases - but only when editor is actually run
+fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path, print_stdout: bool) -> Result<(), crate::Error> {
+	// re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
+	// see https://github.com/audacity/audacity/issues/3733
+	let metadata_file = quirks::save_metadata(file)?;
+
+	utils::run_editor(maybe_editor, file, print_stdout)?;
+
+	// re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
+	// see https://github.com/audacity/audacity/issues/3733
+	if let Some(metadata_file) = metadata_file {
+		apply_metadata(file, &metadata_file)?;
+
+		match std::fs::remove_file(&metadata_file) {
+			Ok(()) => (),
+			Err(err) => {
+				info!("Removing metadata file failed, error: {}", err);
+			},
+		};
+	} else {
+		debug!("No metadata file, not reapplying metadata");
 	}
 
 	return Ok(());
