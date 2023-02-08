@@ -1199,7 +1199,7 @@ fn try_find_and_read_recovery_files(
 
 		let path = entry.path();
 		let file_name = path.file_name()?;
-		if path.is_file() && Path::new(file_name).starts_with(Recovery::RECOVERY_PREFIX) {
+		if path.is_file() && file_name.to_string_lossy().starts_with(Recovery::RECOVERY_PREFIX) {
 			return Some(path);
 		}
 		return None;
