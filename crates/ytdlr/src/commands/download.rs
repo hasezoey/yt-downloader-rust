@@ -136,7 +136,14 @@ impl Recovery {
 	}
 
 	/// Write the given MediaInfo-Vec to the file
+	/// will not do anything if `media_arr` is empty
 	pub fn write_recovery(&mut self, media_arr: &MediaInfoArr) -> std::io::Result<()> {
+		// dont write a empty recovery file
+		if media_arr.is_empty() {
+			debug!("Nothing to write, not creating a recovery");
+			return Ok(());
+		}
+
 		let writer = self.get_writer_or_open()?;
 		// save the entries sorted
 		let media_sorted_vec = media_arr.as_sorted_vec();
@@ -247,6 +254,11 @@ impl MediaInfoArr {
 			mediainfo_map: HashMap::default(),
 			next_order:    0,
 		};
+	}
+
+	/// Check if the mediainfo_map is empty, see [`HashMap::is_empty`]
+	pub fn is_empty(&self) -> bool {
+		return self.mediainfo_map.is_empty();
 	}
 
 	/// Insert a [`MediaInfo`] into the map, updating the old value if existed and returing the old value
