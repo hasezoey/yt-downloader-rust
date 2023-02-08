@@ -793,7 +793,6 @@ mod quirks {
 	};
 
 	/// Create a Command with basic ffprobe options
-	/// Calls [`base_ffmpeg`] and adds argument `-hide_banner`
 	#[inline]
 	fn base_ffprobe(overwrite: bool) -> Command {
 		let mut cmd = Command::new("ffprobe");
