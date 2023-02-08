@@ -444,6 +444,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		}
 	}
 
+	// run AFTER finding all files, so that the correct filename is already set for files, and only information gets updated
 	let found_recovery_files =
 		try_find_and_read_recovery_files(&mut finished_media, download_state.get_download_path())?;
 
