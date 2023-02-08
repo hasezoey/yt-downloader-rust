@@ -42,7 +42,7 @@ use unicode_width::UnicodeWidthStr;
 /// Static for easily referencing the 100% length for a progressbar
 const PG_PERCENT_100: u64 = 100;
 /// Static size the Download Progress Style will take (plus some spacers)
-/// currently accounts for "[00/??] [00:00:00] ### "
+/// currently accounts for `[00/??] [00:00:00] ### `
 const STYLE_STATIC_SIZE: usize = 23;
 
 struct Recovery {
