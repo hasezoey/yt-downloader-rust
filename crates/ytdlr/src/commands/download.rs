@@ -788,24 +788,7 @@ fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path, print_stdout: bo
 mod quirks {
 	use super::*;
 	use libytdlr::spawn::ffmpeg::base_ffmpeg_hidebanner;
-	use std::{
-		collections::HashSet,
-		process::Command,
-	};
-
-	/// Create a Command with basic ffprobe options
-	#[inline]
-	fn base_ffprobe(overwrite: bool) -> Command {
-		let mut cmd = Command::new("ffprobe");
-
-		if overwrite {
-			cmd.arg("-y"); // always overwrite output path
-		}
-
-		cmd.arg("-hide_banner");
-
-		return cmd;
-	}
+	use std::collections::HashSet;
 
 	/// Save the Metadata of the given media file
 	/// Returns the Path to the metadata file
@@ -882,31 +865,12 @@ mod quirks {
 	fn get_format(media_file: &Path) -> Result<String, crate::Error> {
 		trace!("Getting Format for file \"{}\"", media_file.to_string_lossy());
 
-		let mut ffprobe_cmd = base_ffprobe(true);
+		let stdout = libytdlr::spawn::ffmpeg::ffmpeg_probe(media_file)?;
+		let formats = libytdlr::spawn::ffmpeg::parse_format(&stdout)?.join(",");
 
-		ffprobe_cmd.args([
-			"-v",
-			"quiet", // dont show any extra information
-			"-show_entries",
-			"format=format_name", // filter to only print the format name
-			"-of",
-			"default=noprint_wrappers=1:nokey=1", // dont wrap the output and also dont add a key
-		]);
-		ffprobe_cmd.arg(media_file);
+		debug!("Found file to be of format \"{formats}\"");
 
-		let output = ffprobe_cmd.output()?;
-
-		let stdout = {
-			let mut stdout = String::from_utf8(output.stdout)?;
-			let len = stdout.trim_end().len();
-			stdout.truncate(len);
-
-			stdout
-		};
-
-		debug!("Found file to be of format \"{stdout}\"");
-
-		return Ok(stdout); // can safely assume ffprobe will output utf8 characters
+		return Ok(formats);
 	}
 
 	fn get_metadata_type(media_file: &Path) -> Result<MetadataType, crate::Error> {
