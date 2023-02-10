@@ -39,10 +39,13 @@ lazy_static! {
 }
 
 /// Helper to consistently create a error
-pub(crate) fn unsuccessfull_command_exit(status: std::process::ExitStatus) -> crate::Error {
+pub(crate) fn unsuccessfull_command_exit(status: std::process::ExitStatus, output: &str) -> crate::Error {
+	let last_lines = output.lines().rev().take(5).collect::<String>();
+
 	return crate::Error::CommandNotSuccesfull(format!(
-		"FFMPEG did not successfully exit! Exit Code: {}",
-		status.code().map_or("None".to_string(), |v| return v.to_string())
+		"FFMPEG did not successfully exit! Exit Code: {}\nLast Lines:\n{}",
+		status.code().map_or("None".to_string(), |v| return v.to_string()),
+		last_lines
 	));
 }
 
@@ -59,11 +62,11 @@ pub fn ffmpeg_version() -> Result<String, crate::Error> {
 		.spawn()?
 		.wait_with_output()?;
 
-	if !command_output.status.success() {
-		return Err(unsuccessfull_command_exit(command_output.status));
-	}
-
 	let as_string = String::from_utf8(command_output.stdout)?;
+
+	if !command_output.status.success() {
+		return Err(unsuccessfull_command_exit(command_output.status, &as_string));
+	}
 
 	return ffmpeg_parse_version(&as_string);
 }
@@ -107,7 +110,7 @@ where
 	}
 
 	if !command_output.status.success() && !was_success {
-		return Err(unsuccessfull_command_exit(command_output.status));
+		return Err(unsuccessfull_command_exit(command_output.status, &as_string));
 	}
 
 	return Ok(as_string);
