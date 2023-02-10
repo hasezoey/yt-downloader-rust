@@ -282,6 +282,8 @@ impl LineType {
 			static ref GENERIC_TYPE_REGEX: Regex = Regex::new(r"(?mi)^deleting original file").unwrap();
 			// regex to check for ERRORs
 			static ref ERROR_TYPE_REGEX: Regex = Regex::new(r"(?m)^ERROR:").unwrap();
+			// regex to check for ERRORs
+			static ref YTDL_ERROR_TYPE_REGEX: Regex = Regex::new(r"(?m)^youtube-dl: error:").unwrap();
 		}
 
 		let input = input.as_ref();
@@ -313,6 +315,10 @@ impl LineType {
 		}
 
 		if ERROR_TYPE_REGEX.is_match(input) {
+			return Some(Self::Error);
+		}
+
+		if YTDL_ERROR_TYPE_REGEX.is_match(input) {
 			return Some(Self::Error);
 		}
 
@@ -908,6 +914,9 @@ mod test {
 			assert_eq!(Some(LineType::Custom), LineType::try_from_line(input));
 
 			let input = "ERROR: [provider] id: Unable to download webpage: The read operation timed out";
+			assert_eq!(Some(LineType::Error), LineType::try_from_line(input));
+
+			let input = r#"youtube-dl: error: invalid thumbnail format ""webp>jpg"" given"#;
 			assert_eq!(Some(LineType::Error), LineType::try_from_line(input));
 		}
 
