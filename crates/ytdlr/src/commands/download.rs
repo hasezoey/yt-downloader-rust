@@ -426,6 +426,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		sub_args.force_genarchive_bydate,
 		sub_args.force_genarchive_all,
 		sub_args.force_no_archive,
+		sub_args.sub_langs.as_ref(),
 	);
 
 	// already create the vec for finished media, so that the finished ones can be stored in case of error

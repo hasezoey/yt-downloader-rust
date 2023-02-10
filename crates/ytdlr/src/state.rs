@@ -12,7 +12,7 @@ use libytdlr::{
 
 /// Struct to keep configuration data for the [`DownloadOptions`] trait
 #[derive(Debug, PartialEq, Clone)]
-pub struct DownloadState {
+pub struct DownloadState<'a> {
 	/// Enable downloading / converting to audio only format
 	audio_only_enable:       bool,
 	/// Extra arguments to pass to ytdl
@@ -33,9 +33,11 @@ pub struct DownloadState {
 
 	/// Set the current URL to be downloaded
 	current_url: String,
+	/// Set which subtitle languages to download
+	sub_langs:   Option<&'a String>,
 }
 
-impl DownloadState {
+impl<'a> DownloadState<'a> {
 	/// Create a new instance of [`DownloadState`] with the required options
 	pub fn new(
 		audio_only_enable: bool,
@@ -44,6 +46,7 @@ impl DownloadState {
 		force_genarchive_bydate: bool,
 		force_genarchive_all: bool,
 		force_no_archive: bool,
+		sub_langs: Option<&'a String>,
 	) -> Self {
 		return Self {
 			audio_only_enable,
@@ -52,6 +55,7 @@ impl DownloadState {
 			print_stdout_debug,
 			count_result: Vec::default(),
 			download_path,
+			sub_langs,
 
 			force_genarchive_bydate,
 			force_genarchive_all,
@@ -78,7 +82,7 @@ impl DownloadState {
 	}
 }
 
-impl DownloadOptions for DownloadState {
+impl DownloadOptions for DownloadState<'_> {
 	fn audio_only(&self) -> bool {
 		return self.audio_only_enable;
 	}
@@ -202,5 +206,9 @@ impl DownloadOptions for DownloadState {
 		}
 
 		return len;
+	}
+
+	fn sub_langs(&self) -> Option<&String> {
+		return self.sub_langs;
 	}
 }

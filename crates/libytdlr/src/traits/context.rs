@@ -42,4 +42,8 @@ pub trait DownloadOptions {
 	/// Get a estimate of how many media elements will be downloaded
 	/// This commonly should be the length of the vec containing [`crate::main::count::CountVideo`] returned from [`crate::main::count::count`]
 	fn get_count_estimate(&self) -> usize;
+	/// Get which subtitle languages to download
+	/// see https://github.com/yt-dlp/yt-dlp#subtitle-options for what is available
+	/// [None] disables adding subtitles
+	fn sub_langs(&self) -> Option<&String>;
 }

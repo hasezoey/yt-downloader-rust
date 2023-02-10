@@ -227,6 +227,10 @@ pub struct CommandDownload {
 	/// also overwrites the default option of moving for non-interactive mode
 	#[arg(long = "open-tagger")]
 	pub open_tagger:               bool,
+	/// Set which subtitle languages to download
+	/// see https://github.com/yt-dlp/yt-dlp#subtitle-options
+	#[arg(long = "sub-langs", env = "YTDL_SUB_LANGS")]
+	pub sub_langs:                 Option<String>,
 
 	pub urls: Vec<String>,
 }
@@ -324,6 +328,7 @@ mod test {
 				tagger_editor: None,
 				no_check_recovery: false,
 				open_tagger: false,
+				sub_langs: None,
 			};
 
 			let mut cloned = init_default.clone();
@@ -352,6 +357,7 @@ mod test {
 				tagger_editor: None,
 				no_check_recovery: false,
 				open_tagger: false,
+				sub_langs: None,
 			};
 
 			let mut cloned = init_default.clone();
@@ -449,6 +455,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				});
 
 				let mut cloned = init_default_download.clone();
@@ -497,6 +504,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 
@@ -533,6 +541,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 
@@ -572,6 +581,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 
@@ -607,6 +617,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 
@@ -634,6 +645,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 
@@ -664,6 +676,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 
@@ -694,6 +707,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 
@@ -721,6 +735,7 @@ mod test {
 					tagger_editor: None,
 					no_check_recovery: false,
 					open_tagger: false,
+					sub_langs: None,
 				}),
 			};
 

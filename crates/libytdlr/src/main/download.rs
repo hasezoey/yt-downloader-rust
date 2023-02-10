@@ -202,8 +202,6 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	}
 
 	{
-		// the following options are test-wise applied to both audio and video files
-
 		// embed the videoo thumbnail if available into the output container
 		ytdl_args.arg("--embed-thumbnail");
 
@@ -216,6 +214,20 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 
 	// write the media's thumbnail as a seperate file
 	ytdl_args.arg("--write-thumbnail");
+
+	if let Some(sub_langs) = options.sub_langs() {
+		// add subtitles directly into the downloaded file - if available
+		ytdl_args.arg("--embed-subs");
+
+		// write subtiles as a separate file
+		ytdl_args.arg("--write-subs");
+
+		// set which subtitles to download
+		ytdl_args.arg("--sub-langs").arg(sub_langs);
+
+		// set subtitle stream as default directly in the ytdl post-processing
+		ytdl_args.arg("--ppa").arg("EmbedSubtitle:-disposition:s:0 default"); // set stream 0 as default
+	}
 
 	// set custom logging for easy parsing
 	// print once before the video starts to download to get all information and to get a consistent start point
@@ -526,6 +538,7 @@ mod test {
 		archive_lines:        Vec<String>,
 		print_command_stdout: bool,
 		count_estimate:       usize,
+		sub_langs:            Option<String>,
 	}
 
 	impl TestOptions {
@@ -545,6 +558,7 @@ mod test {
 				archive_lines,
 				print_command_stdout: false,
 				count_estimate: 0,
+				sub_langs: None,
 			};
 		}
 
@@ -558,6 +572,7 @@ mod test {
 				archive_lines: Vec::default(),
 				print_command_stdout,
 				count_estimate,
+				sub_langs: None,
 			};
 		}
 	}
@@ -593,6 +608,10 @@ mod test {
 
 		fn get_count_estimate(&self) -> usize {
 			return self.count_estimate;
+		}
+
+		fn sub_langs(&self) -> Option<&String> {
+			return self.sub_langs.as_ref();
 		}
 	}
 
@@ -845,13 +864,18 @@ mod test {
 		#[serial]
 		fn test_all_options_together() {
 			let (mut connection, test_dir) = create_connection();
-			let options = TestOptions::new_assemble(
-				true,
-				vec![PathBuf::from("hello1")],
-				test_dir.clone(),
-				"someURL".to_owned(),
-				vec!["line 1".to_owned(), "line 2".to_owned()],
-			);
+			let options = {
+				let mut o = TestOptions::new_assemble(
+					true,
+					vec![PathBuf::from("hello1")],
+					test_dir.clone(),
+					"someURL".to_owned(),
+					vec!["line 1".to_owned(), "line 2".to_owned()],
+				);
+				o.sub_langs = Some("en-US".to_owned());
+
+				o
+			};
 
 			let ret = assemble_ytdl_command(Some(&mut connection), &options);
 
@@ -875,6 +899,12 @@ mod test {
 					OsString::from("--convert-thumbnails"),
 					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
+					OsString::from("--embed-subs"),
+					OsString::from("--write-subs"),
+					OsString::from("--sub-langs"),
+					OsString::from("en-US"),
+					OsString::from("--ppa"),
+					OsString::from("EmbedSubtitle:-disposition:s:0 default"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
