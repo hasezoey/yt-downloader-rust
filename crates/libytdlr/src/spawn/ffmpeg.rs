@@ -1,4 +1,5 @@
 //! Module that contains all logic for spawning the "ffmpeg" command
+use std::ffi::OsStr;
 use std::process::Command;
 use std::process::{
 	Output,
@@ -71,6 +72,67 @@ fn ffmpeg_parse_version(input: &str) -> Result<String, crate::Error> {
 		.to_owned());
 }
 
+/// Probe a input file for information (without having to use ffprobe)
+#[inline]
+pub fn ffmpeg_probe<P>(input: P) -> Result<String, crate::Error>
+where
+	P: AsRef<OsStr>,
+{
+	let input = input.as_ref();
+	let mut cmd = base_ffmpeg_hidebanner(false);
+	cmd.arg("-i");
+	cmd.arg(input);
+
+	let command_output: Output = cmd
+		.stderr(Stdio::piped()) // using stderr, because ffmpeg outputs this data on stderr
+		.stdout(Stdio::null())
+		.stdin(Stdio::null())
+		.spawn()?
+		.wait_with_output()?;
+
+	let mut was_success = true;
+
+	let as_string = String::from_utf8(command_output.stderr)?;
+
+	// check if the output contains this one string, because ffmpeg does not offer a "probe" mode without using "ffprobe"
+	// and will always exit with "1" and this message if that happens
+	if command_output.status.code() == Some(1) {
+		was_success = as_string.contains("At least one output file must be specified");
+	}
+
+	if !command_output.status.success() && !was_success {
+		return Err(crate::Error::CommandNotSuccesfull(format!(
+			"FFMPEG did not successfully exit! Exit Code: {}",
+			command_output
+				.status
+				.code()
+				.map_or("None".to_string(), |v| return v.to_string())
+		)));
+	}
+
+	return Ok(as_string);
+}
+
+lazy_static! {
+	static ref FFMPEG_PARSE_FORMAT: Regex = Regex::new(r"(?mi)^input #0, ([\w,]+?), from '").unwrap();
+}
+
+/// Parse the output from [ffmpeg_probe] to only get the format for Input 0
+/// Returns a Vector of all the formats the input could be in
+#[inline]
+pub fn parse_format(input: &str) -> Result<Vec<&str>, crate::Error> {
+	let formats = FFMPEG_PARSE_FORMAT
+		.captures_iter(input)
+		.next()
+		.ok_or_else(|| return crate::Error::NoCapturesFound("FFMPEG Format could not be determined (1)".to_owned()))?
+		.get(1)
+		.ok_or_else(|| return crate::Error::NoCapturesFound("FFMPEG Format could not be determined (2)".to_owned()))?;
+
+	let formats_vec: Vec<&str> = formats.as_str().split(',').collect();
+
+	return Ok(formats_vec);
+}
+
 #[cfg(test)]
 mod test {
 	use super::ffmpeg_version;
@@ -101,6 +163,78 @@ libpostproc    55.  9.100 / 55.  9.100
 ";
 
 		assert_eq!(super::ffmpeg_parse_version(ffmpeg_output), Ok("n4.4.1".to_owned()));
+	}
+
+	#[test]
+	pub fn test_parse_format_invalid_input() {
+		assert_eq!(
+			super::parse_format("hello"),
+			Err(crate::Error::NoCapturesFound(
+				"FFMPEG Format could not be determined".to_owned()
+			))
+		);
+	}
+
+	#[test]
+	pub fn test_parse_format_valid_static_input() {
+		let ffmpeg_output_mkv = r#"[matroska,webm @ 0xaabbccddff11] Could not find codec parameters for stream 2 (Attachment: none): unknown codec
+Consider increasing the value for the 'analyzeduration' (0) and 'probesize' (5000000) options
+Input #0, matroska,webm, from 'test.mkv':
+	Metadata:
+	title           : Some Title
+	ARTIST          : Test
+	DATE            : 20210205
+	DESCRIPTION     : Test Description
+	ENCODER         : Lavf59.27.100
+	Duration: 00:03:00.00, start: -0.007000, bitrate: 1371 kb/s
+	Stream #0:0(eng): Video: vp9 (Profile 0), yuv420p(tv, bt709), 1920x1080, SAR 1:1 DAR 16:9, 23.98 fps, 23.98 tbr, 1k tbn (default)
+	Metadata:
+		DURATION        : 00:03:00.00
+	Stream #0:1(eng): Audio: opus, 48000 Hz, stereo, fltp (default)
+	Metadata:
+		DURATION        : 00:03:00.00
+"#;
+
+		assert_eq!(super::parse_format(ffmpeg_output_mkv), Ok(vec!["matroska", "webm"]));
+
+		let ffmpeg_output_mp4 = r#"Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'testep1.mp4':
+Metadata:
+	title           : Some Title
+	artist          : Test
+	date            : 20210205
+	encoder         : Lavf59.27.100
+	description     : Test Description
+Duration: 00:03:00.00, start: 0.000000, bitrate: 4041 kb/s
+Stream #0:0[0x1](eng): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 1920x1080 [SAR 1:1 DAR 16:9], 3955 kb/s, 23.98 fps, 23.98 tbr, 24k tbn (default)
+	Metadata:
+	handler_name    : VideoHandler
+	vendor_id       : [0][0][0][0]
+	encoder         : Lavc59.37.100 libx264
+Stream #0:1[0x2](eng): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 73 kb/s (default)
+	Metadata:
+	handler_name    : SoundHandler
+	vendor_id       : [0][0][0][0]	  
+"#;
+
+		assert_eq!(
+			super::parse_format(ffmpeg_output_mp4),
+			Ok(vec!["mov", "mp4", "m4a", "3gp", "3g2", "mj2"])
+		);
+
+		let ffmpeg_output_mp3 = r#"Input #0, mp3, from 'testep1.mp3':
+Metadata:
+	title           : Some Title
+	artist          : Test
+	date            : 20210205
+	DESCRIPTION     : Test Description
+	encoder         : Lavf59.27.100
+Duration: 00:00:01.03, start: 0.023021, bitrate: 147 kb/s
+Stream #0:0: Audio: mp3, 48000 Hz, stereo, fltp, 128 kb/s
+	Metadata:
+	encoder         : Lavc59.37
+"#;
+
+		assert_eq!(super::parse_format(ffmpeg_output_mp3), Ok(vec!["mp3"]));
 	}
 
 	#[test]
