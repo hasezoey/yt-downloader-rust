@@ -211,6 +211,9 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 		ytdl_args.arg("--add-metadata");
 	}
 
+	// the following is mainly because of https://github.com/yt-dlp/yt-dlp/issues/4227
+	ytdl_args.arg("--convert-thumbnails").arg("webp>jpg"); // convert webp thumbnails to jpg
+
 	// write the media's thumbnail as a seperate file
 	ytdl_args.arg("--write-thumbnail");
 
@@ -687,6 +690,8 @@ mod test {
 					OsString::from("mkv"),
 					OsString::from("--embed-thumbnail"),
 					OsString::from("--add-metadata"),
+					OsString::from("--convert-thumbnails"),
+					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
@@ -727,6 +732,8 @@ mod test {
 					OsString::from("mp3"),
 					OsString::from("--embed-thumbnail"),
 					OsString::from("--add-metadata"),
+					OsString::from("--convert-thumbnails"),
+					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
@@ -766,6 +773,8 @@ mod test {
 					OsString::from("mkv"),
 					OsString::from("--embed-thumbnail"),
 					OsString::from("--add-metadata"),
+					OsString::from("--convert-thumbnails"),
+					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
@@ -812,6 +821,8 @@ mod test {
 					OsString::from("mkv"),
 					OsString::from("--embed-thumbnail"),
 					OsString::from("--add-metadata"),
+					OsString::from("--convert-thumbnails"),
+					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
@@ -861,6 +872,8 @@ mod test {
 					OsString::from("mp3"),
 					OsString::from("--embed-thumbnail"),
 					OsString::from("--add-metadata"),
+					OsString::from("--convert-thumbnails"),
+					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
