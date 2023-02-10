@@ -113,23 +113,38 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 		output.to_string_lossy()
 	);
 
+	let ffmpeg_output = crate::spawn::ffmpeg::ffmpeg_probe(media)?;
+	let formats = crate::spawn::ffmpeg::parse_format(&ffmpeg_output)?;
+
 	let mut child = {
 		cmd.arg("-i").arg(media); // set media file as input "0"
-		cmd.arg("-i").arg(image); // set image file as input "1"
-		cmd.args([
-			"-map",
-			"0:0", // map input stream 0 to output stream 0
-			"-map",
-			"1:0", // map input stream 1 to output stream 0
-			"-c",
-			"copy", // copy all input streams into output stream without re-encoding
-			"-id3v2_version",
-			"3", // set which id3 version to use
-			"-metadata:s:v",
-			"title=\"Album cover\"", // set metadata for output video stream
-			"-movflags",
-			"use_metadata_tags", // copy existing metadata tags
-		]);
+
+		// mkv needs covers to be a attachment, instead of a video stream
+		if formats.contains(&"matroska") {
+			cmd.arg("-attach").arg(image);
+			cmd.args([
+				"-metadata:s:t:0",
+				"mimetype=image/jpeg", // set the attachment's mimetype (because it is not automatically done)
+				"-c",
+				"copy", // copy everything instead of re-encoding
+			]);
+		} else {
+			cmd.arg("-i").arg(image); // set image file as input "1"
+			cmd.args([
+				"-map",
+				"0:0", // map input stream 0 to output stream 0
+				"-map",
+				"1:0", // map input stream 1 to output stream 0
+				"-c",
+				"copy", // copy all input streams into output stream without re-encoding
+				"-id3v2_version",
+				"3", // set which id3 version to use
+				"-metadata:s:v",
+				"title=\"Album cover\"", // set metadata for output video stream
+				"-movflags",
+				"use_metadata_tags", // copy existing metadata tags
+			]);
+		}
 		cmd.arg(output); // set output path
 
 		// create pipe for stderr, other stream are ignored
