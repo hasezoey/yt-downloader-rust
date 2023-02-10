@@ -117,18 +117,24 @@ fn re_thumbnail_build_ffmpeg_cmd(
 		cmd.arg("-i").arg(image); // set image file as input "1"
 		cmd.args([
 			"-map",
-			"0:0", // map input stream 0 to output stream 0
+			"0", // map input stream 0 to output stream 0
 			"-map",
-			"1:0", // map input stream 1 to output stream 0
+			"1", // map input stream 1 to output stream 0
 			"-c",
 			"copy", // copy all input streams into output stream without re-encoding
+			"-disposition:v:1",
+			"attached_pic", // set input "1" as the thumbnail (required for some thumbnails, like mp4 - also works with others)
 			"-id3v2_version",
 			"3", // set which id3 version to use
 			"-metadata:s:v",
 			"title=\"Album cover\"", // set metadata for output video stream
-			"-movflags",
-			"use_metadata_tags", // copy existing metadata tags
 		]);
+
+		// the following options seem to not work correctly anymore
+		// cmd.args([
+		// 	"-movflags",
+		// 	"use_metadata_tags", // copy existing metadata tags
+		// ]);
 	}
 	cmd.arg(output); // set output path
 
@@ -402,17 +408,19 @@ mod test {
 					OsStr::new("-i"),
 					image.as_os_str(),
 					OsStr::new("-map"),
-					OsStr::new("0:0"),
+					OsStr::new("0"),
 					OsStr::new("-map"),
-					OsStr::new("1:0"),
+					OsStr::new("1"),
 					OsStr::new("-c"),
 					OsStr::new("copy"),
+					OsStr::new("-disposition:v:1"),
+					OsStr::new("attached_pic"),
 					OsStr::new("-id3v2_version"),
 					OsStr::new("3"),
 					OsStr::new("-metadata:s:v"),
 					OsStr::new("title=\"Album cover\""),
-					OsStr::new("-movflags"),
-					OsStr::new("use_metadata_tags"),
+					// OsStr::new("-movflags"),
+					// OsStr::new("use_metadata_tags"),
 					output.as_os_str()
 				]
 			);
