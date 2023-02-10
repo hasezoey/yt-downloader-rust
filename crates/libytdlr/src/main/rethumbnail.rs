@@ -94,6 +94,49 @@ pub fn re_thumbnail<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 	return re_thumbnail_with_command(cmd, media, image, output);
 }
 
+/// Build the actual Command
+fn re_thumbnail_build_ffmpeg_cmd(
+	cmd: &mut std::process::Command,
+	media: &Path,
+	image: &Path,
+	output: &Path,
+	formats: Vec<&str>,
+) {
+	cmd.arg("-i").arg(media); // set media file as input "0"
+
+	// mkv needs covers to be a attachment, instead of a video stream
+	if formats.contains(&"matroska") {
+		cmd.arg("-attach").arg(image);
+		cmd.args([
+			"-metadata:s:t:0",
+			"mimetype=image/jpeg", // set the attachment's mimetype (because it is not automatically done)
+			"-c",
+			"copy", // copy everything instead of re-encoding
+		]);
+	} else {
+		cmd.arg("-i").arg(image); // set image file as input "1"
+		cmd.args([
+			"-map",
+			"0:0", // map input stream 0 to output stream 0
+			"-map",
+			"1:0", // map input stream 1 to output stream 0
+			"-c",
+			"copy", // copy all input streams into output stream without re-encoding
+			"-id3v2_version",
+			"3", // set which id3 version to use
+			"-metadata:s:v",
+			"title=\"Album cover\"", // set metadata for output video stream
+			"-movflags",
+			"use_metadata_tags", // copy existing metadata tags
+		]);
+	}
+	cmd.arg(output); // set output path
+
+	// create pipe for stderr, other stream are ignored
+	// this is because ffmpeg only logs to stderr, where stdout is used for data piping
+	cmd.stdout(Stdio::null()).stderr(Stdio::piped()).stdin(Stdio::null());
+}
+
 /// Re-Apply a thumbnail from `image` onto `media` as `output` with base command `cmd`
 ///
 /// This function should not be called directly, use [`re_thumbnail`] instead
@@ -117,39 +160,7 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	let formats = crate::spawn::ffmpeg::parse_format(&ffmpeg_output)?;
 
 	let mut child = {
-		cmd.arg("-i").arg(media); // set media file as input "0"
-
-		// mkv needs covers to be a attachment, instead of a video stream
-		if formats.contains(&"matroska") {
-			cmd.arg("-attach").arg(image);
-			cmd.args([
-				"-metadata:s:t:0",
-				"mimetype=image/jpeg", // set the attachment's mimetype (because it is not automatically done)
-				"-c",
-				"copy", // copy everything instead of re-encoding
-			]);
-		} else {
-			cmd.arg("-i").arg(image); // set image file as input "1"
-			cmd.args([
-				"-map",
-				"0:0", // map input stream 0 to output stream 0
-				"-map",
-				"1:0", // map input stream 1 to output stream 0
-				"-c",
-				"copy", // copy all input streams into output stream without re-encoding
-				"-id3v2_version",
-				"3", // set which id3 version to use
-				"-metadata:s:v",
-				"title=\"Album cover\"", // set metadata for output video stream
-				"-movflags",
-				"use_metadata_tags", // copy existing metadata tags
-			]);
-		}
-		cmd.arg(output); // set output path
-
-		// create pipe for stderr, other stream are ignored
-		// this is because ffmpeg only logs to stderr, where stdout is used for data piping
-		cmd.stdout(Stdio::null()).stderr(Stdio::piped()).stdin(Stdio::null());
+		re_thumbnail_build_ffmpeg_cmd(&mut cmd, media, image, output, formats);
 
 		cmd.spawn()?
 	};
@@ -174,10 +185,7 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	let exit_status = child.wait()?;
 
 	if !exit_status.success() {
-		return Err(crate::Error::IoError(std::io::Error::new(
-			std::io::ErrorKind::Other,
-			format!("ffmpeg did not successfully exit: {exit_status}"),
-		)));
+		return Err(crate::spawn::ffmpeg::unsuccessfull_command_exit(exit_status));
 	}
 
 	return Ok(());
@@ -369,19 +377,68 @@ mod test {
 	}
 
 	mod re_thumbnail {
+		use std::ffi::OsStr;
+
 		use super::*;
 
 		#[test]
-		fn test_basic_func() {
-			let fake_command = std::process::Command::new("echo");
+		fn test_basic_func_mp4() {
+			let mut fake_command = std::process::Command::new("echo");
 
 			let media = Path::new("/hello/media.mp3");
 			let image = Path::new("/hello/image.jpg");
 			let output = Path::new("/hello/output.mp3");
 
-			let result = re_thumbnail_with_command(fake_command, media, image, output);
+			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, vec!["mp4"]);
 
-			assert!(result.is_ok());
+			assert_eq!(
+				fake_command.get_args().collect::<Vec<&std::ffi::OsStr>>(),
+				vec![
+					OsStr::new("-i"),
+					media.as_os_str(),
+					OsStr::new("-i"),
+					image.as_os_str(),
+					OsStr::new("-map"),
+					OsStr::new("0:0"),
+					OsStr::new("-map"),
+					OsStr::new("1:0"),
+					OsStr::new("-c"),
+					OsStr::new("copy"),
+					OsStr::new("-id3v2_version"),
+					OsStr::new("3"),
+					OsStr::new("-metadata:s:v"),
+					OsStr::new("title=\"Album cover\""),
+					OsStr::new("-movflags"),
+					OsStr::new("use_metadata_tags"),
+					output.as_os_str()
+				]
+			);
+		}
+
+		#[test]
+		fn test_basic_func_mkv() {
+			let mut fake_command = std::process::Command::new("echo");
+
+			let media = Path::new("/hello/media.mkv");
+			let image = Path::new("/hello/image.jpg");
+			let output = Path::new("/hello/output.mkv");
+
+			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, vec!["matroska"]);
+
+			assert_eq!(
+				fake_command.get_args().collect::<Vec<&std::ffi::OsStr>>(),
+				vec![
+					OsStr::new("-i"),
+					media.as_os_str(),
+					OsStr::new("-attach"),
+					image.as_os_str(),
+					OsStr::new("-metadata:s:t:0"),
+					OsStr::new("mimetype=image/jpeg"),
+					OsStr::new("-c"),
+					OsStr::new("copy"),
+					output.as_os_str()
+				]
+			);
 		}
 
 		#[test]
@@ -401,10 +458,7 @@ mod test {
 			assert!(output.is_err());
 
 			assert_eq!(
-				crate::Error::IoError(std::io::Error::new(
-					std::io::ErrorKind::Other,
-					"ffmpeg did not successfully exit: 1".to_owned(),
-				)),
+				crate::Error::CommandNotSuccesfull("FFMPEG did not successfully exit! Exit Code: 1".to_owned()),
 				output.expect_err("Expected Assert to test Result to be ERR")
 			);
 		}

@@ -38,6 +38,14 @@ lazy_static! {
 	static ref FFMPEG_VERSION_REGEX: Regex = Regex::new(r"(?mi)^ffmpeg version ([a-z0-9.-]+) Copyright").unwrap();
 }
 
+/// Helper to consistently create a error
+pub(crate) fn unsuccessfull_command_exit(status: std::process::ExitStatus) -> crate::Error {
+	return crate::Error::CommandNotSuccesfull(format!(
+		"FFMPEG did not successfully exit! Exit Code: {}",
+		status.code().map_or("None".to_string(), |v| return v.to_string())
+	));
+}
+
 /// Get Version of `ffmpeg`
 #[inline]
 pub fn ffmpeg_version() -> Result<String, crate::Error> {
@@ -52,9 +60,7 @@ pub fn ffmpeg_version() -> Result<String, crate::Error> {
 		.wait_with_output()?;
 
 	if !command_output.status.success() {
-		return Err(crate::Error::CommandNotSuccesfull(
-			"FFMPEG did not successfully exit!".to_string(),
-		));
+		return Err(unsuccessfull_command_exit(command_output.status));
 	}
 
 	let as_string = String::from_utf8(command_output.stdout)?;
@@ -101,13 +107,7 @@ where
 	}
 
 	if !command_output.status.success() && !was_success {
-		return Err(crate::Error::CommandNotSuccesfull(format!(
-			"FFMPEG did not successfully exit! Exit Code: {}",
-			command_output
-				.status
-				.code()
-				.map_or("None".to_string(), |v| return v.to_string())
-		)));
+		return Err(unsuccessfull_command_exit(command_output.status));
 	}
 
 	return Ok(as_string);
@@ -170,7 +170,7 @@ libpostproc    55.  9.100 / 55.  9.100
 		assert_eq!(
 			super::parse_format("hello"),
 			Err(crate::Error::NoCapturesFound(
-				"FFMPEG Format could not be determined".to_owned()
+				"FFMPEG Format could not be determined (1)".to_owned()
 			))
 		);
 	}
