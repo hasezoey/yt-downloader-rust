@@ -326,18 +326,20 @@ where
 {
 	let msg = msg.as_ref();
 
+	// index to truncate the message to
 	let characters_end_idx: usize;
 
 	// get all characters and their boundaries
+	// (start_boundary_idx, length, display_position, full_character)
 	let (characters, characters_highest_display) = {
 		let mut display_position = 0; // keep track of the actual displayed position
 		(
 			msg.grapheme_indices(true)
 				.map(|(i, s)| {
 					display_position += s.width();
-					return (i, s.len(), display_position);
+					return (i, s.len(), display_position, s);
 				})
-				.collect::<Vec<(usize, usize, usize)>>(),
+				.collect::<Vec<(usize, usize, usize, &str)>>(),
 			display_position,
 		)
 	};
@@ -356,7 +358,7 @@ where
 			characters_end_idx = characters
 				.iter()
 				.rev()
-				.position(|(_pos, _len, dis)| return *dis <= width_available)
+				.position(|(_pos, _len, dis, _char)| return *dis <= width_available)
 				.map(|v| return characters.len() - v) // substract "v" because ".rev().position()" counts *encountered elements* instead of actual index
 				.unwrap_or(characters_len);
 		}
@@ -366,16 +368,28 @@ where
 	}
 
 	// get the char boundary for the last character's end
-	let msg_end_idx = {
+	let (msg_end_idx, msg_end_disp) = {
 		let char = characters[characters_end_idx - 1];
-		char.0 + char.1
+		(char.0 + char.1, char.2)
 	};
 
 	let mut ret = String::from(&msg[0..msg_end_idx]);
 
 	// replace the last 3 characters with "..." to indicate a truncation
 	if ret.len() < msg.len() {
-		ret.replace_range(ret.len() - 3..ret.len(), "...");
+		let replace_beginning_idx = characters
+			.iter()
+			.rev()
+			.find_map(|(pos, _len, dis, char)| {
+				// find the first place where the display position is end_display - 3
+				// also minus width, because the stored "dis" is containing the width already
+				if *dis - char.width() <= msg_end_disp - 3 {
+					return Some(pos);
+				}
+				return None;
+			})
+			.expect("Expected iter.position to find a position"); // expect because it is not expected to fail, and having no alternative that guarantees to end on a boundary
+		ret.replace_range(*replace_beginning_idx..ret.len(), "...");
 	}
 
 	return ret;
