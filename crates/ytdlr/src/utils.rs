@@ -207,6 +207,9 @@ pub fn get_filetype<F: AsRef<Path>>(filename: F) -> FileType {
 
 /// Get input from STDIN with "possible" or "default"
 /// if using "default", remember to set a character in "possible" to upper-case
+///
+/// Note:
+/// This function will not discard buffered stdin, because in native rust there is no good way to clear a sync-read, and for async-read the whole library would be needed to be converted to async
 #[allow(clippy::needless_collect)] // this is because of a known false-positive https://github.com/rust-lang/rust-clippy/issues/6164
 pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) -> Result<String, crate::Error> {
 	// TODO: maybe consider replacing this with the crate "dialoguer"
