@@ -565,9 +565,11 @@ fn do_download(
 		}
 	};
 
-	// track (currentCountTried, currentId, currentTitle)
+	// track (currentCountTried, currentId, currentTitle, urlIndex_p)
 	// *currentCountTried does not include media already in archive
-	let download_info: RefCell<(usize, String, String)> = RefCell::new((0, String::default(), String::default()));
+	let download_info: RefCell<(usize, String, String, usize)> =
+		RefCell::new((0, String::default(), String::default(), 0));
+	let url_len = sub_args.urls.len();
 	pgbar.set_prefix(format!("[{}/{}]", "??", "??"));
 	// track total count finished (no error)
 	let total_count = std::sync::atomic::AtomicUsize::new(0);
@@ -578,7 +580,8 @@ fn do_download(
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
 			let new_count = download_info.borrow().0 + 1;
-			download_info.replace((new_count, id, title));
+			let url_index = download_info.borrow().3;
+			download_info.replace((new_count, id, title, url_index));
 
 			pgbar.reset();
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
@@ -600,16 +603,25 @@ fn do_download(
 			let total = total_count.fetch_add(new_count, std::sync::atomic::Ordering::AcqRel) + new_count;
 			// print how many media has been downloaded since last "AllStarting" and how many in total in this run
 			pgbar.println(format!(
-				"Finished Downloading {new_count} new Media (For a total of {total} Media)"
+				"Finished Downloading {new_count} new Media (For a total of {total} Media) (url {}/{})",
+				download_info.borrow().3,
+				url_len
 			));
 		},
 	};
 
 	// TODO: do a "count" before running actual download
 
-	for url in &sub_args.urls {
+	for (index, url) in sub_args.urls.iter().enumerate() {
 		// handle terminate
 		check_termination()?;
+
+		// index plus one, to match .len, to not have 0-index for display
+		let index_p = index + 1;
+
+		download_info.borrow_mut().3 = index_p;
+
+		println!("Starting download of \"{}\" ({}/{})", url, index_p, url_len);
 
 		download_state.set_current_url(url);
 
