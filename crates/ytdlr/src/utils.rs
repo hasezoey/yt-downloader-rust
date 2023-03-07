@@ -213,6 +213,7 @@ pub fn get_filetype<F: AsRef<Path>>(filename: F) -> FileType {
 #[allow(clippy::needless_collect)] // this is because of a known false-positive https://github.com/rust-lang/rust-clippy/issues/6164
 pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) -> Result<String, crate::Error> {
 	// TODO: maybe consider replacing this with the crate "dialoguer"
+	// ^ blocked https://github.com/console-rs/dialoguer/issues/248 & https://github.com/console-rs/dialoguer/issues/247
 	let possible_converted = possible
 		.iter()
 		.map(|v| {
