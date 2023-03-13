@@ -147,9 +147,19 @@ impl From<ArgsHelper> for Vec<OsString> {
 	}
 }
 
+/// Youtube-DL archive prefix
+pub const YTDL_ARCHIVE_PREFIX: &str = "ytdl_archive_";
+/// Youtube-DL archive extension
+pub const YTDL_ARCHIVE_EXT: &str = ".txt";
+
 /// Consistent way of getting the archive name
 pub fn get_archive_name(output_dir: &std::path::Path) -> std::path::PathBuf {
-	return output_dir.join(format!("ytdl_archive_{}.txt", std::process::id()));
+	return output_dir.join(format!(
+		"{}{}{}",
+		YTDL_ARCHIVE_PREFIX,
+		std::process::id(),
+		YTDL_ARCHIVE_EXT
+	));
 }
 
 /// Helper Function to assemble all ytdl command arguments
