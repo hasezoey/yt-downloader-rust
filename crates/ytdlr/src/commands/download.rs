@@ -14,6 +14,7 @@ use indicatif::{
 	ProgressDrawTarget,
 	ProgressStyle,
 };
+use libytdlr::main::download::YTDL_ARCHIVE_PREFIX;
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
 	traits::context::DownloadOptions,
@@ -395,6 +396,69 @@ where
 	return ret;
 }
 
+/**
+ * Find all files that match the temporary ytdl archive name, and remove all whose pid is not alive anymore
+ */
+fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), ioError> {
+	if !path.is_dir() {
+		return Err(ioError::new(
+			std::io::ErrorKind::Other, // TODO: replace "Other" with "NotADirectory" when stable
+			"Path to find recovery files is not existing or a directory!",
+		));
+	}
+
+	// IMPORTANT: currently sysinfo creates threads, but never closes them (even when going out of scope)
+	// see https://github.com/GuillaumeGomez/sysinfo/issues/927
+	let mut s = sysinfo::System::new();
+	s.refresh_processes();
+
+	for file in path.read_dir()?.filter_map(|res| {
+		let entry = res.ok()?;
+
+		let path = entry.path();
+		let file_name = path.file_name()?;
+		if path.is_file() && file_name.to_string_lossy().starts_with(YTDL_ARCHIVE_PREFIX) {
+			return Some(path);
+		}
+		return None;
+	}) {
+		let file_name = file.file_name().unwrap().to_string_lossy(); // unwrap because non-file_name containing paths should be sorted out in the "filter_map"
+		info!("Trying to match tmp yt-dl archive file: \"{}\"", file_name);
+		let pid_str = {
+			let opt = file_name.split_once('_'); // the first delimiter is "_" after which follows the pid and the extension
+			if opt.is_none() {
+				continue;
+			}
+			// the second delimiter is "." after which follows the the extension
+			let opt2 = opt.unwrap().1.split_once('.'); // unwrap because "None" is checked above
+			if opt2.is_none() {
+				continue;
+			}
+
+			opt2.unwrap().0 // unwrap because "None" is checked above
+		};
+		let pid_of_file = {
+			let res = pid_str.parse::<usize>();
+			if res.is_err() {
+				continue;
+			}
+			res.unwrap() // unwrap because "Err" is checked above
+		};
+		// check that the pid of the file is actually not running anymore
+		// and just ignore them if the process exists
+		if s.process(sysinfo::Pid::from(pid_of_file)).is_some() {
+			info!("Found tmp yt-dl archive file for pid {pid_of_file}, but the process still existed");
+			continue;
+		}
+		std::fs::remove_file(file).unwrap_or_else(|err| match err.kind() {
+			std::io::ErrorKind::NotFound => (),
+			_ => info!("Error removing found tmp yt-dl archvie file. Error: {}", err),
+		});
+	}
+
+	return Ok(());
+}
+
 /// Handler function for the "download" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
@@ -458,6 +522,8 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 			finished_media.insert_with_comment(media, "Found Editable File");
 		}
 	}
+
+	find_and_remove_tmp_archive_files(download_state.get_download_path())?;
 
 	// run AFTER finding all files, so that the correct filename is already set for files, and only information gets updated
 	let found_recovery_files =
