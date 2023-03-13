@@ -1205,7 +1205,7 @@ fn finish_with_tagger(
 	pgbar: &ProgressBar,
 	final_media: &MediaInfoArr,
 ) -> Result<(), ioError> {
-	debug!("Renaming files for Picard");
+	debug!("Renaming files for Tagger");
 
 	let final_dir_path = download_path.join("final");
 	std::fs::create_dir_all(&final_dir_path)?;
@@ -1228,7 +1228,7 @@ fn finish_with_tagger(
 
 	pgbar.finish_and_clear();
 
-	debug!("Running Picard");
+	debug!("Running Tagger");
 	utils::run_editor(&sub_args.tagger_editor, &final_dir_path, false)?;
 
 	return Ok(());
