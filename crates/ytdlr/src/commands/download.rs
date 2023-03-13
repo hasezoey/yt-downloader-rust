@@ -1222,7 +1222,7 @@ fn finish_with_tagger(
 				continue;
 			},
 		};
-		// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same directory
+		// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same filesystem
 		std::fs::rename(download_path.join(media_filename), final_dir_path.join(final_filename))?;
 	}
 
