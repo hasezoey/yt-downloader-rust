@@ -226,7 +226,7 @@ pub struct CommandDownload {
 	pub audio_only_enable:         bool,
 	/// Set which entries should be output to the youtube-dl archive
 	/// This does not affect entries being added to the SQLite archive
-	#[arg(long = "archive-mode", value_enum)]
+	#[arg(long = "archive-mode", value_enum, default_value_t=ArchiveMode::default())]
 	pub archive_mode:              ArchiveMode,
 	/// Print Youtube-DL stdout
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
