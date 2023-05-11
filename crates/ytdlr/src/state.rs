@@ -1,8 +1,11 @@
 //! Module for State Struct for all commands
 
-use std::path::{
-	Path,
-	PathBuf,
+use std::{
+	cell::Cell,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 
 use libytdlr::traits::context::DownloadOptions;
@@ -22,7 +25,7 @@ pub struct DownloadState<'a> {
 	/// The Path to download to
 	download_path:           PathBuf,
 	/// Contains the value for the current playlist count estimate
-	count_estimate:          usize,
+	count_estimate:          Cell<usize>,
 
 	/// Force implementation of [`DownloadOptions::gen_archive`] to only output the latest 500 sqlite inserted media elements to the youtube-dl archive
 	force_genarchive_bydate: bool,
@@ -53,7 +56,7 @@ impl<'a> DownloadState<'a> {
 			// for now, there are no extra arguments supported
 			extra_command_arguments: Vec::default(),
 			print_stdout_debug,
-			count_estimate: DEFAULT_COUNT_ESTIMATE,
+			count_estimate: Cell::new(DEFAULT_COUNT_ESTIMATE),
 			download_path,
 			sub_langs,
 
@@ -72,11 +75,11 @@ impl<'a> DownloadState<'a> {
 	}
 
 	/// Set "count_result" for generating the archive and for "get_count_estimate"
-	pub fn set_count_estimate(&mut self, count: usize) {
+	pub fn set_count_estimate(&self, count: usize) {
 		if count < DEFAULT_COUNT_ESTIMATE {
-			self.count_estimate = DEFAULT_COUNT_ESTIMATE;
+			self.count_estimate.replace(DEFAULT_COUNT_ESTIMATE);
 		} else {
-			self.count_estimate = count;
+			self.count_estimate.replace(count);
 		}
 	}
 
@@ -167,7 +170,7 @@ impl DownloadOptions for DownloadState<'_> {
 	}
 
 	fn get_count_estimate(&self) -> usize {
-		return self.count_estimate;
+		return self.count_estimate.get();
 	}
 
 	fn sub_langs(&self) -> Option<&String> {

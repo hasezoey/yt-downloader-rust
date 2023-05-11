@@ -619,6 +619,33 @@ fn download_wrapper(
 	return Ok(());
 }
 
+/// Characters to use if a state for the ProgressBar is unknown
+const PREFIX_UNKNOWN: &str = "??";
+
+/// Helper function to consistently set the progressbar prefix
+fn set_progressbar_prefix(
+	pgbar: &ProgressBar,
+	download_info: std::cell::Ref<(usize, String, String, usize)>,
+	download_state: &DownloadState,
+	unknown_playlist_count: bool,
+	unknown_current_count: bool,
+) {
+	let current_count = if unknown_current_count {
+		PREFIX_UNKNOWN.into()
+	} else {
+		download_info.0.to_string()
+	};
+	let playlist_count = if unknown_playlist_count {
+		PREFIX_UNKNOWN.into()
+	} else {
+		download_state.get_count_estimate().to_string()
+	};
+	pgbar.set_prefix(format!("[{}/{}]", current_count, playlist_count));
+}
+
+// TODO: refactor this to be a strict with names
+type DownloadInfo = RefCell<(usize, String, String, usize)>;
+
 /// Do the download for all provided URL's
 fn do_download(
 	main_args: &CliDerive,
@@ -635,12 +662,13 @@ fn do_download(
 		}
 	};
 
+	// store "download_state" in a refcell, because rust complains that a borrow is made in "download_pgcb" and also later used while still in scope
+	let download_state_cell = RefCell::new(download_state);
 	// track (currentCountTried, currentId, currentTitle, urlIndex_p)
 	// *currentCountTried does not include media already in archive
-	let download_info: RefCell<(usize, String, String, usize)> =
-		RefCell::new((0, String::default(), String::default(), 0));
+	let download_info: DownloadInfo = RefCell::new((0, String::default(), String::default(), 0));
 	let url_len = sub_args.urls.len();
-	pgbar.set_prefix(format!("[{}/{}]", "??", "??"));
+	set_progressbar_prefix(pgbar, download_info.borrow(), *download_state_cell.borrow(), true, true);
 	// track total count finished (no error)
 	let total_count = std::sync::atomic::AtomicUsize::new(0);
 	let download_pgcb = |dpg| match dpg {
@@ -656,7 +684,13 @@ fn do_download(
 			pgbar.reset();
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
 			let download_info_borrowed = download_info.borrow();
-			pgbar.set_prefix(format!("[{}/{}]", download_info_borrowed.0, "??"));
+			set_progressbar_prefix(
+				pgbar,
+				download_info.borrow(),
+				*download_state_cell.borrow(),
+				false,
+				false,
+			);
 			pgbar.set_message(truncate_message(&download_info_borrowed.2));
 			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
 		},
@@ -680,8 +714,6 @@ fn do_download(
 		},
 	};
 
-	// TODO: do a "count" before running actual download
-
 	for (index, url) in sub_args.urls.iter().enumerate() {
 		// handle terminate
 		check_termination()?;
@@ -693,10 +725,13 @@ fn do_download(
 
 		println!("Starting download of \"{}\" ({}/{})", url, index_p, url_len);
 
-		download_state.set_current_url(url);
+		download_state_cell.borrow_mut().set_current_url(url);
 
-		let new_media =
-			libytdlr::main::download::download_single(maybe_connection.as_mut(), download_state, download_pgcb)?;
+		let new_media = libytdlr::main::download::download_single(
+			maybe_connection.as_mut(),
+			*download_state_cell.borrow(),
+			download_pgcb,
+		)?;
 
 		if let Some(ref mut connection) = maybe_connection {
 			pgbar.reset();
@@ -719,7 +754,7 @@ fn do_download(
 
 	// remove ytdl_archive_pid.txt file again, because otherwise over many usages it can become bloated
 	std::fs::remove_file(libytdlr::main::download::get_archive_name(
-		download_state.download_path(),
+		download_state_cell.borrow().download_path(),
 	))
 	.unwrap_or_else(|err| {
 		info!("Removing ytdl archive failed. Error: {}", err);
