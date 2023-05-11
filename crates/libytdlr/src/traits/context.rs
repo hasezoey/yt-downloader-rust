@@ -39,7 +39,9 @@ pub trait DownloadOptions {
 	/// STDERR is always printed (using [`log::trace`])
 	/// With this returning `true`, the STDOUT output is also printed with [`log::trace`]
 	fn print_command_stdout(&self) -> bool;
-	/// Get a estimate of how many media elements will be downloaded
+	/// Get a estimate of how many media elements will be downloaded in this run
+	/// This could commonly be the playlist count that youtube-dl outputs
+	/// if no count is available, a minimal count of 1 should be returned
 	/// This commonly should be the length of the vec containing [`crate::main::count::CountVideo`] returned from [`crate::main::count::count`]
 	fn get_count_estimate(&self) -> usize;
 	/// Get which subtitle languages to download
