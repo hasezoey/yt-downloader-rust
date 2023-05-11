@@ -555,7 +555,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					return Err(crate::Error::Other(line));
 				},
 			}
-		} else {
+		} else if !line.is_empty() {
 			info!("No type has been found for line \"{}\"", line);
 		}
 	}
