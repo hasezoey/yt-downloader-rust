@@ -2,6 +2,24 @@
 
 This is a manually written changelog, and only tracks front-facing changes since version [`v0.5.0`](#v050)
 
+## v0.6.0
+
+- `rethumbnail`: better handle `mp4` for rethumbnailing
+- `rethumbnail`:add special case for rethumbnailing `mkv` files (because attachments get changed to video streams instead of attachments)
+- `download`: only re-write metadata if a editor has been run
+- `download`: only write recovery file if there are elements to be written
+- `download`: find and remove old youtube-dl archives where the pid's are not alive anymore
+- `download`: handle `youtube-dl: error:` lines
+- `download`: add youtube-dl commandline option `--convert-thumbnails` (`webp>jpg`)
+- `download`: add option to embedd subtitles if available via `--sub-langs` (or env `YTDL_SUB_LANGS`), see [yt-dlp `--sub-langs`](https://github.com/yt-dlp/yt-dlp#subtitle-options) on how to define languages to add
+- `download`: fix possible replace of invalid character boundary for truncation
+- `download`: add printing of how many urls have been done and how many there are
+- `download`: add printing of which url has been started
+- `download`: add info of playlist count instead of always `??`
+- `download`: reset download information on url change (to match playlist count)
+- `download`: consolidate all `--force*archive*` arguments into `--archive-mode`
+- update various dependencies
+
 ## v0.5.0
 
 - add a `LICENSE` file
