@@ -38,24 +38,22 @@ Command to download 1 or more URLS with youtube-dl / yt-dlp with extra archive s
 Signature: `download [OPTIONS] [URLS]...`  
 Aliases: `download`
 
-| Positional Name | Short |            Long            |      Environment Variable      |          Default          |  Type  | Description                                                                                                                                      |
-| :-------------: | :---: | :------------------------: | :----------------------------: | :-----------------------: | :----: | :----------------------------------------------------------------------------------------------------------------------------------------------- |
-|                 |  -h   |           --help           |                                |                           |  flag  | Print Help Information                                                                                                                           |
-|                 |  -a   |        --audio-only        |                                |                           |  flag  | Set that the Output will only be audio-only (mp3)                                                                                                |
-|                 |       |       --audio-editor       |       YTDL_AUDIO_EDITOR        |                           | OsStr  | Audio Editor Command / Path to use (like `audacity`)                                                                                             |
-|                 |       |       --video-editor       |       YTDL_VIDEO_EDITOR        |                           | OsStr  | Video Editor Command / Path to use (like `kdenlive`)                                                                                             |
-|                 |       |          --tagger          |          YTDL_TAGGER           |                           | OsStr  | Tagger Command / Path to use (like `picard`)                                                                                                     |
-|                 |       |      --editor-stdout       |                                |                           |  flag  | Enable Output of the Editor command stdout to be printed to the log                                                                              |
-|                 |       |     --youtubedl-stdout     |                                |                           |  flag  | Enable Output of the youtube-dl command stdout to be printed to the log                                                                          |
-|                 |       |   --no-reapply-thumbnail   | YTDL_DISABLE_REAPPLY_THUMBNAIL |           false           |  bool  | Disable re-applying the thumbnail after a editor has run                                                                                         |
-|                 |  -o   |       --output-path        |            YTDL_OUT            | DownloadDir + `ytdlr-out` | OsStr  | Output path to place all finished files in                                                                                                       |
-|                 |       |   --force-genarchive-all   |                                |                           |  flag  | Force the archive to be completely dumped in the youtube-dl archive                                                                              |
-|                 |       | --force-genarchive-by-date |                                |                           |  flag  | Force the archive to use the by-date generation for the youtube-dl archive                                                                       |
-|                 |       |     --force-no-archive     |                                |                           |  flag  | Force to not use and generate any youtube-dl archive (does not affect `--archive`, only what youtube-dl will see)                                |
-|                 |       |    --no-check-recovery     |                                |                           |  flag  | Disables allowing 0 URL's to just check the recovery                                                                                             |
-|                 |       |        open-tagger         |                                |                           |  flag  | Set to automatically open the tagger in the end. also overwrites the default option of moving for non-interactive mode                           |
-|                 |       |        --sub-langs         |         YTDL_SUB_LANGS         |                           | string | Set which subtitles to download / embed, see [yt-dl(p) subtitle options](https://github.com/yt-dlp/yt-dlp#subtitle-options) for what is accepted |
-|      URLS       |       |                            |                                |                           | string | The URLS (one or more) to be downloaded            (or 0 for error recovery)                                                                     |
+| Positional Name | Short |          Long          |      Environment Variable      |          Default          |                             Type                             | Description                                                                                                                                      |
+| :-------------: | :---: | :--------------------: | :----------------------------: | :-----------------------: | :----------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+|                 |  -h   |         --help         |                                |                           |                             flag                             | Print Help Information                                                                                                                           |
+|                 |  -a   |      --audio-only      |                                |                           |                             flag                             | Set that the Output will only be audio-only (mp3)                                                                                                |
+|                 |       |     --audio-editor     |       YTDL_AUDIO_EDITOR        |                           |                            OsStr                             | Audio Editor Command / Path to use (like `audacity`)                                                                                             |
+|                 |       |     --video-editor     |       YTDL_VIDEO_EDITOR        |                           |                            OsStr                             | Video Editor Command / Path to use (like `kdenlive`)                                                                                             |
+|                 |       |        --tagger        |          YTDL_TAGGER           |                           |                            OsStr                             | Tagger Command / Path to use (like `picard`)                                                                                                     |
+|                 |       |    --editor-stdout     |                                |                           |                             flag                             | Enable Output of the Editor command stdout to be printed to the log                                                                              |
+|                 |       |   --youtubedl-stdout   |                                |                           |                             flag                             | Enable Output of the youtube-dl command stdout to be printed to the log                                                                          |
+|                 |       | --no-reapply-thumbnail | YTDL_DISABLE_REAPPLY_THUMBNAIL |           false           |                             bool                             | Disable re-applying the thumbnail after a editor has run                                                                                         |
+|                 |  -o   |     --output-path      |            YTDL_OUT            | DownloadDir + `ytdlr-out` |                            OsStr                             | Output path to place all finished files in                                                                                                       |
+|                 |       |     --archive-mode     |                                |         `default`         | Set which entries should be output to the youtube-dl archive |
+|                 |       |  --no-check-recovery   |                                |                           |                             flag                             | Disables allowing 0 URL's to just check the recovery                                                                                             |
+|                 |       |      open-tagger       |                                |                           |                             flag                             | Set to automatically open the tagger in the end. also overwrites the default option of moving for non-interactive mode                           |
+|                 |       |      --sub-langs       |         YTDL_SUB_LANGS         |                           |                            string                            | Set which subtitles to download / embed, see [yt-dl(p) subtitle options](https://github.com/yt-dlp/yt-dlp#subtitle-options) for what is accepted |
+|      URLS       |       |                        |                                |                           |                            string                            | The URLS (one or more) to be downloaded            (or 0 for error recovery)                                                                     |
 
 Notes:
 
@@ -67,6 +65,22 @@ Notes:
 - in non-interactive mode the default for finishing media is to move files (`m` in interactive mode), can be changed with `--open-tagger`
 - if no "sub-langs" are specified, no subtitles will be downloaded and embedded
 - the fist subtitle stream is set as "default"
+
+
+### archive-mode
+
+The download option `--archive-mode` sets which archive entries are output for the youtube-dl archive from the SQLite archive.  
+This option does not have any effect when no archive is provided.  
+This option does not affect which entries are added to the SQLite archive (only the generated youtube-dl archive)
+
+Possible values are:
+
+- `default`: Use the default Archive-Mode, currently corresponds to "all"
+- `all`: Dump the full SQLite archive as a youtube-dl archive
+- `byDate1000`: Output the newest 1000 media elements from the archive
+- `none`: Dont add any entries from the SQLite archive to the youtube-dl archive
+
+Note: none of the options affect the creation of a youtube-dl archive, only which entries are added before the youtube-dl command is run.
 
 ### `rethumbnail`
 
