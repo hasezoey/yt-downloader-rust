@@ -182,7 +182,7 @@ impl Check for ArchiveImport {
 #[derive(ValueEnum, Clone, Debug, PartialEq, Copy)]
 #[value(rename_all = "camelCase")]
 pub enum ArchiveMode {
-	/// Use the default Archive-Mode, by currently is "all"
+	/// Use the default Archive-Mode, currently corresponds to "all"
 	Default,
 	/// Dump the full SQLite archive as a youtube-dl archive
 	All,
