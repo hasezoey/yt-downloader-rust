@@ -5,10 +5,10 @@ use std::path::{
 	PathBuf,
 };
 
-use libytdlr::{
-	data::cache::media_info::MediaInfo,
-	traits::context::DownloadOptions,
-};
+use libytdlr::traits::context::DownloadOptions;
+
+/// Set the default count estimate
+const DEFAULT_COUNT_ESTIMATE: usize = 1;
 
 /// Struct to keep configuration data for the [`DownloadOptions`] trait
 #[derive(Debug, PartialEq, Clone)]
@@ -21,8 +21,8 @@ pub struct DownloadState<'a> {
 	print_stdout_debug:      bool,
 	/// The Path to download to
 	download_path:           PathBuf,
-	/// A Helper to generate the archive and allocation hints
-	count_result:            Vec<MediaInfo>,
+	/// Contains the value for the current playlist count estimate
+	count_estimate:          usize,
 
 	/// Force implementation of [`DownloadOptions::gen_archive`] to only output the latest 500 sqlite inserted media elements to the youtube-dl archive
 	force_genarchive_bydate: bool,
@@ -53,7 +53,7 @@ impl<'a> DownloadState<'a> {
 			// for now, there are no extra arguments supported
 			extra_command_arguments: Vec::default(),
 			print_stdout_debug,
-			count_result: Vec::default(),
+			count_estimate: DEFAULT_COUNT_ESTIMATE,
 			download_path,
 			sub_langs,
 
@@ -72,8 +72,12 @@ impl<'a> DownloadState<'a> {
 	}
 
 	/// Set "count_result" for generating the archive and for "get_count_estimate"
-	pub fn set_count_result(&mut self, new_vec: Vec<MediaInfo>) {
-		self.count_result = new_vec;
+	pub fn set_count_estimate(&mut self, count: usize) {
+		if count < DEFAULT_COUNT_ESTIMATE {
+			self.count_estimate = DEFAULT_COUNT_ESTIMATE;
+		} else {
+			self.count_estimate = count;
+		}
 	}
 
 	/// Get the "download_path" stored in the instance as reference
@@ -135,41 +139,6 @@ impl DownloadOptions for DownloadState<'_> {
 			return Some(Box::new(lines_iter));
 		}
 
-		if !self.count_result.is_empty() && !self.force_genarchive_bydate {
-			// case where "count_result" is available
-			let lines_iter = media_archive::dsl::media_archive
-				.filter(
-					media_archive::media_id.eq_any(
-						self.count_result
-							.iter()
-							.map(|v| return v.id.as_str())
-							.collect::<Vec<&str>>(),
-					),
-				)
-				// only filter based on the id, not also provider
-				// this may be slightly inaccurate, but it is better than a way more heavy query
-				// .filter(
-				// 	media_archive::provider.eq_any(
-				// 		self.count_result
-				// 			.iter()
-				// 			.map(|v| {
-				// 				return v
-				// 					.provider
-				// 					.as_ref()
-				// 					.map_or_else(|| return "unknown (none-provided)", |v| return v.to_str());
-				// 			})
-				// 			.collect::<Vec<&str>>(),
-				// 	),
-				// )
-				// the following is some black-magic that rust-analyzer does not understand (no useful intellisense available)
-				.load_iter::<Media, diesel::connection::DefaultLoadingMode>(connection)
-				.ok()?
-				// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
-				.filter_map(fmfn);
-
-			return Some(Box::new(lines_iter));
-		}
-
 		// fallback case where "count_result" is not available
 		let lines_iter = media_archive::dsl::media_archive
 			// order by newest to oldest
@@ -198,14 +167,7 @@ impl DownloadOptions for DownloadState<'_> {
 	}
 
 	fn get_count_estimate(&self) -> usize {
-		// set "4" as default, so that even in a single download it is already allocated
-		// and in case it is a playlist to have a small buffer
-		let len = self.count_result.len();
-		if len < 4 {
-			return 4;
-		}
-
-		return len;
+		return self.count_estimate;
 	}
 
 	fn sub_langs(&self) -> Option<&String> {
