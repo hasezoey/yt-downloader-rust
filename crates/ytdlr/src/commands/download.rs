@@ -505,9 +505,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		sub_args.audio_only_enable,
 		sub_args.print_youtubedl_stdout,
 		tmp_path,
-		sub_args.force_genarchive_bydate,
-		sub_args.force_genarchive_all,
-		sub_args.force_no_archive,
+		sub_args.archive_mode,
 		sub_args.sub_langs.as_ref(),
 	);
 

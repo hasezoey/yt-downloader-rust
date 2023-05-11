@@ -10,6 +10,8 @@ use std::{
 
 use libytdlr::traits::context::DownloadOptions;
 
+use crate::clap_conf::ArchiveMode;
+
 /// Set the default count estimate
 const DEFAULT_COUNT_ESTIMATE: usize = 1;
 
@@ -27,12 +29,8 @@ pub struct DownloadState<'a> {
 	/// Contains the value for the current playlist count estimate
 	count_estimate:          Cell<usize>,
 
-	/// Force implementation of [`DownloadOptions::gen_archive`] to only output the latest 500 sqlite inserted media elements to the youtube-dl archive
-	force_genarchive_bydate: bool,
-	/// Force implementation of [`DownloadOptions::gen_archive`] to entirely dump all records in sqlite to the youtube-dl archive
-	force_genarchive_all:    bool,
-	/// Force to not use a yt-dl archive, but still save to ytdlr archive
-	force_no_archive:        bool,
+	/// Set which / how many entries of the archive are output to the youtube-dl archive
+	archive_mode: ArchiveMode,
 
 	/// Set the current URL to be downloaded
 	current_url: String,
@@ -46,9 +44,7 @@ impl<'a> DownloadState<'a> {
 		audio_only_enable: bool,
 		print_stdout_debug: bool,
 		download_path: PathBuf,
-		force_genarchive_bydate: bool,
-		force_genarchive_all: bool,
-		force_no_archive: bool,
+		archive_mode: ArchiveMode,
 		sub_langs: Option<&'a String>,
 	) -> Self {
 		return Self {
@@ -60,9 +56,7 @@ impl<'a> DownloadState<'a> {
 			download_path,
 			sub_langs,
 
-			force_genarchive_bydate,
-			force_genarchive_all,
-			force_no_archive,
+			archive_mode,
 
 			current_url: String::default(),
 		};
@@ -116,7 +110,7 @@ impl DownloadOptions for DownloadState<'_> {
 			sql_schema::*,
 		};
 
-		if self.force_no_archive {
+		if self.archive_mode == ArchiveMode::None {
 			debug!("force_no_archive, not outputting any ytdl archive");
 
 			return Some(Box::new([].into_iter()));
@@ -128,7 +122,7 @@ impl DownloadOptions for DownloadState<'_> {
 			return Some(format!("{} {}\n", v.provider, v.media_id));
 		};
 
-		if self.force_genarchive_all {
+		if self.archive_mode == ArchiveMode::All || self.archive_mode == ArchiveMode::Default {
 			debug!("Dumping full sqlite archive as youtube-dl archive");
 
 			let lines_iter = media_archive::dsl::media_archive
@@ -142,7 +136,8 @@ impl DownloadOptions for DownloadState<'_> {
 			return Some(Box::new(lines_iter));
 		}
 
-		// fallback case where "count_result" is not available
+		// ArchiveMode::ByDate1000
+
 		let lines_iter = media_archive::dsl::media_archive
 			// order by newest to oldest
 			.order(media_archive::inserted_at.desc())

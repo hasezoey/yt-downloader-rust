@@ -6,6 +6,7 @@ use clap::{
 	ArgAction,
 	Parser,
 	Subcommand,
+	ValueEnum,
 };
 use std::path::PathBuf;
 
@@ -177,6 +178,27 @@ impl Check for ArchiveImport {
 	}
 }
 
+#[derive(ValueEnum, Clone, Debug, PartialEq, Copy)]
+#[value(rename_all = "camelCase")]
+pub enum ArchiveMode {
+	/// Use the default Archive-Mode, by currently is "all"
+	Default,
+	/// Dump the full SQLite archive as a youtube-dl archive
+	All,
+	/// Output the newest 1000 media elements from the archive
+	ByDate1000,
+	/// Dont add any entries from the SQLite archive to the youtube-dl archive
+	/// This does not disable youtube-dl archive generation
+	/// This also does not disable adding entries to the SQLite archive
+	None,
+}
+
+impl Default for ArchiveMode {
+	fn default() -> Self {
+		return Self::Default;
+	}
+}
+
 /// Run and download a given URL(s)
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct CommandDownload {
@@ -201,17 +223,10 @@ pub struct CommandDownload {
 	/// Set download to be audio-only (if its not, it will just extract the audio)
 	#[arg(short = 'a', long = "audio-only")]
 	pub audio_only_enable:         bool,
-	/// Force "gen_archive" to use the newest 1000 media elements instead of from count-result
-	/// This may be useful if a playlist is meant to be processed, but has more than ~1000 elements
-	#[arg(long = "force-genarchive-by-date")]
-	pub force_genarchive_bydate:   bool,
-	/// Force "gen_archive" to dump the full sqlite archive as a youtube-dl archive
-	/// This may be useful for debugging or if you dont care about how big the youtube-dl archive gets
-	#[arg(long = "force-genarchive-all")]
-	pub force_genarchive_all:      bool,
-	/// Force to not use any ytdl archive (include all entries), but still add media to ytdlr archive (if not exist already)
-	#[arg(long = "force-no-archive")]
-	pub force_no_archive:          bool,
+	/// Set which entries should be output to the youtube-dl archive
+	/// This does not affect entries being added to the SQLite archive
+	#[arg(long = "archive-mode", value_enum)]
+	pub archive_mode:              ArchiveMode,
 	/// Print Youtube-DL stdout
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
 	#[arg(long = "youtubedl-stdout")]
@@ -320,9 +335,7 @@ mod test {
 				audio_only_enable: false,
 				reapply_thumbnail_disable: false,
 				urls: Vec::new(),
-				force_genarchive_bydate: false,
-				force_genarchive_all: false,
-				force_no_archive: false,
+				archive_mode: ArchiveMode::Default,
 				print_youtubedl_stdout: false,
 				print_editor_stdout: false,
 				tagger_editor: None,
@@ -349,9 +362,7 @@ mod test {
 				audio_only_enable: false,
 				reapply_thumbnail_disable: false,
 				urls: Vec::new(),
-				force_genarchive_bydate: false,
-				force_genarchive_all: false,
-				force_no_archive: false,
+				archive_mode: ArchiveMode::Default,
 				print_youtubedl_stdout: false,
 				print_editor_stdout: false,
 				tagger_editor: None,
@@ -447,9 +458,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -496,9 +505,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -533,9 +540,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -573,9 +578,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -609,9 +612,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -637,9 +638,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -668,9 +667,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -699,9 +696,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
@@ -727,9 +722,7 @@ mod test {
 					audio_only_enable: false,
 					reapply_thumbnail_disable: false,
 					urls: Vec::new(),
-					force_genarchive_bydate: false,
-					force_genarchive_all: false,
-					force_no_archive: false,
+					archive_mode: ArchiveMode::Default,
 					print_youtubedl_stdout: false,
 					print_editor_stdout: false,
 					tagger_editor: None,
