@@ -425,17 +425,21 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), ioError> {
 		let file_name = file.file_name().unwrap().to_string_lossy(); // unwrap because non-file_name containing paths should be sorted out in the "filter_map"
 		info!("Trying to match tmp yt-dl archive file: \"{}\"", file_name);
 		let pid_str = {
-			let opt = file_name.split_once('_'); // the first delimiter is "_" after which follows the pid and the extension
-			if opt.is_none() {
-				continue;
+			lazy_static::lazy_static! {
+				// Regex for extracting the pid from the filename
+				// cap1: pid str
+				static ref PID_OF_ARCHIVE: Regex = Regex::new(r"(?m)^ytdl_archive_(\d+)\.txt$").unwrap();
 			}
-			// the second delimiter is "." after which follows the the extension
-			let opt2 = opt.unwrap().1.split_once('.'); // unwrap because "None" is checked above
-			if opt2.is_none() {
+
+			let cap = PID_OF_ARCHIVE.captures(&file_name);
+
+			if cap.is_none() {
 				continue;
 			}
 
-			opt2.unwrap().0 // unwrap because "None" is checked above
+			let cap = cap.expect("Expected is_none to continue");
+
+			cap.get(1).expect("Expected group 1 to always exist").as_str()
 		};
 		let pid_of_file = {
 			let res = pid_str.parse::<usize>();
