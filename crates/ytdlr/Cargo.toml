@@ -11,7 +11,7 @@ clap = { version = "4.1", features = ["derive", "wrap_help", "env"] }
 lazy_static = "1.4.0"
 indicatif = "0.17.3"
 colored = "2.0.0"
-log = "0.4.16"
+log = "0.4"
 flexi_logger = "0.24" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
 time = "0.3" # to format the time for the logging
 atty = "0.2"
