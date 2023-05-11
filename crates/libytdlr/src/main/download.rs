@@ -37,6 +37,9 @@ pub enum DownloadProgress {
 	/// Variant representing that the download has finished (downloaded media count)
 	/// The value in this tuple is the size of actually downloaded media, not just found media
 	AllFinished(usize),
+	/// Variant representing that playlist info has been found - may not trigger if not in a playlist
+	/// the first (and currently only) value is the count of media in the playlist
+	PlaylistInfo(usize),
 }
 
 /// Download a single URL
@@ -240,6 +243,14 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	}
 
 	// set custom logging for easy parsing
+
+	// print playlist information when available
+	// TODO: replace with "before_playlist" once available, see https://github.com/yt-dlp/yt-dlp/issues/7034
+	ytdl_args
+		.arg("--print")
+		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
+		.arg("before_dl:PLAYLIST '%(playlist_count)s'");
+
 	// print once before the video starts to download to get all information and to get a consistent start point
 	ytdl_args
 		.arg("--print")
@@ -277,6 +288,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 enum CustomParseType {
 	Start(MediaInfo),
 	End(MediaInfo),
+	Playlist(usize),
 }
 
 /// Line type for a ytdl output line
@@ -339,6 +351,10 @@ impl LineType {
 			return Some(Self::Custom);
 		}
 
+		if input.starts_with("PLAYLIST") {
+			return Some(Self::Custom);
+		}
+
 		if ERROR_TYPE_REGEX.is_match(input) {
 			return Some(Self::Error);
 		}
@@ -388,10 +404,14 @@ impl LineType {
 		lazy_static! {
 			// regex to get all information from the Parsing helper for START and END
 			static ref PARSE_START_END_REGEX: Regex = Regex::new(r"(?mi)^PARSE_(START|END) '([^']+)' '([^']+)'(?: (.+))?$").unwrap();
+
+			// regex to get all information from a playlist
+			static ref PARSE_PLAYLIST_REGEX: Regex = Regex::new(r"(?mi)^PLAYLIST '([^']+)'$").unwrap();
 		}
 
 		let input = input.as_ref();
 
+		// handle "PARSE_START" and "PARSE_END" lines
 		if let Some(cap) = PARSE_START_END_REGEX.captures(input) {
 			let line_type = &cap[1];
 			let provider = &cap[2];
@@ -415,6 +435,19 @@ impl LineType {
 				// the following is unreachable, because the Regex ensures that only "START" and "END" match
 				_ => unreachable!(),
 			}
+		}
+
+		// handle "PLAYLIST" lines
+		if let Some(cap) = PARSE_PLAYLIST_REGEX.captures(input) {
+			let count_str = &cap[1];
+
+			return match count_str.parse::<usize>() {
+				Ok(count) => Some(CustomParseType::Playlist(count)),
+				Err(err) => {
+					info!("Failed to parse PLAYLIST count, error: {err}");
+					None
+				},
+			};
 		}
 
 		return None;
@@ -510,6 +543,10 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 
 								// reset the value for the next download
 								had_download = false;
+							},
+							CustomParseType::Playlist(count) => {
+								debug!("Found PLAYLIST {count}");
+								pgcb(DownloadProgress::PlaylistInfo(count));
 							},
 						}
 					}
@@ -721,6 +758,8 @@ mod test {
 					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
 					OsString::from("--print"),
+					OsString::from("before_dl:PLAYLIST '%(playlist_count)s'"),
+					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
 					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
@@ -763,6 +802,8 @@ mod test {
 					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
 					OsString::from("--print"),
+					OsString::from("before_dl:PLAYLIST '%(playlist_count)s'"),
+					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
 					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
@@ -803,6 +844,8 @@ mod test {
 					OsString::from("--convert-thumbnails"),
 					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PLAYLIST '%(playlist_count)s'"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
@@ -851,6 +894,8 @@ mod test {
 					OsString::from("--convert-thumbnails"),
 					OsString::from("webp>jpg"),
 					OsString::from("--write-thumbnail"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PLAYLIST '%(playlist_count)s'"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
@@ -913,6 +958,8 @@ mod test {
 					OsString::from("en-US"),
 					OsString::from("--ppa"),
 					OsString::from("EmbedSubtitle:-disposition:s:0 default"),
+					OsString::from("--print"),
+					OsString::from("before_dl:PLAYLIST '%(playlist_count)s'"),
 					OsString::from("--print"),
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
