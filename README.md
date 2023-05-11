@@ -58,14 +58,12 @@ Aliases: `download`
 Notes:
 
 - This command will store all intermediate downloaded files (until moved) in the tempoarary path specified by [`--tmp`](#global-options).
-- If `force-genarchive-all` or others are set, `force-genarchive-all` will take priority (except `force-no-archive`).
 - Files will not be moved to `output-path` when the Tagger option is chosen (enable "Move Files" in your Tagger).
 - `*-stdout` flags enable stdout to be printed to the logs, but to view these `RUST_LOG` must at least be at `trace` (or `-vvv`).
 - 0 URLs means to only check for recovery
 - in non-interactive mode the default for finishing media is to move files (`m` in interactive mode), can be changed with `--open-tagger`
 - if no "sub-langs" are specified, no subtitles will be downloaded and embedded
 - the fist subtitle stream is set as "default"
-
 
 ### archive-mode
 
