@@ -275,8 +275,8 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 /// Helper Enum for differentiating [`LineType::Custom`] from "START" and "END"
 #[derive(Debug, PartialEq, Clone)]
 enum CustomParseType {
-	Start,
-	End,
+	Start(MediaInfo),
+	End(MediaInfo),
 }
 
 /// Line type for a ytdl output line
@@ -379,20 +379,20 @@ impl LineType {
 	/// Try to get the Custom Set Parse helper from input
 	/// Retrun [`None`] if not being of variant [`LineType::Custom`] or if not parse helper can be found
 	/// Tuple fields: (mediaprovider, id, title)
-	pub fn try_get_parse_helper<I: AsRef<str>>(&self, input: I) -> Option<(CustomParseType, MediaInfo)> {
+	pub fn try_get_parse_helper<I: AsRef<str>>(&self, input: I) -> Option<CustomParseType> {
 		// this function only works with Custom lines
 		if self != &Self::Custom {
 			return None;
 		}
 
 		lazy_static! {
-			// regex to get all information from the Parsing helper
-			static ref PARSER_HELPER_REGEX: Regex = Regex::new(r"(?mi)^PARSE_(START|END) '([^']+)' '([^']+)'(?: (.+))?$").unwrap();
+			// regex to get all information from the Parsing helper for START and END
+			static ref PARSE_START_END_REGEX: Regex = Regex::new(r"(?mi)^PARSE_(START|END) '([^']+)' '([^']+)'(?: (.+))?$").unwrap();
 		}
 
 		let input = input.as_ref();
 
-		if let Some(cap) = PARSER_HELPER_REGEX.captures(input) {
+		if let Some(cap) = PARSE_START_END_REGEX.captures(input) {
 			let line_type = &cap[1];
 			let provider = &cap[2];
 			let id = &cap[3];
@@ -401,16 +401,14 @@ impl LineType {
 				"START" => {
 					let title = &cap[4];
 
-					return Some((
-						CustomParseType::Start,
+					return Some(CustomParseType::Start(
 						MediaInfo::new(id)
 							.with_title(title)
 							.with_provider(MediaProvider::from_str_like(provider)),
 					));
 				},
 				"END" => {
-					return Some((
-						CustomParseType::End,
+					return Some(CustomParseType::End(
 						MediaInfo::new(id).with_provider(MediaProvider::from_str_like(provider)),
 					));
 				},
@@ -469,17 +467,17 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 				// currently there is nothing that needs to be done with "Generic" Lines
 				LineType::Generic => (),
 				LineType::Custom => {
-					if let Some(mi) = linetype.try_get_parse_helper(line) {
-						match mi.0 {
-							CustomParseType::Start => {
+					if let Some(parsed_type) = linetype.try_get_parse_helper(line) {
+						match parsed_type {
+							CustomParseType::Start(mi) => {
 								debug!(
 									"Found PARSE_START: \"{}\" \"{:?}\" \"{:?}\"",
-									mi.1.id, mi.1.provider, mi.1.title
+									mi.id, mi.provider, mi.title
 								);
 								if current_mediainfo.is_some() {
 									warn!("Found PARSE_START, but \"current_mediainfo\" is still \"Some\"");
 								}
-								current_mediainfo = Some(mi.1);
+								current_mediainfo = Some(mi);
 								// the following uses "expect", because the option has been set by the previous line
 								let c_mi = current_mediainfo
 									.as_ref()
@@ -491,12 +489,12 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 									.expect("current_mediainfo.title should have been set");
 								pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()))
 							},
-							CustomParseType::End => {
-								debug!("Found PARSE_END: \"{}\" \"{:?}\"", mi.1.id, mi.1.provider);
-								pgcb(DownloadProgress::SingleFinished(mi.1.id.clone()));
+							CustomParseType::End(mi) => {
+								debug!("Found PARSE_END: \"{}\" \"{:?}\"", mi.id, mi.provider);
+								pgcb(DownloadProgress::SingleFinished(mi.id.clone()));
 
 								if let Some(last_mediainfo) = current_mediainfo.take() {
-									if mi.1.id != last_mediainfo.id {
+									if mi.id != last_mediainfo.id {
 										// warn in the weird case where the "current_mediainfo" and result from PARSE_END dont match
 										warn!("Found PARSE_END, but the ID's dont match with \"current_mediainfo\"!");
 									}
@@ -1017,8 +1015,7 @@ mod test {
 			// should find PARSE_START and get "provider, id, title"
 			let input = "PARSE_START 'youtube' '-----------' Some Title Here";
 			assert_eq!(
-				Some((
-					CustomParseType::Start,
+				Some(CustomParseType::Start(
 					MediaInfo::new("-----------")
 						.with_provider(MediaProvider::from_str_like("youtube"))
 						.with_title("Some Title Here")
@@ -1029,8 +1026,7 @@ mod test {
 			// should find "PARSE_END" and get "provider, id"
 			let input = "PARSE_END 'youtube' '-----------'";
 			assert_eq!(
-				Some((
-					CustomParseType::End,
+				Some(CustomParseType::End(
 					MediaInfo::new("-----------").with_provider(MediaProvider::from_str_like("youtube"))
 				)),
 				LineType::Custom.try_get_parse_helper(input)
