@@ -15,7 +15,7 @@ log = "0.4"
 flexi_logger = "0.25" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
 time = "0.3" # to format the time for the logging
 atty = "0.2"
-diesel = { version = "2.0.2", features = ["sqlite", "chrono"] }
+diesel = { version = "2.0.3", features = ["sqlite", "chrono"] }
 libytdlr = { path = "../libytdlr" }
 dirs-next = "2.0.0"
 term_size = "0.3"
