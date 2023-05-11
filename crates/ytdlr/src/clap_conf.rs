@@ -8,6 +8,7 @@ use clap::{
 	Subcommand,
 	ValueEnum,
 };
+use is_terminal::IsTerminal;
 use std::path::PathBuf;
 
 /// Trait to check and transform all Command Structures
@@ -65,7 +66,7 @@ impl CliDerive {
 			return self.explicit_tty.expect("Should have failed with \"is_some\"");
 		}
 
-		return atty::is(atty::Stream::Stdout) && atty::is(atty::Stream::Stdin);
+		return std::io::stdout().is_terminal() && std::io::stdin().is_terminal();
 	}
 
 	/// Get if the colors are enabled or not
