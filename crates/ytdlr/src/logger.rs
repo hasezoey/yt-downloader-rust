@@ -27,9 +27,6 @@ pub fn setup_logger() -> Result<LoggerHandle, ioError> {
 	return Ok(handle);
 }
 
-// TODO: replace when feature flag is not required anymore, see https://github.com/emabee/flexi_logger/issues/132
-pub const ISO8601_TIME_FORMAT: &str = "%+";
-
 /// Logging format for log files and non-interactive formats
 /// Not Colored and not padded
 ///
@@ -40,7 +37,7 @@ pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Re
 	return write!(
 		w,
 		"[{} {} {}]: {}", // dont pad anything for non-interactive logs
-		now.format(ISO8601_TIME_FORMAT),
+		now.format_rfc3339(),
 		record.level(),
 		record.module_path().unwrap_or("<unnamed module>"),
 		&record.args()
@@ -62,7 +59,7 @@ pub fn color_log_format(
 	return write!(
 		w,
 		"[{} {} {}]: {}",
-		now.format(ISO8601_TIME_FORMAT).to_string().color(Color::BrightBlack), // Bright Black = Grey
+		now.format_rfc3339().to_string().color(Color::BrightBlack), // Bright Black = Grey
 		style(level).paint(format!("{level:5}")), // pad level to 2 characters, cannot be done in the string itself, because of the color characters
 		record.module_path().unwrap_or("<unnamed module>"),
 		&record.args() // dont apply any color to the input, so that the input can dynamically set the color
