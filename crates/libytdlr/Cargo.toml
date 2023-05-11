@@ -20,7 +20,7 @@ duct = "0.13" # required to pipe stderr into stdout
 
 [dev-dependencies]
 serde_test = "1.0.159"
-serial_test = { version = "1.0.0", default-features = false, features = ["logging"] } # disable "async" feature, because not used here
+serial_test = { version = "2.0.0", default-features = false, features = ["logging"] } # disable "async" feature, because not used here
 uuid = { version = "1.3", features = ["v4"] }
 
 [lib]
