@@ -661,9 +661,9 @@ fn do_download(
 	};
 
 	// store "download_state" in a refcell, because rust complains that a borrow is made in "download_pgcb" and also later used while still in scope
-	let download_state_cell = RefCell::new(download_state);
-	// track (currentCountTried, currentId, currentTitle, urlIndex_p)
-	// *currentCountTried does not include media already in archive
+	let download_state_cell: RefCell<&mut DownloadState> = RefCell::new(download_state);
+	// track (currentCountInPlaylist, currentId, currentTitle, urlIndex_p)
+	// *currentCountInPlaylist does not include media already in archive
 	let download_info: DownloadInfo = RefCell::new((0, String::default(), String::default(), 0));
 	let url_len = sub_args.urls.len();
 	set_progressbar_prefix(pgbar, download_info.borrow(), *download_state_cell.borrow(), true, true);
@@ -673,6 +673,8 @@ fn do_download(
 		main::download::DownloadProgress::AllStarting => {
 			pgbar.reset();
 			pgbar.set_message(""); // ensure it is not still present across finish and reset
+			let url_index = download_info.borrow().3;
+			download_info.replace((0, String::default(), String::default(), url_index));
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
 			let new_count = download_info.borrow().0 + 1;
