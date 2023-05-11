@@ -4,6 +4,9 @@ fn main() {
 	// set what version string to use for the build
 	// currently it depends on what git outputs, or if failed use "unknown"
 	{
+		println!("cargo:rerun-if-changed=build.rs");
+		println!("cargo:rerun-if-changed=.git/HEAD");
+
 		let version = Command::new("git")
 			.args(["describe", "--tags", "--always", "--dirty"])
 			.output()
