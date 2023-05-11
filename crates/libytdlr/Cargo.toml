@@ -19,7 +19,7 @@ chrono = "0.4"
 duct = "0.13" # required to pipe stderr into stdout
 
 [dev-dependencies]
-serde_test = "1.0.117"
+serde_test = "1.0.159"
 serial_test = { version = "0.10.0", default-features = false, features = ["logging"] } # disable "async" feature, because not used here
 uuid = { version = "1.0", features = ["v4"] }
 
