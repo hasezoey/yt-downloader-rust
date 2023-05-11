@@ -712,6 +712,9 @@ fn do_download(
 				url_len
 			));
 		},
+		main::download::DownloadProgress::PlaylistInfo(new_count) => {
+			download_state_cell.borrow().set_count_estimate(new_count);
+		},
 	};
 
 	for (index, url) in sub_args.urls.iter().enumerate() {
