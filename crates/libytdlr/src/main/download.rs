@@ -180,7 +180,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	std::fs::create_dir_all(output_dir)?;
 
 	// set a custom format the videos will be in for consistent parsing
-	let output_format = output_dir.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s");
+	let output_format = output_dir.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s");
 
 	if let Some(connection) = connection {
 		debug!("Found connection, generating archive");
@@ -767,7 +767,7 @@ mod test {
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
-					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s"),
+					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s"),
 					OsString::from("someURL"),
 				]
 			);
@@ -811,7 +811,7 @@ mod test {
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
-					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s"),
+					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s"),
 					OsString::from("someURL"),
 				]
 			);
@@ -854,7 +854,7 @@ mod test {
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
-					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s"),
+					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s"),
 					OsString::from("hello1"),
 					OsString::from("someURL"),
 				]
@@ -905,7 +905,7 @@ mod test {
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
 					test_dir
-						.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s")
+						.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s")
 						.as_os_str()
 						.to_owned(),
 					OsString::from("someURL"),
@@ -969,7 +969,7 @@ mod test {
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
 					test_dir
-						.join("'%(extractor)s'-'%(id)s'-%(title)s.%(ext)s")
+						.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s")
 						.as_os_str()
 						.to_owned(),
 					OsString::from("hello1"),
