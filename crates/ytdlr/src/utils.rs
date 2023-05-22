@@ -461,6 +461,7 @@ fn test_editor_base_valid(path: &Path) -> Result<(), ioError> {
 }
 
 /// Convert a "MediaInfo" instance to a filename
+/// filename gets truncated to be below 255 bytes
 /// Returns [`Some`] the final filename (Path Format: "title.extension") (filename, final_filename)
 /// Returns [`None`] when `media.title` or `media.filename` or `media.filename.extension` are [`None`]
 #[inline]
@@ -472,9 +473,23 @@ pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, Pat
 	// replace all "/" with a similar looking character, so to not create multiple segments
 	let media_title_conv = media_title.replace('/', "⧸");
 
+	// the title to use in the end
+	let title_use;
+
+	let extension_length = extension.as_bytes().len() + 1;
+
+	// using 254 instead of 255 just to be safe
+	if media_title_conv.as_bytes().len() + extension_length > 254 {
+		let truncate_to_max = 254 - extension_length;
+		title_use = truncate_to_size_bytes(&media_title_conv, truncate_to_max, true);
+	} else {
+		title_use = media_title_conv[..].into();
+	}
+
 	// convert converted title into OsString and add the extension
 	// this needs to be done so that titles containing "." do not accidentally get overwritten by "set_extension"
-	let mut final_name_osstr: OsString = media_title_conv.into();
+	let mut final_name_osstr: OsString = title_use.as_ref().into();
+
 	final_name_osstr.push(".");
 	final_name_osstr.push(extension); // the extension can be easily added here, because we can safely assume the title does not have a extension
 
