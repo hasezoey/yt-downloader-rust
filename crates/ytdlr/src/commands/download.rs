@@ -319,7 +319,7 @@ impl MediaInfoArr {
 /// Truncate the given message to a lower size so that the progressbar does not do new-lines
 /// truncation is required because indicatif would do new-lines, and adding truncation would only work with a (static) maximum size
 /// NOTE: this currently only gets run once for each "SingleStartin" instead of every tick, so resizing the truncate will not be done (until next media)
-fn truncate_message<M>(msg: &M) -> String
+fn truncate_message_term_width<M>(msg: &M) -> String
 where
 	M: AsRef<str>,
 {
@@ -630,7 +630,7 @@ fn do_download(
 				false,
 				false,
 			);
-			pgbar.set_message(truncate_message(&download_info_borrowed.2));
+			pgbar.set_message(truncate_message_term_width(&download_info_borrowed.2));
 			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
 		},
 		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
