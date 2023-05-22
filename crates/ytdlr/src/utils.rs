@@ -26,7 +26,10 @@ use std::{
 		Error as ioError,
 		Write,
 	},
-	os::unix::prelude::ExitStatusExt,
+	os::unix::prelude::{
+		ExitStatusExt,
+		OsStrExt,
+	},
 	path::{
 		Path,
 		PathBuf,
@@ -34,6 +37,8 @@ use std::{
 	process::Stdio,
 	sync::mpsc,
 };
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// Helper function to set the progressbar to a draw target if mode is interactive
 pub fn set_progressbar(bar: &ProgressBar, main_args: &CliDerive) {
@@ -483,4 +488,154 @@ pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, Pat
 pub fn fix_path<P: AsRef<Path>>(ip: P) -> Option<PathBuf> {
 	// currently there is only one process to be done
 	return libytdlr::utils::expand_tidle(ip);
+}
+
+/// Helper struct for [truncate_to_size_bytes] instead of having to use a tuple with unnamed fields
+#[derive(Debug, PartialEq)]
+pub struct CharInfo<'a> {
+	/// Index of character in the characters vec
+	pub start_index:      usize,
+	/// Bytes length of the character
+	pub length:           usize,
+	/// Display position
+	pub display_pos:      usize,
+	/// Bytes position of the full characters (including length)
+	pub size_bytes_total: usize,
+	/// The full character itself
+	pub full_char:        &'a str,
+}
+
+/// Convert a given string into a array of [CharInfo] to index at the correct positions
+pub fn msg_to_cluster<M>(msg: &M) -> Vec<CharInfo>
+where
+	M: AsRef<str>,
+{
+	let msg = msg.as_ref();
+
+	let mut display_position = 0; // keep track of the actual displayed position
+	let mut size_bytes_to = 0; // keep track of how much bytes all the previous plus the current take
+
+	return msg
+		.grapheme_indices(true)
+		.map(|(i, s)| {
+			display_position += s.width();
+			size_bytes_to += s.as_bytes().len();
+			return CharInfo {
+				start_index:      i,
+				length:           s.len(),
+				display_pos:      display_position,
+				size_bytes_total: size_bytes_to,
+				full_char:        s,
+			};
+		})
+		.collect::<Vec<CharInfo>>();
+}
+
+/// Truncate a given message to be of max "to_size_bytes" bytes long
+/// does not truncate if "msg" is less or equal to "to_size_bytes"
+/// also replaces the last 3 characters (after truncation) with "..." to indicate a truncation if "replace_with_dot" is true
+pub fn truncate_to_size_bytes<M>(msg: &M, to_size_bytes: usize, replace_with_dot: bool) -> Cow<str>
+where
+	M: AsRef<str>,
+{
+	let msg = msg.as_ref();
+
+	// dont run function if size is lower or equal to target
+	if msg.as_bytes().len() <= to_size_bytes {
+		return msg.into();
+	}
+
+	// get all characters and their boundaries
+	let characters = msg_to_cluster(&msg);
+
+	// deduct the replacing "..." from the bytes, to not have to loop later again
+	let stop_bytes = if replace_with_dot {
+		to_size_bytes - 3
+	} else {
+		to_size_bytes
+	};
+
+	// cache ".len" because it does not need to be executed often
+	let characters_len = characters.len();
+
+	// index to truncate the message to
+	// finds the first index where the "size_bytes_to" is equal or lower than "stop_bytes", from the back
+	let characters_end_idx = characters
+		.iter()
+		.rev()
+		.position(|charinfo| return charinfo.size_bytes_total <= stop_bytes)
+		.map(|v| return characters_len - v); // substract "v" because ".rev().position()" counts *encountered elements* instead of actual index
+
+	// get the char boundary for the last character's end
+	let msg_end_idx = if let Some(characters_end_idx) = characters_end_idx {
+		let charinfo = &characters[characters_end_idx - 1];
+		charinfo.start_index + charinfo.length
+	} else {
+		0
+	};
+
+	let mut ret = String::from(&msg[0..msg_end_idx]);
+
+	if replace_with_dot {
+		ret.push_str("...");
+	}
+
+	// a safety check to not return bad strings
+	assert!(ret.as_bytes().len() <= to_size_bytes);
+
+	return ret.into();
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	mod truncate_to_size_bytes {
+		use super::*;
+
+		#[test]
+		fn should_not_truncate_message() {
+			let message = "hello";
+
+			assert_eq!(message, truncate_to_size_bytes(&message, 100, true));
+			assert_eq!(message, truncate_to_size_bytes(&message, 100, false));
+		}
+
+		#[test]
+		fn should_truncate_latin_message() {
+			let message = "hello there";
+
+			assert_eq!(
+				"hello t...",
+				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, true)
+			);
+			assert_eq!(
+				"hello ther",
+				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, false)
+			);
+		}
+
+		#[test]
+		fn should_properly_truncate_at_unicode_boundary() {
+			let message = "a…b…c"; // bytes: 1 + 3 + 1 + 3 + 1 = 9
+
+			assert_eq!(
+				"a…b…",
+				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, false)
+			);
+			assert_eq!(
+				"a…b",
+				truncate_to_size_bytes(&message, message.as_bytes().len() - 2, false)
+			);
+
+			assert_eq!(
+				"a…b...",
+				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, true)
+			);
+			assert_eq!(
+				"a…...",
+				truncate_to_size_bytes(&message, message.as_bytes().len() - 2, true)
+			);
+		}
+	}
 }
