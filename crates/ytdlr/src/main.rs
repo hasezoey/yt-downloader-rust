@@ -7,10 +7,7 @@ extern crate log;
 use flexi_logger::LogSpecification;
 use libytdlr::*;
 use once_cell::sync::Lazy;
-use std::{
-	path::PathBuf,
-	sync::RwLock,
-};
+use std::sync::RwLock;
 
 mod clap_conf;
 use clap_conf::*;
@@ -148,7 +145,7 @@ fn main() -> Result<(), crate::Error> {
 	let res = match &cli_matches.subcommands {
 		SubCommands::Download(v) => commands::download::command_download(&cli_matches, v),
 		SubCommands::Archive(v) => sub_archive(&cli_matches, v),
-		SubCommands::ReThumbnail(v) => command_rethumbnail(&cli_matches, v),
+		SubCommands::ReThumbnail(v) => commands::rethumbnail::command_rethumbnail(&cli_matches, v),
 		SubCommands::Completions(v) => commands::completions::command_completions(&cli_matches, v),
 	};
 
@@ -167,42 +164,6 @@ fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), cr
 	match &sub_args.subcommands {
 		ArchiveSubCommands::Import(v) => commands::import::command_import(main_args, v),
 	}?;
-
-	return Ok(());
-}
-
-/// Handler function for the "archive migrate" subcommand
-/// This function is mainly to keep the code structured and sorted
-// #[inline]
-// fn command_migrate(main_args: &CliDerive, sub_args: &ArchiveMigrate) -> Result<(), ioError> {}
-
-/// Handler function for the "rethumbnail" subcommand
-/// This function is mainly to keep the code structured and sorted
-#[inline]
-fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), crate::Error> {
-	use libytdlr::main::rethumbnail::*;
-	utils::require_ffmpeg_installed()?;
-
-	// helper aliases to make it easier to access
-	let input_image_path: &PathBuf = &sub_args.input_image_path;
-	let input_media_path: &PathBuf = &sub_args.input_media_path;
-	let output_media_path: &PathBuf = sub_args
-		.output_media_path
-		.as_ref()
-		.expect("Expected trait \"Check\" to be run on \"CommandReThumbnail\" before this point");
-
-	println!(
-		"Re-Applying Thumbnail image \"{}\" to media file \"{}\"",
-		input_image_path.to_string_lossy(),
-		input_media_path.to_string_lossy()
-	);
-
-	re_thumbnail_with_tmp(input_media_path, input_image_path, output_media_path)?;
-
-	println!(
-		"Re-Applied Thumbnail to media, as \"{}\"",
-		output_media_path.to_string_lossy()
-	);
 
 	return Ok(());
 }
