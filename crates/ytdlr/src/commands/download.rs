@@ -37,8 +37,6 @@ use std::{
 	},
 };
 use sysinfo::SystemExt;
-use unicode_segmentation::UnicodeSegmentation;
-use unicode_width::UnicodeWidthStr;
 
 /// Static for easily referencing the 100% length for a progressbar
 const PG_PERCENT_100: u64 = 100;
@@ -325,67 +323,16 @@ fn truncate_message<M>(msg: &M) -> String
 where
 	M: AsRef<str>,
 {
-	let msg = msg.as_ref();
+	let display_width_available = term_size::dimensions().map(|(w, _h)| {
+		return w.saturating_sub(STYLE_STATIC_SIZE);
+	});
 
-	// index to truncate the message to
-	let characters_end_idx: usize;
-
-	// get all characters and their boundaries
-	let (characters, characters_highest_display) = {
-		let chars = utils::msg_to_cluster(&msg);
-		let dis_pos = chars[chars.len() - 1].display_pos;
-		(chars, dis_pos)
+	let display_width_available = match display_width_available {
+		Some(v) => v,
+		None => return msg.as_ref().into(),
 	};
 
-	// cache ".len" because it does not need to be executed often
-	let characters_len = characters.len();
-
-	if let Some((w, _h)) = term_size::dimensions() {
-		let width_available = w.saturating_sub(STYLE_STATIC_SIZE);
-		// if the width_available is more than the message, use the full message
-		// otherwise use "width_available"
-		if characters_highest_display <= width_available {
-			characters_end_idx = characters_len; // use full length of msg
-		} else {
-			// find the closest "display_position" length from the back
-			characters_end_idx = characters
-				.iter()
-				.rev()
-				.position(|charinfo| return charinfo.display_pos <= width_available)
-				.map(|v| return characters.len() - v) // substract "v" because ".rev().position()" counts *encountered elements* instead of actual index
-				.unwrap_or(characters_len);
-		}
-	} else {
-		// if no terminal dimesions are available, use the full message
-		characters_end_idx = characters_len;
-	}
-
-	// get the char boundary for the last character's end
-	let (msg_end_idx, msg_end_disp) = {
-		let charinfo = &characters[characters_end_idx - 1];
-		(charinfo.start_index + charinfo.length, charinfo.display_pos)
-	};
-
-	let mut ret = String::from(&msg[0..msg_end_idx]);
-
-	// replace the last 3 characters with "..." to indicate a truncation
-	if ret.len() < msg.len() {
-		let replace_beginning_idx = characters
-			.iter()
-			.rev()
-			.find_map(|charinfo| {
-				// find the first place where the display position is end_display - 3
-				// also minus width, because the stored "dis" is containing the width already
-				if charinfo.display_pos - charinfo.full_char.width() <= msg_end_disp - 3 {
-					return Some(charinfo.display_pos);
-				}
-				return None;
-			})
-			.expect("Expected iter.position to find a position"); // expect because it is not expected to fail, and having no alternative that guarantees to end on a boundary
-		ret.replace_range(replace_beginning_idx..ret.len(), "...");
-	}
-
-	return ret;
+	return utils::truncate_message_display_pos(msg, display_width_available, true).to_string();
 }
 
 /**
