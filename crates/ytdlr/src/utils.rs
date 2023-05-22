@@ -601,6 +601,62 @@ where
 	return ret.into();
 }
 
+/// Truncate a given message to be of max "to_display_pos" display width long
+/// does not truncate if "msg" is less or equal to "to_display_pos"
+/// also replaces the last 3 characters (after truncation) with "..." to indicate a truncation if "replace_with_dot" is true
+pub fn truncate_message_display_pos<M>(msg: &M, to_display_pos: usize, replace_with_dot: bool) -> Cow<str>
+where
+	M: AsRef<str>,
+{
+	let msg = msg.as_ref();
+
+	// get all characters and their boundaries
+	let (characters, characters_highest_display) = {
+		let chars = msg_to_cluster(&msg);
+		let dis_pos = chars[chars.len() - 1].display_pos;
+		(chars, dis_pos)
+	};
+
+	// dont run function if size is lower or equal to target
+	if characters_highest_display <= to_display_pos {
+		return msg.into();
+	}
+
+	// deduct the replacing "..." from the display position, to not have to loop later again
+	let stop_display_pos = if replace_with_dot {
+		to_display_pos - 3
+	} else {
+		to_display_pos
+	};
+
+	// cache ".len" because it does not need to be executed often
+	let characters_len = characters.len();
+
+	// index to truncate the message to
+	// finds the first index where the "display_pos" is equal or lower than "stop_display_pos", from the back
+	let characters_end_idx = characters
+		.iter()
+		.rev()
+		.position(|charinfo| return charinfo.display_pos <= stop_display_pos)
+		.map(|v| return characters_len - v); // substract "v" because ".rev().position()" counts *encountered elements* instead of actual index
+
+	// get the char boundary for the last character's end
+	let msg_end_idx = if let Some(characters_end_idx) = characters_end_idx {
+		let charinfo = &characters[characters_end_idx - 1];
+		charinfo.start_index + charinfo.length
+	} else {
+		0
+	};
+
+	let mut ret = String::from(&msg[0..msg_end_idx]);
+
+	if replace_with_dot {
+		ret.push_str("...");
+	}
+
+	return ret.into();
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
@@ -651,6 +707,43 @@ mod test {
 				"a…...",
 				truncate_to_size_bytes(&message, message.as_bytes().len() - 2, true)
 			);
+		}
+	}
+
+	mod truncate_message_display_pos {
+		use super::*;
+
+		#[test]
+		fn should_not_truncate_message() {
+			let message = "hello";
+
+			assert_eq!(message, truncate_message_display_pos(&message, 100, true));
+			assert_eq!(message, truncate_message_display_pos(&message, 100, false));
+		}
+
+		#[test]
+		fn should_truncate_latin_message() {
+			let message = "hello there"; // fully ascii, so len is also the display position
+
+			assert_eq!(
+				"hello t...",
+				truncate_message_display_pos(&message, message.len() - 1, true)
+			);
+			assert_eq!(
+				"hello ther",
+				truncate_message_display_pos(&message, message.len() - 1, false)
+			);
+		}
+
+		#[test]
+		fn should_properly_truncate_at_unicode_boundary() {
+			let message = "a…b…c"; // "…" is 3 bytes long, but displays as 1 character
+
+			assert_eq!("a…b…", truncate_message_display_pos(&message, 4, false));
+			assert_eq!("a…b", truncate_message_display_pos(&message, 3, false));
+
+			assert_eq!("a...", truncate_message_display_pos(&message, 4, true));
+			assert_eq!("...", truncate_message_display_pos(&message, 3, true));
 		}
 	}
 }
