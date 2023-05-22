@@ -149,6 +149,7 @@ fn main() -> Result<(), crate::Error> {
 		SubCommands::Download(v) => commands::download::command_download(&cli_matches, v),
 		SubCommands::Archive(v) => sub_archive(&cli_matches, v),
 		SubCommands::ReThumbnail(v) => command_rethumbnail(&cli_matches, v),
+		SubCommands::Completions(v) => commands::completions::command_completions(&cli_matches, v),
 	};
 
 	if let Err(err) = res {

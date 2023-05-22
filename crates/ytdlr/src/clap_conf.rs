@@ -8,6 +8,7 @@ use clap::{
 	Subcommand,
 	ValueEnum,
 };
+use clap_complete::Shell;
 use is_terminal::IsTerminal;
 use std::path::PathBuf;
 
@@ -119,8 +120,8 @@ pub enum SubCommands {
 	/// Re-Thumbnail specific files
 	#[command(alias = "rethumbnail")] // alias, otherwise only "re-thumbnail" would be valid
 	ReThumbnail(CommandReThumbnail),
-	// /// Generate all shell completions
-	// Completions(CommandCompletions),
+	/// Generate all shell completions
+	Completions(CommandCompletions),
 }
 
 impl Check for SubCommands {
@@ -129,7 +130,7 @@ impl Check for SubCommands {
 			SubCommands::Download(v) => return Check::check(v),
 			SubCommands::Archive(v) => return Check::check(v),
 			SubCommands::ReThumbnail(v) => return Check::check(v),
-			// SubCommands::Completions(v) => return Check::check(v),
+			SubCommands::Completions(v) => return Check::check(v),
 		}
 	}
 }
@@ -310,14 +311,32 @@ impl Check for CommandReThumbnail {
 	}
 }
 
-// #[derive(Debug, Parser)]
-// pub struct CommandCompletions {}
+#[derive(Debug, Parser, Clone, PartialEq)]
+pub struct CommandCompletions {
+	/// Set which shell completions should be generated
+	/// Supported are: Bash, Elvish, Fish, PowerShell, Zsh
+	#[arg(short = 's', long = "shell", value_enum)]
+	pub shell:            Shell,
+	/// Output path where to output the completions to
+	/// Not specifying this will print to STDOUT
+	#[arg(short = 'o', long = "out")]
+	pub output_file_path: Option<PathBuf>,
+}
 
-// impl Check for CommandCompletions {
-// 	fn check(&mut self) -> Result<(), crate::Error> {
-// 		todo!()
-// 	}
-// }
+impl Check for CommandCompletions {
+	fn check(&mut self) -> Result<(), crate::Error> {
+		// apply "expand_tilde" to archive_path
+		self.output_file_path = match self.output_file_path.take() {
+			// this has to be so round-about, because i dont know of a function that would allow functionality like "and_then" but instead of returning the same value, it would return a result
+			Some(v) => Some(crate::utils::fix_path(v).ok_or_else(|| {
+				return crate::Error::other("Output Media Path was provided, but could not be expanded / fixed");
+			})?),
+			None => None,
+		};
+
+		return Ok(());
+	}
+}
 
 #[cfg(test)]
 mod test {

@@ -99,6 +99,29 @@ Notes:
 
 - if no `--out` is specified, by default it will overwrite the input `--media` path
 
+### `completions`
+
+Command to generate shell completions.
+Supported shells are all that [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/shells/enum.Shell.html) support, which currently are (also lowercased):
+
+- Bash
+- Elvish
+- Fish
+- PowerShell
+- Zsh
+
+Signature: `completions --shell <SHELL_NAME> [--out <PATH>]`  
+Aliases: `re-thumbnail`, `rethumbnail`
+
+| Short |  Long   | Environment Variable | Default |  Type  | Description                       |
+| :---: | :-----: | :------------------: | :-----: | :----: | :-------------------------------- |
+|  -s   | --shell |                      |         | string | Shell to generate completions for |
+|  -o   |  --out  |                      |         | OsStr  | Path to output the completions to |
+
+Notes:
+
+- if no output path (`--out`) is provided, it will be output to STDOUT
+
 ### `archive import`
 
 Command to import a archive into the currently set one  
@@ -125,5 +148,4 @@ This Project is mainly a personal project, so it is currently tailored to my use
 ## Project TODO
 
 - [ ] add QOL command `archive search` to search through the archive by any column
-- [ ] add QOL command `completions` to generate shell completions (bash, zsh, etc)
 - [ ] add ability to start a play (like mpv) before choosing to edit
