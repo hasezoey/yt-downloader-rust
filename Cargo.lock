@@ -607,7 +607,6 @@ dependencies = [
  "diesel_migrations",
  "dirs-next",
  "duct",
- "lazy_static",
  "log",
  "once_cell",
  "path-absolutize",
