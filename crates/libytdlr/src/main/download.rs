@@ -743,8 +743,6 @@ mod test {
 	}
 
 	mod assemble_ytdl_command {
-		use serial_test::serial;
-
 		use super::*;
 
 		fn create_dl_dir() -> (PathBuf, TempDir) {
@@ -891,7 +889,6 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
 		fn test_archive() {
 			let (mut connection, _tempdir, test_dir) = create_connection();
 			let options = TestOptions::new_assemble(
@@ -943,7 +940,6 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
 		fn test_all_options_together() {
 			let (mut connection, _tempdir, test_dir) = create_connection();
 			let options = {
