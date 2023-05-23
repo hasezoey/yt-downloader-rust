@@ -22,7 +22,7 @@ pub fn command_completions(_main_args: &CliDerive, sub_args: &CommandCompletions
 			}
 			std::fs::create_dir_all(v.parent().expect("Expected input filename to have a parent"))
 				.expect("Expected create_dir_all to be successfull");
-			BufWriter::new(Box::from(std::fs::File::create(&v)?))
+			BufWriter::new(Box::from(std::fs::File::create(v)?))
 		},
 		None => BufWriter::new(Box::from(std::io::stdout())),
 	};

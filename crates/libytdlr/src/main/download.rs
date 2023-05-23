@@ -644,7 +644,7 @@ mod test {
 			return &self.download_path;
 		}
 
-		fn get_url<'a>(&'a self) -> &'a str {
+		fn get_url(&self) -> &str {
 			return &self.url;
 		}
 

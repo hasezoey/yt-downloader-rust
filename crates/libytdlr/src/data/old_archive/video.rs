@@ -296,7 +296,7 @@ mod test {
 		assert!(!video0.dl_finished);
 		assert!(!video0.edit_asked);
 
-		assert_eq!(false, video0.check_all());
+		assert!(!video0.check_all());
 		assert!(!video0.dl_finished);
 		assert!(!video0.edit_asked);
 
@@ -307,7 +307,7 @@ mod test {
 		assert!(video1.dl_finished);
 		assert!(video1.edit_asked);
 
-		assert_eq!(false, video1.check_all());
+		assert!(!video1.check_all());
 		assert!(video1.dl_finished);
 		assert!(video1.edit_asked);
 
@@ -316,7 +316,7 @@ mod test {
 		assert!(!video2.dl_finished);
 		assert!(video2.edit_asked);
 
-		assert_eq!(true, video2.check_all());
+		assert!(video2.check_all());
 		assert!(!video2.dl_finished);
 		assert!(!video2.edit_asked);
 	}
@@ -325,8 +325,8 @@ mod test {
 	fn test_get_functions() {
 		let var = Video::new("hello_id", provider::Provider::Youtube).with_filename("hello_file");
 
-		assert_eq!(false, var.dl_finished());
-		assert_eq!(false, var.edit_asked());
+		assert!(!var.dl_finished());
+		assert!(!var.edit_asked());
 		assert_eq!("hello_file", var.file_name());
 		assert_eq!(&provider::Provider::Youtube, var.provider());
 		assert_eq!("hello_id", var.id());

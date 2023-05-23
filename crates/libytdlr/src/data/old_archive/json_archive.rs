@@ -140,9 +140,9 @@ mod test {
 		let id = "SomeID";
 		let mut archive = JSONArchive::default();
 
-		assert_eq!(true, archive.add_video(Video::new(id, Provider::Youtube)));
-		assert_eq!(false, archive.add_video(Video::new(id, Provider::Youtube)));
-		assert_eq!(false, archive.add_video(Video::new(id, Provider::Unknown)));
+		assert!(archive.add_video(Video::new(id, Provider::Youtube)));
+		assert!(!archive.add_video(Video::new(id, Provider::Youtube)));
+		assert!(!archive.add_video(Video::new(id, Provider::Unknown)));
 
 		assert_eq!(1, archive.get_videos().len());
 	}
@@ -152,14 +152,14 @@ mod test {
 		let id = "SomeID";
 		let mut archive = JSONArchive::default();
 
-		assert_eq!(true, archive.add_video(Video::new(id, Provider::Youtube)));
+		assert!(archive.add_video(Video::new(id, Provider::Youtube)));
 		assert_eq!(1, archive.get_videos().len());
-		assert_eq!(false, archive.get_videos()[0].dl_finished());
+		assert!(!archive.get_videos()[0].dl_finished());
 
-		assert_eq!(true, archive.mark_dl_finished(id));
+		assert!(archive.mark_dl_finished(id));
 
 		assert_eq!(1, archive.get_videos().len());
-		assert_eq!(true, archive.get_videos()[0].dl_finished());
+		assert!(archive.get_videos()[0].dl_finished());
 	}
 
 	#[test]
@@ -167,11 +167,11 @@ mod test {
 		let id = "SomeID";
 		let mut archive = JSONArchive::default();
 
-		assert_eq!(true, archive.add_video(Video::new(id, Provider::Youtube)));
+		assert!(archive.add_video(Video::new(id, Provider::Youtube)));
 		assert_eq!(1, archive.get_videos().len());
 		assert_eq!("", archive.get_videos()[0].file_name());
 
-		assert_eq!(true, archive.set_filename(id, "SomeFilename"));
+		assert!(archive.set_filename(id, "SomeFilename"));
 
 		assert_eq!(1, archive.get_videos().len());
 		assert_eq!("SomeFilename", archive.get_videos()[0].file_name());
@@ -183,12 +183,10 @@ mod test {
 		let id1 = "SomeID1";
 		let mut archive = JSONArchive::default();
 
-		assert_eq!(
-			true,
+		assert!(
 			archive.add_video(Video::new(id0, Provider::Youtube).with_dl_finished(true))
 		);
-		assert_eq!(
-			true,
+		assert!(
 			archive.add_video(Video::new(id1, Provider::Other("soundcloud".to_owned())).with_dl_finished(true))
 		);
 
@@ -211,12 +209,10 @@ mod test {
 		let id1 = "SomeID1";
 		let mut archive = JSONArchive::default();
 
-		assert_eq!(
-			true,
+		assert!(
 			archive.add_video(Video::new(id0, Provider::Youtube).with_dl_finished(true))
 		);
-		assert_eq!(
-			true,
+		assert!(
 			archive.add_video(Video::new(id1, Provider::Other("soundcloud".to_owned())).with_dl_finished(true))
 		);
 
@@ -242,7 +238,7 @@ mod test {
 			archive
 		};
 
-		assert_eq!(false, archive0.check_all_videos());
+		assert!(!archive0.check_all_videos());
 
 		let mut archive1 = {
 			let mut archive = JSONArchive::default();
@@ -251,7 +247,7 @@ mod test {
 			archive
 		};
 
-		assert_eq!(true, archive1.check_all_videos());
+		assert!(archive1.check_all_videos());
 
 		let mut archive2 = {
 			let mut archive = JSONArchive::default();
@@ -262,6 +258,6 @@ mod test {
 			archive
 		};
 
-		assert_eq!(true, archive2.check_all_videos());
+		assert!(archive2.check_all_videos());
 	}
 }

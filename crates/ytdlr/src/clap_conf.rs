@@ -642,7 +642,7 @@ mod test {
 				}),
 			};
 
-			assert_eq!(false, explicit_disable.is_interactive());
+			assert!(!explicit_disable.is_interactive());
 
 			let explicit_enable = CliDerive {
 				verbosity:    0,
@@ -668,7 +668,7 @@ mod test {
 				}),
 			};
 
-			assert_eq!(true, explicit_enable.is_interactive());
+			assert!(explicit_enable.is_interactive());
 		}
 
 		#[test]
@@ -697,7 +697,7 @@ mod test {
 				}),
 			};
 
-			assert_eq!(true, explicit_disable.enable_colors());
+			assert!(explicit_disable.enable_colors());
 		}
 
 		#[test]
@@ -726,7 +726,7 @@ mod test {
 				}),
 			};
 
-			assert_eq!(false, explicit_disable.enable_colors());
+			assert!(!explicit_disable.enable_colors());
 
 			let explicit_enable = CliDerive {
 				verbosity:    0,
@@ -752,7 +752,7 @@ mod test {
 				}),
 			};
 
-			assert_eq!(true, explicit_enable.enable_colors());
+			assert!(explicit_enable.enable_colors());
 		}
 	}
 

@@ -198,7 +198,7 @@ mod test {
 
 			assert!(res.is_ok());
 			let res = res.unwrap();
-			assert_eq!(false, res); // explicit bool test
+			assert!(!res);
 		}
 	}
 
