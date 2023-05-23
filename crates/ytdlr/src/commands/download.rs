@@ -1277,3 +1277,43 @@ fn try_find_and_read_recovery_files(
 
 	return Ok(read_files);
 }
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	mod recovery {
+		use libytdlr::data::cache::media_provider::MediaProvider;
+
+		use super::*;
+
+		#[test]
+		fn test_try_from_line() {
+			// test a non-proper name
+			let input = "impropername.something";
+			assert_eq!(None, Recovery::try_from_line(input));
+
+			// test a proper name
+			let input = "'provider'-'id'-Some Title";
+			assert_eq!(
+				Some(
+					MediaInfo::new("id")
+						.with_provider(MediaProvider::Other("provider".to_owned()))
+						.with_title("Some Title")
+				),
+				Recovery::try_from_line(input)
+			);
+
+			// test a proper name with dots
+			let input = "'provider'-'id'-Some Title ver.2";
+			assert_eq!(
+				Some(
+					MediaInfo::new("id")
+						.with_provider(MediaProvider::Other("provider".to_owned()))
+						.with_title("Some Title ver.2")
+				),
+				Recovery::try_from_line(input)
+			);
+		}
+	}
+}
