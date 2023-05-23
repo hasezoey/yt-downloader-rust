@@ -1,4 +1,8 @@
-# YT-Downloader RUST
+# Youtube-DL rust cli interface (ytdlr)
+
+A CLI interface for `youtube-dl` (or `yt-dlp` available in PATH as `youtube-dl`) written in RUST.
+
+Also contains some helper functions like [rethumbnailing](#rethumbnail).
 
 ## Requirements
 
@@ -141,7 +145,7 @@ Currently supported formats that can be imported:
 - youtube-dl (provider, id) Archive
 - SQLite Archive
 
-## Extra
+## Notes
 
 This Project is mainly a personal project, so it is currently tailored to my use-cases, but issues / requests will still be reviewed.
 
@@ -149,3 +153,4 @@ This Project is mainly a personal project, so it is currently tailored to my use
 
 - [ ] add QOL command `archive search` to search through the archive by any column
 - [ ] add ability to start a play (like mpv) before choosing to edit
+- [ ] add ability to go back in the edit list
