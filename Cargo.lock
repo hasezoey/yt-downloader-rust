@@ -609,6 +609,7 @@ dependencies = [
  "duct",
  "lazy_static",
  "log",
+ "once_cell",
  "path-absolutize",
  "regex",
  "serde",
