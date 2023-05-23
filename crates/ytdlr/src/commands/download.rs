@@ -20,6 +20,7 @@ use libytdlr::{
 	traits::context::DownloadOptions,
 	*,
 };
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
 	cell::RefCell,
@@ -169,11 +170,11 @@ impl Recovery {
 
 	/// Try to create a MediaInfo from a given line
 	pub fn try_from_line(line: &str) -> Option<data::cache::media_info::MediaInfo> {
-		lazy_static::lazy_static! {
-			// Regex for getting the provider,id,title from a line in a recovery format
-			// cap1: provider, cap2: id, cap3: title
-			static ref FROM_LINE_REGEX: Regex = Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
-		}
+		/// Regex for getting the provider,id,title from a line in a recovery format
+		/// cap1: provider, cap2: id, cap3: title
+		static FROM_LINE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
+		});
 
 		let cap = FROM_LINE_REGEX.captures(line)?;
 
@@ -364,11 +365,11 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), ioError> {
 		let file_name = file.file_name().unwrap().to_string_lossy(); // unwrap because non-file_name containing paths should be sorted out in the "filter_map"
 		info!("Trying to match tmp yt-dl archive file: \"{}\"", file_name);
 		let pid_str = {
-			lazy_static::lazy_static! {
-				// Regex for extracting the pid from the filename
-				// cap1: pid str
-				static ref PID_OF_ARCHIVE: Regex = Regex::new(r"(?m)^ytdl_archive_(\d+)\.txt$").unwrap();
-			}
+			/// Regex for extracting the pid from the filename
+			/// cap1: pid str
+			static PID_OF_ARCHIVE: Lazy<Regex> = Lazy::new(|| {
+				return Regex::new(r"(?m)^ytdl_archive_(\d+)\.txt$").unwrap();
+			});
 
 			let cap = PID_OF_ARCHIVE.captures(&file_name);
 
@@ -421,13 +422,13 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		)
 	}
 
-	lazy_static::lazy_static! {
-		// ProgressBar Style for download, will look like "[0/0] [00:00:00] [#>-] CustomMsg"
-		static ref DOWNLOAD_STYLE: ProgressStyle = ProgressStyle::default_bar()
-		.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
-		.expect("Expected ProgressStyle template to be valid")
-		.progress_chars("#>-");
-	}
+	/// ProgressBar Style for download, will look like "[0/0] [00:00:00] [#>-] CustomMsg"
+	static DOWNLOAD_STYLE: Lazy<ProgressStyle> = Lazy::new(|| {
+		return ProgressStyle::default_bar()
+			.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
+			.expect("Expected ProgressStyle template to be valid")
+			.progress_chars("#>-");
+	});
 
 	let tmp_path = main_args
 		.tmp_path
@@ -929,12 +930,14 @@ mod quirks {
 		return Ok(Some(metadata_file));
 	}
 
-	lazy_static::lazy_static! {
-		/// Extensions that store metadata in the global
-		static ref GLOBAL_METADATA_EXT: HashSet<&'static str> = HashSet::from(["mp3"]);
-		/// Extensions that store metadata in the stream
-		static ref STREAM_METADATA_EXT: HashSet<&'static str> = HashSet::from(["ogg"]);
-	}
+	/// Extensions that store metadata in the global
+	static GLOBAL_METADATA_EXT: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+		return HashSet::from(["mp3"]);
+	});
+	/// Extensions that store metadata in the stream
+	static STREAM_METADATA_EXT: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+		return HashSet::from(["ogg"]);
+	});
 
 	fn get_format(media_file: &Path) -> Result<String, crate::Error> {
 		trace!("Getting Format for file \"{}\"", media_file.to_string_lossy());

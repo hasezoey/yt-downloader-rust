@@ -4,6 +4,7 @@ use indicatif::{
 	ProgressBar,
 	ProgressStyle,
 };
+use once_cell::sync::Lazy;
 use std::{
 	fs::File,
 	io::{
@@ -33,12 +34,12 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 		.as_ref()
 		.expect("Expected archive check to have already returned");
 
-	lazy_static::lazy_static! {
-		static ref IMPORT_STYLE: ProgressStyle = ProgressStyle::default_bar()
+	static IMPORT_STYLE: Lazy<ProgressStyle> = Lazy::new(|| {
+		return ProgressStyle::default_bar()
 			.template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
 			.expect("Expected ProgressStyle template to be valid")
 			.progress_chars("#>-");
-	}
+	});
 
 	let bar: ProgressBar = ProgressBar::hidden().with_style(IMPORT_STYLE.clone());
 	crate::utils::set_progressbar(&bar, main_args);
