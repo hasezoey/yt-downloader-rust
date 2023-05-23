@@ -104,26 +104,6 @@ impl MediaInfo {
 				.with_filename(filename),
 		);
 	}
-
-	// TODO: remove function "try_from_tmp_recovery", because recovery is not a concept of the library
-	/// Try to create a [`MediaInfo`] instance from a line from the recovery format
-	/// Parsed based on the template of "'provider'-'id'-Some Title"
-	pub fn try_from_tmp_recovery<I: AsRef<str>>(line: I) -> Option<Self> {
-		let line = line.as_ref();
-		/// Regex for getting the provider, id and title from a line from recovery
-		/// cap1: provider, cap2: id, cap3: title
-		static FROM_LINE_REGEX: Lazy<Regex> = Lazy::new(|| {
-			return Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
-		});
-
-		let cap = FROM_LINE_REGEX.captures(line)?;
-
-		return Some(
-			Self::new(&cap[2])
-				.with_provider(MediaProvider::from_str_like(&cap[1]))
-				.with_title(&cap[3]),
-		);
-	}
 }
 
 impl From<&MediaInfo> for InsMedia {
@@ -245,35 +225,6 @@ mod test {
 					.with_filename("'provider'-'id'-Some Title.something")
 			),
 			MediaInfo::try_from_filename(&input)
-		);
-	}
-
-	#[test]
-	fn test_try_from_tmp_recovery() {
-		// test a non-proper name
-		let input = "impropername.something";
-		assert_eq!(None, MediaInfo::try_from_tmp_recovery(input));
-
-		// test a proper name
-		let input = "'provider'-'id'-Some Title";
-		assert_eq!(
-			Some(
-				MediaInfo::new("id")
-					.with_provider(MediaProvider::Other("provider".to_owned()))
-					.with_title("Some Title")
-			),
-			MediaInfo::try_from_tmp_recovery(input)
-		);
-
-		// test a proper name with dots
-		let input = "'provider'-'id'-Some Title ver.2";
-		assert_eq!(
-			Some(
-				MediaInfo::new("id")
-					.with_provider(MediaProvider::Other("provider".to_owned()))
-					.with_title("Some Title ver.2")
-			),
-			MediaInfo::try_from_tmp_recovery(input)
 		);
 	}
 }
