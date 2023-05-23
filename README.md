@@ -102,6 +102,7 @@ Aliases: `re-thumbnail`, `rethumbnail`
 Notes:
 
 - if no `--out` is specified, by default it will overwrite the input `--media` path
+- this command does not require `youtube-dl` to be present, but `ffmpeg` is required
 
 ### `completions`
 
@@ -125,6 +126,7 @@ Aliases: `re-thumbnail`, `rethumbnail`
 Notes:
 
 - if no output path (`--out`) is provided, it will be output to STDOUT
+- this command does not require `youtube-dl` or `ffmpeg` to be present
 
 ### `archive import`
 
@@ -144,6 +146,10 @@ Currently supported formats that can be imported:
 - JSON Archive (from previous versions)
 - youtube-dl (provider, id) Archive
 - SQLite Archive
+
+Notes:
+
+- this command does not require `youtube-dl` or `ffmpeg` to be present
 
 ## Notes
 
