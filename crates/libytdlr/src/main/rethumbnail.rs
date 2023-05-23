@@ -369,20 +369,18 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 #[cfg(test)]
 mod test {
 	use super::*;
-	use serial_test::serial;
+	use tempfile::{
+		Builder as TempBuilder,
+		TempDir,
+	};
 
-	fn create_dir(target: &'static str) -> PathBuf {
-		// get a testing directory
-		let tmp = std::env::temp_dir().join(format!("ytdl-test-{target}"));
+	fn create_dir(target: &'static str) -> (PathBuf, TempDir) {
+		let testdir = TempBuilder::new()
+			.prefix(&format!("ytdl-test-{target}-"))
+			.tempdir()
+			.expect("Expected a temp dir to be created");
 
-		// if the directory already exists, delete it for clean working environment
-		if tmp.exists() {
-			std::fs::remove_dir_all(&tmp).expect("Expected remove_dir_all to be successfull");
-		}
-
-		std::fs::create_dir_all(&tmp).expect("Expected create_dir_all to be successfull");
-
-		return tmp;
+		return (testdir.as_ref().to_owned(), testdir);
 	}
 
 	mod re_thumbnail {
@@ -480,9 +478,8 @@ mod test {
 		use super::*;
 
 		#[test]
-		#[serial]
 		fn test_find_image_jpg() {
-			let workdir = create_dir("findimage");
+			let (workdir, _tempdir) = create_dir("findimage");
 
 			let test_file_path = workdir.join("somefile.jpg");
 
@@ -497,9 +494,8 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
 		fn test_find_image_png() {
-			let workdir = create_dir("findimage");
+			let (workdir, _tempdir) = create_dir("findimage");
 
 			let test_file_path = workdir.join("somefile.png");
 
@@ -514,9 +510,8 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
 		fn test_find_image_webp() {
-			let workdir = create_dir("findimage");
+			let (workdir, _tempdir) = create_dir("findimage");
 
 			let test_file_path = workdir.join("somefile.webp");
 
@@ -535,9 +530,8 @@ mod test {
 		use super::*;
 
 		#[test]
-		#[serial]
 		fn test_basic_func() {
-			let workdir = create_dir("convertimagejpg");
+			let (workdir, _tempdir) = create_dir("convertimagejpg");
 			let fake_command = std::process::Command::new("echo");
 
 			let output_dir = workdir.join("tmp");
@@ -553,9 +547,8 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
 		fn test_early_return_jpg() {
-			let workdir = create_dir("convertimagejpg");
+			let (workdir, _tempdir) = create_dir("convertimagejpg");
 			let output_dir = workdir.join("tmp");
 			let mut fake_command = std::process::Command::new("sh");
 			fake_command.args([
@@ -575,9 +568,8 @@ mod test {
 		}
 
 		#[test]
-		#[serial]
 		fn test_exit_status() {
-			let workdir = create_dir("convertimagejpg");
+			let (workdir, _tempdir) = create_dir("convertimagejpg");
 			let output_dir = workdir.join("tmp");
 			let mut fake_command = std::process::Command::new("sh");
 			fake_command.args([

@@ -580,6 +580,10 @@ mod test {
 	use std::path::PathBuf;
 	use std::sync::atomic::AtomicUsize;
 	use std::sync::Arc;
+	use tempfile::{
+		Builder as TempBuilder,
+		TempDir,
+	};
 
 	use super::*;
 
@@ -670,21 +674,25 @@ mod test {
 	}
 
 	/// Test helper function to create a connection AND get a clean testing dir path
-	fn create_connection() -> (SqliteConnection, PathBuf) {
+	fn create_connection() -> (SqliteConnection, TempDir, PathBuf) {
+		let testdir = TempBuilder::new()
+			.prefix("ytdl-test-download-")
+			.tempdir()
+			.expect("Expected a temp dir to be created");
 		// chrono is used to create a different database for each thread
-		let path = std::env::temp_dir().join(format!("ytdl-test-download/{}-sqlite.db", chrono::Utc::now()));
+		let path = testdir.as_ref().join(format!("{}-sqlite.db", chrono::Utc::now()));
 
 		// remove if already exists to have a clean test
 		if path.exists() {
 			std::fs::remove_file(&path).expect("Expected the file to be removed");
 		}
 
-		let path_parent = path.parent().expect("Expected the file to have a parent");
-		std::fs::create_dir_all(path_parent).expect("expected the directory to be created");
+		let parent = testdir.as_ref().to_owned();
 
 		return (
 			crate::main::sql_utils::sqlite_connect(&path).expect("Expected SQLite to successfully start"),
-			path_parent.into(),
+			testdir,
+			parent,
 		);
 	}
 
@@ -739,12 +747,22 @@ mod test {
 
 		use super::*;
 
+		fn create_dl_dir() -> (PathBuf, TempDir) {
+			let testdir = TempBuilder::new()
+				.prefix("ytdl-test-dlAssemble-")
+				.tempdir()
+				.expect("Expected a temp dir to be created");
+
+			return (testdir.as_ref().to_owned(), testdir);
+		}
+
 		#[test]
 		fn test_basic_assemble() {
+			let (dl_dir, _tempdir) = create_dl_dir();
 			let options = TestOptions::new_assemble(
 				false,
 				Vec::default(),
-				PathBuf::from("/tmp/hello"),
+				dl_dir.clone(),
 				"someURL".to_owned(),
 				Vec::default(),
 			);
@@ -776,7 +794,7 @@ mod test {
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
-					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s"),
+					dl_dir.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s").into(),
 					OsString::from("someURL"),
 				]
 			);
@@ -784,10 +802,11 @@ mod test {
 
 		#[test]
 		fn test_audio_only() {
+			let (dl_dir, _tempdir) = create_dl_dir();
 			let options = TestOptions::new_assemble(
 				true,
 				Vec::default(),
-				PathBuf::from("/tmp/hello"),
+				dl_dir.clone(),
 				"someURL".to_owned(),
 				Vec::default(),
 			);
@@ -820,7 +839,7 @@ mod test {
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
-					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s"),
+					dl_dir.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s").into(),
 					OsString::from("someURL"),
 				]
 			);
@@ -828,10 +847,11 @@ mod test {
 
 		#[test]
 		fn test_extra_arguments() {
+			let (dl_dir, _tempdir) = create_dl_dir();
 			let options = TestOptions::new_assemble(
 				false,
 				vec![PathBuf::from("hello1")],
-				PathBuf::from("/tmp/hello"),
+				dl_dir.clone(),
 				"someURL".to_owned(),
 				Vec::default(),
 			);
@@ -863,7 +883,7 @@ mod test {
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
 					OsString::from("-o"),
-					OsString::from("/tmp/hello/'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s"),
+					dl_dir.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s").into(),
 					OsString::from("hello1"),
 					OsString::from("someURL"),
 				]
@@ -873,7 +893,7 @@ mod test {
 		#[test]
 		#[serial]
 		fn test_archive() {
-			let (mut connection, test_dir) = create_connection();
+			let (mut connection, _tempdir, test_dir) = create_connection();
 			let options = TestOptions::new_assemble(
 				false,
 				Vec::default(),
@@ -925,7 +945,7 @@ mod test {
 		#[test]
 		#[serial]
 		fn test_all_options_together() {
-			let (mut connection, test_dir) = create_connection();
+			let (mut connection, _tempdir, test_dir) = create_connection();
 			let options = {
 				let mut o = TestOptions::new_assemble(
 					true,

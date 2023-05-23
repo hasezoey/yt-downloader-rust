@@ -231,25 +231,34 @@ mod test {
 	use crate::data::old_archive::video::Video;
 	use std::ops::Deref;
 	use std::sync::RwLock;
+	use tempfile::{
+		Builder as TempBuilder,
+		TempDir,
+	};
 
 	/// Test utility function for easy callbacks
 	fn callback_counter(c: &RwLock<Vec<ImportProgress>>) -> impl FnMut(ImportProgress) + '_ {
 		return |imp| c.write().expect("write failed").push(imp);
 	}
 
-	fn create_connection() -> SqliteConnection {
+	/// Test helper function to create a connection AND get a clean testing dir path
+	fn create_connection() -> (SqliteConnection, TempDir) {
+		let testdir = TempBuilder::new()
+			.prefix("ytdl-test-import-")
+			.tempdir()
+			.expect("Expected a temp dir to be created");
 		// chrono is used to create a different database for each thread
-		let path = std::env::temp_dir().join(format!("ytdl-test-sqlite/{}-sqlite.db", chrono::Utc::now()));
+		let path = testdir.as_ref().join(format!("{}-sqlite.db", chrono::Utc::now()));
 
 		// remove if already exists to have a clean test
 		if path.exists() {
 			std::fs::remove_file(&path).expect("Expected the file to be removed");
 		}
 
-		std::fs::create_dir_all(path.parent().expect("Expected the file to have a parent"))
-			.expect("expected the directory to be created");
-
-		return crate::main::sql_utils::sqlite_connect(path).expect("Expected SQLite to successfully start");
+		return (
+			crate::main::sql_utils::sqlite_connect(&path).expect("Expected SQLite to successfully start"),
+			testdir,
+		);
 	}
 
 	mod detect {
@@ -321,7 +330,7 @@ mod test {
 		#[test]
 		fn test_unexpected_eof() {
 			let string0 = "";
-			let mut dummy_connection = create_connection();
+			let (mut dummy_connection, _tempdir) = create_connection();
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -340,7 +349,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdl() {
-			let mut connection0 = create_connection();
+			let (mut connection0, _tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "
@@ -394,7 +403,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdlr() {
-			let mut connection0 = create_connection();
+			let (mut connection0, _tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = r#"
@@ -483,7 +492,7 @@ mod test {
 
 		#[test]
 		fn test_insert() {
-			let mut connection0 = create_connection();
+			let (mut connection0, _tempdir) = create_connection();
 
 			let input0 = InsMedia::new("someid", "someprovider", "sometitle");
 
@@ -513,7 +522,7 @@ mod test {
 
 		#[test]
 		fn test_basic_ytdl() {
-			let mut connection0 = create_connection();
+			let (mut connection0, _tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "
@@ -567,7 +576,7 @@ mod test {
 
 		#[test]
 		fn test_no_captures_found_err() {
-			let mut connection0 = create_connection();
+			let (mut connection0, _tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "";
@@ -601,7 +610,7 @@ mod test {
 
 		#[test]
 		fn test_basic_ytdlr() {
-			let mut connection0 = create_connection();
+			let (mut connection0, _tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = r#"

@@ -122,20 +122,28 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 #[cfg(test)]
 mod test {
 	use super::*;
+	use tempfile::{
+		Builder as TempBuilder,
+		TempDir,
+	};
 
-	fn create_connection() -> SqliteConnection {
+	fn create_connection() -> (SqliteConnection, TempDir) {
+		let testdir = TempBuilder::new()
+			.prefix("ytdl-test-sqlite-")
+			.tempdir()
+			.expect("Expected a temp dir to be created");
 		// chrono is used to create a different database for each thread
-		let path = std::env::temp_dir().join(format!("ytdl-test-sqlite/{}-sqlite.db", chrono::Utc::now()));
+		let path = testdir.as_ref().join(format!("{}-sqlite.db", chrono::Utc::now()));
 
 		// remove if already exists to have a clean test
 		if path.exists() {
 			std::fs::remove_file(&path).expect("Expected the file to be removed");
 		}
 
-		std::fs::create_dir_all(path.parent().expect("Expected the file to have a parent"))
-			.expect("expected the directory to be created");
-
-		return crate::main::sql_utils::sqlite_connect(path).expect("Expected SQLite to successfully start");
+		return (
+			crate::main::sql_utils::sqlite_connect(&path).expect("Expected SQLite to successfully start"),
+			testdir,
+		);
 	}
 
 	mod connect {
@@ -147,7 +155,11 @@ mod test {
 
 		#[test]
 		fn test_connect() {
-			let path = std::env::temp_dir().join(format!("ytdl-test-sqlite/{}-sqlite.db", chrono::Utc::now()));
+			let testdir = TempBuilder::new()
+				.prefix("ytdl-test-sqliteConnect-")
+				.tempdir()
+				.expect("Expected a temp dir to be created");
+			let path = testdir.as_ref().join(format!("{}-sqlite.db", chrono::Utc::now()));
 			std::fs::create_dir_all(path.parent().expect("Expected the file to have a parent"))
 				.expect("expected the directory to be created");
 
@@ -180,7 +192,7 @@ mod test {
 
 		#[test]
 		fn test_all_migrations_applied() {
-			let mut connection = create_connection();
+			let (mut connection, _tempdir) = create_connection();
 
 			let res = diesel_migrations::MigrationHarness::has_pending_migration(&mut connection, MIGRATIONS);
 
@@ -204,9 +216,12 @@ mod test {
 
 		use super::*;
 
-		fn gen_archive_path<P: AsRef<OsStr>>(extension: P) -> PathBuf {
-			let mut path =
-				std::env::temp_dir().join(format!("ytdl-test-sql_utils/{}-gen_archive", uuid::Uuid::new_v4()));
+		fn gen_archive_path<P: AsRef<OsStr>>(extension: P) -> (PathBuf, TempDir) {
+			let testdir = TempBuilder::new()
+				.prefix("ytdl-test-sqliteMigrate-")
+				.tempdir()
+				.expect("Expected a temp dir to be created");
+			let mut path = testdir.as_ref().join(format!("{}-gen_archive", uuid::Uuid::new_v4()));
 			path.set_extension(extension);
 			println!("generated: {}", path.to_string_lossy());
 
@@ -221,7 +236,7 @@ mod test {
 				clear_path(migrate_to_path);
 			}
 
-			return path;
+			return (path, testdir);
 		}
 
 		fn clear_path<P: AsRef<Path>>(path: P) {
@@ -238,8 +253,8 @@ mod test {
 				.expect("expected the directory to be created");
 		}
 
-		fn write_file_with_content<S: AsRef<str>, P: AsRef<OsStr>>(input: S, extension: P) -> PathBuf {
-			let path = gen_archive_path(extension);
+		fn write_file_with_content<S: AsRef<str>, P: AsRef<OsStr>>(input: S, extension: P) -> (PathBuf, TempDir) {
+			let (path, tempdir) = gen_archive_path(extension);
 
 			create_dir_all_parent(&path);
 
@@ -248,7 +263,7 @@ mod test {
 			file.write_all(input.as_ref().as_bytes())
 				.expect("Expected successfull file write");
 
-			return path;
+			return (path, tempdir);
 		}
 
 		/// Test utility function for easy callbacks
@@ -265,7 +280,7 @@ mod test {
 			soundcloud 0000000000
 			";
 
-			let path = write_file_with_content(string0, "unknown_ytdl");
+			let (path, _tempdir) = write_file_with_content(string0, "unknown_ytdl");
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -285,7 +300,7 @@ mod test {
 
 		#[test]
 		fn test_input_sqlite_archive() {
-			let path = gen_archive_path("db_sqlite");
+			let (path, _tempdir) = gen_archive_path("db_sqlite");
 			create_dir_all_parent(&path);
 
 			{
@@ -342,7 +357,7 @@ mod test {
 			}
 			"#;
 
-			let path = write_file_with_content(string0, "json_json");
+			let (path, _tempdir) = write_file_with_content(string0, "json_json");
 
 			let expected_path = {
 				let mut tmp = path.clone();
@@ -383,7 +398,7 @@ mod test {
 			}
 			"#;
 
-			let path = write_file_with_content(string0, "db");
+			let (path, _tempdir) = write_file_with_content(string0, "db");
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -411,7 +426,7 @@ mod test {
 			soundcloud 0000000000
 			";
 
-			let path = write_file_with_content(string0, "db");
+			let (path, _tempdir) = write_file_with_content(string0, "db");
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -435,7 +450,7 @@ mod test {
 
 		#[test]
 		fn test_to_existing_sqlite() {
-			let path = gen_archive_path("db");
+			let (path, _tempdir) = gen_archive_path("db");
 			create_dir_all_parent(&path);
 
 			{
