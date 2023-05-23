@@ -1479,7 +1479,6 @@ dependencies = [
  "flexi_logger",
  "indicatif",
  "is-terminal",
- "lazy_static",
  "libytdlr",
  "log",
  "once_cell",

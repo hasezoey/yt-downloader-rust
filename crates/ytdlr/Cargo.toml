@@ -9,7 +9,6 @@ build = "build.rs"
 [dependencies]
 clap = { version = "4.2", features = ["derive", "wrap_help", "env"] }
 clap_complete = "4.2"
-lazy_static = "1.4.0"
 indicatif = "0.17.3"
 colored = "2.0.0"
 log = "0.4"
