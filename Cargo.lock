@@ -1475,7 +1475,6 @@ dependencies = [
  "clap_complete",
  "colored",
  "ctrlc",
- "diesel",
  "dirs-next",
  "flexi_logger",
  "indicatif",
