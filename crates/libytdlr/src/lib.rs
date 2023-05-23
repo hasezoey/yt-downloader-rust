@@ -36,3 +36,5 @@ pub fn invoke_vscode_debugger() {
 	println!("Press ENTER to continue");
 	let _ = std::io::stdin().read_line(&mut String::new()); // wait until attached, then press ENTER to continue
 }
+
+pub use diesel;
