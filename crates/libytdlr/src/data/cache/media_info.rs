@@ -1,5 +1,6 @@
 //! Module containing [`MediaInfo`]
 
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{
 	Deserialize,
@@ -78,10 +79,10 @@ impl MediaInfo {
 	/// Parsed based on the output template defined in `crate::main::download::assemble_ytdl_command`
 	/// Only accepts a str input, not a path one
 	pub fn try_from_filename<I: AsRef<str>>(filename: &I) -> Option<Self> {
-		lazy_static! {
-			// Regex for getting the provider,id,title from a filename (as defined in `crate::main::download::assemble_ytdl_command`)
-			static ref FROM_PATH_REGEX: Regex = Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
-		}
+		/// Regex for getting the provider, id and title from a filename (as defined in `crate::main::download::assemble_ytdl_command`)
+		static FROM_PATH_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
+		});
 
 		let filename = filename.as_ref();
 
@@ -109,11 +110,11 @@ impl MediaInfo {
 	/// Parsed based on the template of "'provider'-'id'-Some Title"
 	pub fn try_from_tmp_recovery<I: AsRef<str>>(line: I) -> Option<Self> {
 		let line = line.as_ref();
-		lazy_static! {
-			// Regex for getting the provider,id,title from a line in a recovery format
-			// cap1: provider, cap2: id, cap3: title
-			static ref FROM_LINE_REGEX: Regex = Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
-		}
+		/// Regex for getting the provider, id and title from a line from recovery
+		/// cap1: provider, cap2: id, cap3: title
+		static FROM_LINE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
+		});
 
 		let cap = FROM_LINE_REGEX.captures(line)?;
 

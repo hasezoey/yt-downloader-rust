@@ -6,6 +6,7 @@ use std::process::{
 	Stdio,
 };
 
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Create a Command with basic ffmpeg options
@@ -34,9 +35,11 @@ pub fn base_ffmpeg_hidebanner(overwrite: bool) -> Command {
 	return cmd;
 }
 
-lazy_static! {
-	static ref FFMPEG_VERSION_REGEX: Regex = Regex::new(r"(?mi)^ffmpeg version ([a-z0-9.-]+) Copyright").unwrap();
-}
+/// Regex to parse the version from a "ffmpeg -version" output
+/// cap1: version (semver or git hash)
+static FFMPEG_VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
+	return Regex::new(r"(?mi)^ffmpeg version ([a-z0-9.-]+) Copyright").unwrap();
+});
 
 /// Helper to consistently create a error
 pub(crate) fn unsuccessfull_command_exit(status: std::process::ExitStatus, output: &str) -> crate::Error {
@@ -116,9 +119,10 @@ where
 	return Ok(as_string);
 }
 
-lazy_static! {
-	static ref FFMPEG_PARSE_FORMAT: Regex = Regex::new(r"(?mi)^input #0, ([\w,]+?), from '").unwrap();
-}
+/// Regex to parse the format from "input #0" from ffmpeg output
+static FFMPEG_PARSE_FORMAT: Lazy<Regex> = Lazy::new(|| {
+	return Regex::new(r"(?mi)^input #0, ([\w,]+?), from '").unwrap();
+});
 
 /// Parse the output from [ffmpeg_probe] to only get the format for Input 0
 /// Returns a Vector of all the formats the input could be in

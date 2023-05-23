@@ -4,6 +4,7 @@ use diesel::{
 	prelude::*,
 	upsert::excluded,
 };
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::io::BufRead;
 
@@ -92,10 +93,11 @@ pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	};
 }
 
-lazy_static! {
-	/// Regex for removing known file extension from imported filenames
-	static ref REMOVE_KNOWN_FILEEXTENSION: Regex = Regex::new(r"(?mi)\.(?:(?:mp3)|(?:mp4))$").unwrap();
-}
+/// Regex for removing known file extension from imported filenames
+/// for [import_ytdlr_json_archive]
+static REMOVE_KNOWN_FILEEXTENSION: Lazy<Regex> = Lazy::new(|| {
+	return Regex::new(r"(?mi)\.(?:(?:mp3)|(?:mp4))$").unwrap();
+});
 
 /// Import a YTDL-Rust (json) Archive
 ///
@@ -146,17 +148,17 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	return Ok(());
 }
 
-lazy_static! {
-	/// Regex for a line in a ytdl archive
-	/// Ignores starting and ending whitespaces / tabs
-	/// 1. capture group is the provider
-	/// 2. capture group is the ID
-	///
-	/// Because the format of a ytdl-archive is not defined, it is rather loosely defines (any word character instead of specific characters)
-	static ref YTDL_ARCHIVE_LINE_REGEX: Regex = Regex::new(r"(?mi)^\s*([\w\-_]+)\s+([\w\-_]+)\s*$").unwrap();
-}
+/// Regex for a line in a youtube-dl archive
+/// Ignores starting and ending whitespaces / tabs
+/// 1. capture group is the provider
+/// 2. capture group is the ID
+///
+/// Because the format of a ytdl-archive is not defined, the regex is rather loosely defined (any word character instead of specific characters)
+static YTDL_ARCHIVE_LINE_REGEX: Lazy<Regex> = Lazy::new(|| {
+	return Regex::new(r"(?mi)^\s*([\w\-_]+)\s+([\w\-_]+)\s*$").unwrap();
+});
 
-/// Import a YTDL Archive
+/// Import a youtube-dl Archive
 ///
 /// This function modifies the input `archive`, and so will return `()`
 pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(

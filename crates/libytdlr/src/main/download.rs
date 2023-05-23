@@ -1,6 +1,7 @@
 //! Module for handling youtube-dl
 
 use diesel::SqliteConnection;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
 	ffi::OsString,
@@ -312,16 +313,22 @@ impl LineType {
 	/// Try to get the correct Variant for a input line
 	/// Will return [`None`] if no type has been found
 	pub fn try_from_line<I: AsRef<str>>(input: I) -> Option<Self> {
-		lazy_static! {
-			// basic regex to test if the line is "[something] something", and if it is, return what is inside "[]"
-			static ref BASIC_TYPE_REGEX: Regex = Regex::new(r"(?mi)^\[([\da-z:_]*)\]").unwrap();
-			// regex to check for generic lines
-			static ref GENERIC_TYPE_REGEX: Regex = Regex::new(r"(?mi)^deleting original file").unwrap();
-			// regex to check for ERRORs
-			static ref ERROR_TYPE_REGEX: Regex = Regex::new(r"(?m)^ERROR:").unwrap();
-			// regex to check for ERRORs
-			static ref YTDL_ERROR_TYPE_REGEX: Regex = Regex::new(r"(?m)^youtube-dl: error:").unwrap();
-		}
+		/// basic regex to test if the line is "[something] something", and if it is, return what is inside "[]"
+		static BASIC_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^\[([\da-z:_]*)\]").unwrap();
+		});
+		/// regex to check for generic lines
+		static GENERIC_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^deleting original file").unwrap();
+		});
+		/// regex to check for "ERROR:" lines
+		static ERROR_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?m)^ERROR:").unwrap();
+		});
+		/// regex to check for "youtube-dl: error:" lines
+		static YTDL_ERROR_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?m)^youtube-dl: error:").unwrap();
+		});
 
 		let input = input.as_ref();
 
@@ -375,10 +382,11 @@ impl LineType {
 			return None;
 		}
 
-		lazy_static! {
-			// regex to get the percentage from the input line
-			static ref DOWNLOAD_PERCENTAGE_REGEX: Regex = Regex::new(r"(?mi)^^\[[\da-z:_]*\]\s+(\d{1,3})(?:\.\d)?%").unwrap();
-		}
+		/// Regex to parse the download percentage from a line
+		/// cap1: precentage(not decimal)
+		static DOWNLOAD_PERCENTAGE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^^\[[\da-z:_]*\]\s+(\d{1,3})(?:\.\d)?%").unwrap();
+		});
 
 		let input = input.as_ref();
 
@@ -401,13 +409,14 @@ impl LineType {
 			return None;
 		}
 
-		lazy_static! {
-			// regex to get all information from the Parsing helper for START and END
-			static ref PARSE_START_END_REGEX: Regex = Regex::new(r"(?mi)^PARSE_(START|END) '([^']+)' '([^']+)'(?: (.+))?$").unwrap();
-
-			// regex to get all information from a playlist
-			static ref PARSE_PLAYLIST_REGEX: Regex = Regex::new(r"(?mi)^PLAYLIST '([^']+)'$").unwrap();
-		}
+		/// Regex to get all information from the Parsing helper "START" and "END"
+		static PARSE_START_END_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^PARSE_(START|END) '([^']+)' '([^']+)'(?: (.+))?$").unwrap();
+		});
+		/// Regex to get all information from the Parsing helper "PLAYLIST"
+		static PARSE_PLAYLIST_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^PLAYLIST '([^']+)'$").unwrap();
+		});
 
 		let input = input.as_ref();
 

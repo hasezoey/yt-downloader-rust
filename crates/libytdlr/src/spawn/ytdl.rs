@@ -5,6 +5,7 @@ use std::process::{
 	Stdio,
 };
 
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 #[inline]
@@ -12,9 +13,11 @@ pub fn base_ytdl() -> Command {
 	return super::multiplatform::spawn_command(&"youtube-dl");
 }
 
-lazy_static! {
-	static ref YTDL_VERSION_REGEX: Regex = Regex::new(r"(?mi)^(\d{4}\.\d{1,2}\.\d{1,2})").unwrap();
-}
+/// Regex to parse the version from a "youtube-dl --version" output
+/// cap1: version (date)
+static YTDL_VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
+	return Regex::new(r"(?mi)^(\d{4}\.\d{1,2}\.\d{1,2})").unwrap();
+});
 
 /// Get Version of `ffmpeg`
 #[inline]
