@@ -1,11 +1,11 @@
 //! Utils for the `ytdlr` binary
 
 use crate::clap_conf::*;
-use diesel::SqliteConnection;
 use indicatif::{
 	ProgressBar,
 	ProgressDrawTarget,
 };
+use libytdlr::diesel::SqliteConnection;
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
 	main::archive::import::ImportProgress,
