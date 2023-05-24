@@ -16,17 +16,14 @@ use std::{
 /// Handler function for the "archive import" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
-pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(), ioError> {
+pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(), crate::Error> {
 	use libytdlr::main::archive::import::*;
 	println!("Importing Archive from \"{}\"", sub_args.file_path.to_string_lossy());
 
 	let input_path = &sub_args.file_path;
 
 	if main_args.archive_path.is_none() {
-		return Err(ioError::new(
-			std::io::ErrorKind::Other,
-			"Archive is required for Import!",
-		));
+		return Err(ioError::new(std::io::ErrorKind::Other, "Archive is required for Import!").into());
 	}
 
 	let archive_path = main_args
