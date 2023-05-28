@@ -4,3 +4,4 @@ pub mod completions;
 pub mod download;
 pub mod import;
 pub mod rethumbnail;
+pub mod search;

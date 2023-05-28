@@ -10,7 +10,13 @@ use clap::{
 };
 use clap_complete::Shell;
 use is_terminal::IsTerminal;
-use std::path::PathBuf;
+use std::{
+	collections::HashSet,
+	error::Error,
+	fmt::Display,
+	path::PathBuf,
+	str::FromStr,
+};
 
 /// Trait to check and transform all Command Structures
 trait Check {
@@ -151,12 +157,15 @@ impl Check for ArchiveDerive {
 pub enum ArchiveSubCommands {
 	/// Import a Archive file, be it youtube-dl, ytdlr-json, or ytdlr-sqlite
 	Import(ArchiveImport),
+	/// Search the Archive
+	Search(ArchiveSearch),
 }
 
 impl Check for ArchiveSubCommands {
 	fn check(&mut self) -> Result<(), crate::Error> {
 		match self {
 			ArchiveSubCommands::Import(v) => return Check::check(v),
+			ArchiveSubCommands::Search(v) => return Check::check(v),
 		}
 	}
 }
@@ -175,6 +184,122 @@ impl Check for ArchiveImport {
 		self.file_path = crate::utils::fix_path(&self.file_path).ok_or_else(|| {
 			return crate::Error::other("Import Path was provided, but could not be expanded / fixed");
 		})?;
+
+		return Ok(());
+	}
+}
+
+#[derive(ValueEnum, Clone, Debug, PartialEq, Copy)]
+#[value(rename_all = "camelCase")]
+pub enum ArchiveSearchColumn {
+	/// For the SQL column "provider"
+	Provider,
+	/// For the SQL column "media_id"
+	MediaId,
+	/// For the SQL column "title"
+	Title,
+	/// For the SQL column "inserted_at"
+	InsertedAt,
+}
+
+impl Display for ArchiveSearchColumn {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		return write!(
+			f,
+			"{}",
+			match *self {
+				ArchiveSearchColumn::Provider => "Provider",
+				ArchiveSearchColumn::MediaId => "MediaId",
+				ArchiveSearchColumn::InsertedAt => "InsertedAt",
+				ArchiveSearchColumn::Title => "Title",
+			}
+		);
+	}
+}
+
+impl FromStr for ArchiveSearchColumn {
+	type Err = crate::Error;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		return Ok(match s.to_lowercase().as_str() {
+			"provider" => Self::Provider,
+			"mediaid" => Self::MediaId,
+			// may be confused with the row-id
+			"id" => Self::MediaId,
+			"insertedat" => Self::InsertedAt,
+			"inserted" => Self::InsertedAt,
+			"title" => Self::Title,
+			_ => return Err(crate::Error::other(format!("Unknown column \"{}\"", s))),
+		});
+	}
+}
+
+/// Parse a key-value pair from the input
+/// from https://github.com/clap-rs/clap/blob/78bb48b6b8ef4d597b4b30b9add7927a2b0b0d8d/examples/typed-derive.rs#L48-L59
+fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
+where
+	T: std::str::FromStr,
+	T::Err: Error + Send + Sync + 'static,
+	U: std::str::FromStr,
+	U::Err: Error + Send + Sync + 'static,
+{
+	let pos = s
+		.find('=')
+		.ok_or_else(|| format!("invalid KEY=value: no `=` found in `{s}`"))?;
+	return Ok((s[..pos].parse()?, s[pos + 1..].parse()?));
+}
+
+#[derive(ValueEnum, Clone, Debug, PartialEq, Copy)]
+#[value(rename_all = "camelCase")]
+#[allow(clippy::upper_case_acronyms)]
+pub enum SearchResultFormat {
+	/// Output as: "[provider:media_id] [inserted_at] title"
+	Normal,
+	/// Output as CSV, Command delimited
+	CSVC,
+	/// Output as CSV, Tab delimited
+	CSVT,
+}
+
+/// Search the Archive
+#[derive(Debug, Parser, Clone, PartialEq)]
+pub struct ArchiveSearch {
+	/// Query a column with the given search terms, supported columns are (values in parenthesis are aliases):
+	///   Provider, Title, MediaId(id), InsertedAt(inserted)
+	/// columns can be anycase
+	/// Examples:
+	///   "title=some good title"
+	///   title=sometitle
+	///   title="long title"
+	///   "inserted=>=2023-05"
+	/// Supported Date operators are (omitted defaults to "="):
+	///   >,<,=,>=,<=
+	#[arg(required(true), value_parser = parse_key_val::<ArchiveSearchColumn, String>, verbatim_doc_comment)]
+	pub queries: Vec<(ArchiveSearchColumn, String)>,
+
+	/// Set the limit of returned values
+	#[arg(short = 'l', long = "limit", default_value_t = 10)]
+	pub limit: i64,
+
+	/// Set which return format should be used
+	#[arg(short = 'f', long = "result-format", value_enum, default_value_t=SearchResultFormat::Normal)]
+	pub result_format: SearchResultFormat,
+}
+
+impl Check for ArchiveSearch {
+	fn check(&mut self) -> Result<(), crate::Error> {
+		// check that a query for a column is only defined once
+		let mut map = HashSet::new();
+
+		for val in &self.queries {
+			if map.contains(&val.0.to_string()) {
+				return Err(crate::Error::other(format!(
+					"A column query can only be defined once, found duplicate for \"{}\"",
+					val.0
+				)));
+			}
+			map.insert(val.0.to_string());
+		}
 
 		return Ok(());
 	}

@@ -163,6 +163,7 @@ fn main() -> Result<(), crate::Error> {
 fn sub_archive(main_args: &CliDerive, sub_args: &ArchiveDerive) -> Result<(), crate::Error> {
 	match &sub_args.subcommands {
 		ArchiveSubCommands::Import(v) => commands::import::command_import(main_args, v),
+		ArchiveSubCommands::Search(v) => commands::search::command_search(main_args, v),
 	}?;
 
 	return Ok(());

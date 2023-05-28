@@ -1,3 +1,4 @@
+#![allow(clippy::implicit_return)]
 // @generated automatically by Diesel CLI.
 
 diesel::table! {

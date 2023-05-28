@@ -151,6 +151,46 @@ Notes:
 
 - this command does not require `youtube-dl` or `ffmpeg` to be present
 
+### `archive search`
+
+Search the archive for given search parameters
+Will Error if [Archive Path](#global-options) is unset
+
+Signature: `archive search [OPTIONS] <QUERIES>...`  
+Aliases: `import`
+
+| Positional Name | Short |      Long       | Environment Variable | Default |      Type      | Description                                            |
+| :-------------: | :---: | :-------------: | :------------------: | :-----: | :------------: | :----------------------------------------------------- |
+|                 |  -l   |     --limit     |                      |   10    |     number     | Set the limit for returned values                      |
+|                 |  -f   | --result-format |                      | normal  |      enum      | Set which format the resulting values are printed in   |
+|     QUERIES     |       |                 |                      |         | String, String | Key-Value pairs of Queries where the key is the column |
+
+Supported Columns are:
+
+- `Provider`
+- `Title`
+- `MediaId`, `id`
+- `InsertedAt`, `inserted`
+
+column names are case-insensitive
+
+Supported Output formats are:
+
+- `Normal`: custom formatting `[provider:media_id] [inserted_at] title`
+- `CSVC`: CSV, comma delimited `provider,media_id,inserted_at,title`
+- `CSVT`: CSV, tab delimited `provider\tmedia_id\tinserted_at\ttitle`
+
+Supported Date range operators (default: `=`): `> < >= <= =`
+
+Examples:
+
+```sh
+ytdlr archive search title="Some Good Title"
+ytdlr archive search title=sometitle
+ytdlr archive search "title=Some Good Title"
+ytdlr archive search inserted=">=2023-04"
+```
+
 ## Notes
 
 This Project is mainly a personal project, so it is currently tailored to my use-cases, but issues / requests will still be reviewed.
