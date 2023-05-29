@@ -69,8 +69,8 @@ impl CliDerive {
 	/// Get if the mode is interactive or not
 	#[must_use]
 	pub fn is_interactive(&self) -> bool {
-		if self.explicit_tty.is_some() {
-			return self.explicit_tty.expect("Should have failed with \"is_some\"");
+		if let Some(v) = self.explicit_tty {
+			return v;
 		}
 
 		return std::io::stdout().is_terminal() && std::io::stdin().is_terminal();
