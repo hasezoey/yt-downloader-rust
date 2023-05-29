@@ -1,6 +1,8 @@
 //! Module that contains all logic for spawning the "editor" command
-use std::path::Path;
-use std::process::Command;
+use std::{
+	path::Path,
+	process::Command,
+};
 
 #[inline]
 pub fn base_editor(editor: &Path, filepath: &Path) -> Command {

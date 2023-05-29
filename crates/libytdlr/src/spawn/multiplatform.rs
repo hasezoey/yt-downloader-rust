@@ -1,5 +1,7 @@
-use std::ffi::OsStr;
-use std::process::Command;
+use std::{
+	ffi::OsStr,
+	process::Command,
+};
 
 // This file still exists and is seperated for future quick changes
 

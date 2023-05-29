@@ -1,9 +1,11 @@
 //! Module that contains all logic for spawning the "ffmpeg" command
-use std::ffi::OsStr;
-use std::process::Command;
-use std::process::{
-	Output,
-	Stdio,
+use std::{
+	ffi::OsStr,
+	process::{
+		Command,
+		Output,
+		Stdio,
+	},
 };
 
 use once_cell::sync::Lazy;

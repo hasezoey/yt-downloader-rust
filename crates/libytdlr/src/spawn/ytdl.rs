@@ -1,6 +1,6 @@
 //! Module that contains all logic for spawning the "ytdl" command
-use std::process::Command;
 use std::process::{
+	Command,
 	Output,
 	Stdio,
 };
