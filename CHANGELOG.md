@@ -2,6 +2,17 @@
 
 This is a manually written changelog, and only tracks front-facing changes since version [`v0.5.0`](#v050)
 
+## v0.7.0
+
+- `download`: truncate filenames to be below 255 bytes (most filesystems only support filenames up to 255 bytes)
+- `completions`: add command to generate shell completions (bash, zsh, elvish, fish, powershell)
+- `archive search`: add command to search the archive (if present) for the given queries
+- `archive import`: actually support importing from SQLite archive (previous was a `todo!`)
+- fix compile for windows
+- some internal refactoring
+- update various dependencies
+- remove unused dependencies
+
 ## v0.6.0
 
 - `rethumbnail`: better handle `mp4` for rethumbnailing
