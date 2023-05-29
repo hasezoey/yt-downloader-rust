@@ -9,7 +9,3 @@ pub fn base_editor(editor: &Path, filepath: &Path) -> Command {
 
 	return cmd;
 }
-
-pub fn editor_available() -> bool {
-	todo!()
-}
