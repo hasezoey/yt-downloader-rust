@@ -5,20 +5,14 @@ use serde::{
 	Deserialize,
 	Serialize,
 };
-use std::{
-	io::Write,
-	path::PathBuf,
-};
+use std::io::Write;
 
 /// The JSON Archive for YTDL-R
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct JSONArchive {
 	/// Collection of all [`Video`]'s in the archive
 	#[serde(rename = "videos", default)]
-	videos:   Vec<Video>,
-	/// The Path this Archive is saved at
-	#[serde(skip)]
-	pub path: PathBuf, // TODO: remove this option when possible
+	videos: Vec<Video>,
 }
 
 impl JSONArchive {
@@ -183,12 +177,8 @@ mod test {
 		let id1 = "SomeID1";
 		let mut archive = JSONArchive::default();
 
-		assert!(
-			archive.add_video(Video::new(id0, Provider::Youtube).with_dl_finished(true))
-		);
-		assert!(
-			archive.add_video(Video::new(id1, Provider::Other("soundcloud".to_owned())).with_dl_finished(true))
-		);
+		assert!(archive.add_video(Video::new(id0, Provider::Youtube).with_dl_finished(true)));
+		assert!(archive.add_video(Video::new(id1, Provider::Other("soundcloud".to_owned())).with_dl_finished(true)));
 
 		let mut target = Vec::new();
 
@@ -209,12 +199,8 @@ mod test {
 		let id1 = "SomeID1";
 		let mut archive = JSONArchive::default();
 
-		assert!(
-			archive.add_video(Video::new(id0, Provider::Youtube).with_dl_finished(true))
-		);
-		assert!(
-			archive.add_video(Video::new(id1, Provider::Other("soundcloud".to_owned())).with_dl_finished(true))
-		);
+		assert!(archive.add_video(Video::new(id0, Provider::Youtube).with_dl_finished(true)));
+		assert!(archive.add_video(Video::new(id1, Provider::Other("soundcloud".to_owned())).with_dl_finished(true)));
 
 		let mut target = Vec::new();
 
