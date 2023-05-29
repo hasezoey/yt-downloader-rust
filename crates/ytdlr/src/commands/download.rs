@@ -563,7 +563,7 @@ const PREFIX_UNKNOWN: &str = "??";
 /// Helper function to consistently set the progressbar prefix
 fn set_progressbar_prefix(
 	pgbar: &ProgressBar,
-	download_info: std::cell::Ref<(usize, String, String, usize)>,
+	download_info: std::cell::Ref<DownloadInfo>,
 	download_state: &DownloadState,
 	unknown_playlist_count: bool,
 	unknown_current_count: bool,
@@ -571,7 +571,7 @@ fn set_progressbar_prefix(
 	let current_count = if unknown_current_count {
 		PREFIX_UNKNOWN.into()
 	} else {
-		download_info.0.to_string()
+		download_info.playlist_count.to_string()
 	};
 	let playlist_count = if unknown_playlist_count {
 		PREFIX_UNKNOWN.into()
@@ -581,8 +581,43 @@ fn set_progressbar_prefix(
 	pgbar.set_prefix(format!("[{}/{}]", current_count, playlist_count));
 }
 
-// TODO: refactor this to be a strict with names
-type DownloadInfo = RefCell<(usize, String, String, usize)>;
+/// Helper struct to keep track of some state, while having named fields instead of numbered tuple fields
+#[derive(Debug, PartialEq, Clone)]
+struct DownloadInfo {
+	/// Count of how many Media have been downloaded in the current URL (playlist)
+	/// because it does not include media already in archive
+	pub playlist_count: usize,
+	/// Media id of the current Media being downloaded
+	pub id:             String,
+	/// Title of the current Media being downloaded
+	pub title:          String,
+	/// Index of the current url being processed
+	/// not 0 based
+	pub url_index:      usize,
+}
+
+impl DownloadInfo {
+	/// Create a new instance of [Self] with all the provided options
+	pub fn new(playlist_count: usize, id: String, title: String, url_index: usize) -> Self {
+		return Self {
+			playlist_count,
+			id,
+			title,
+			url_index,
+		};
+	}
+
+	/// Create a new default instance of [Self], but with a set "url_index"
+	pub fn new_with_url_index(url_index: usize) -> Self {
+		return Self::new(0, Default::default(), Default::default(), url_index);
+	}
+}
+
+impl Default for DownloadInfo {
+	fn default() -> Self {
+		return Self::new(0, Default::default(), Default::default(), 0);
+	}
+}
 
 /// Do the download for all provided URL's
 fn do_download(
@@ -602,9 +637,7 @@ fn do_download(
 
 	// store "download_state" in a refcell, because rust complains that a borrow is made in "download_pgcb" and also later used while still in scope
 	let download_state_cell: RefCell<&mut DownloadState> = RefCell::new(download_state);
-	// track (currentCountInPlaylist, currentId, currentTitle, urlIndex_p)
-	// *currentCountInPlaylist does not include media already in archive
-	let download_info: DownloadInfo = RefCell::new((0, String::default(), String::default(), 0));
+	let download_info: RefCell<DownloadInfo> = RefCell::new(DownloadInfo::default());
 	let url_len = sub_args.urls.len();
 	set_progressbar_prefix(pgbar, download_info.borrow(), *download_state_cell.borrow(), true, true);
 	// track total count finished (no error)
@@ -613,13 +646,13 @@ fn do_download(
 		main::download::DownloadProgress::AllStarting => {
 			pgbar.reset();
 			pgbar.set_message(""); // ensure it is not still present across finish and reset
-			let url_index = download_info.borrow().3;
-			download_info.replace((0, String::default(), String::default(), url_index));
+			let url_index = download_info.borrow().url_index;
+			download_info.replace(DownloadInfo::new_with_url_index(url_index));
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
-			let new_count = download_info.borrow().0 + 1;
-			let url_index = download_info.borrow().3;
-			download_info.replace((new_count, id, title, url_index));
+			let new_count = download_info.borrow().playlist_count + 1;
+			let url_index = download_info.borrow().url_index;
+			download_info.replace(DownloadInfo::new(new_count, id, title, url_index));
 
 			pgbar.reset();
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
@@ -631,15 +664,15 @@ fn do_download(
 				false,
 				false,
 			);
-			pgbar.set_message(truncate_message_term_width(&download_info_borrowed.2));
-			pgbar.println(format!("Downloading: {}", download_info_borrowed.2));
+			pgbar.set_message(truncate_message_term_width(&download_info_borrowed.title));
+			pgbar.println(format!("Downloading: {}", download_info_borrowed.title));
 		},
 		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
 			pgbar.set_position(percent.into());
 		},
 		main::download::DownloadProgress::SingleFinished(_id) => {
 			pgbar.finish_and_clear();
-			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().2));
+			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().title));
 			// pgbar.finish_with_message();
 		},
 		main::download::DownloadProgress::AllFinished(new_count) => {
@@ -648,7 +681,7 @@ fn do_download(
 			// print how many media has been downloaded since last "AllStarting" and how many in total in this run
 			pgbar.println(format!(
 				"Finished Downloading {new_count} new Media (For a total of {total} Media) (url {}/{})",
-				download_info.borrow().3,
+				download_info.borrow().url_index,
 				url_len
 			));
 		},
@@ -664,7 +697,7 @@ fn do_download(
 		// index plus one, to match .len, to not have 0-index for display
 		let index_p = index + 1;
 
-		download_info.borrow_mut().3 = index_p;
+		download_info.borrow_mut().url_index = index_p;
 
 		println!("Starting download of \"{}\" ({}/{})", url, index_p, url_len);
 
