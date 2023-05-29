@@ -7,12 +7,12 @@ use crate::{
 	},
 	utils,
 };
+use libytdlr::main::rethumbnail::*;
 
 /// Handler function for the "rethumbnail" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 pub fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), crate::Error> {
-	use libytdlr::main::rethumbnail::*;
 	utils::require_ffmpeg_installed()?;
 
 	// helper aliases to make it easier to access

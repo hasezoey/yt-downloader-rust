@@ -6,6 +6,7 @@ use indicatif::{
 	ProgressBar,
 	ProgressStyle,
 };
+use libytdlr::main::archive::import::*;
 use once_cell::sync::Lazy;
 use std::io::Error as ioError;
 
@@ -13,7 +14,6 @@ use std::io::Error as ioError;
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result<(), crate::Error> {
-	use libytdlr::main::archive::import::*;
 	println!("Importing Archive from \"{}\"", sub_args.file_path.to_string_lossy());
 
 	let input_path = &sub_args.file_path;

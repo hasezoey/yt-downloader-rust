@@ -15,7 +15,7 @@ use libytdlr::{
 		sql_models::*,
 		sql_schema::*,
 	},
-	diesel::{self,},
+	diesel,
 };
 use std::io::Error as ioError;
 
