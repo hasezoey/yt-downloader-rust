@@ -261,7 +261,7 @@ mod test {
 		);
 	}
 
-	mod detect {
+	mod detect_archive_type {
 		use super::*;
 
 		#[test]
@@ -324,7 +324,7 @@ mod test {
 		}
 	}
 
-	mod any {
+	mod import_any_archive {
 		use super::*;
 
 		#[test]
@@ -517,7 +517,7 @@ mod test {
 		}
 	}
 
-	mod ytdl {
+	mod import_ytdl_archive {
 		use super::*;
 
 		#[test]
@@ -605,7 +605,7 @@ mod test {
 		}
 	}
 
-	mod ytdlr {
+	mod import_ytdlr_json_archive {
 		use super::*;
 
 		#[test]
