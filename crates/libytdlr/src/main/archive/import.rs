@@ -186,7 +186,7 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 		let filename = REMOVE_KNOWN_FILEEXTENSION.replace_all(video.file_name(), "");
 
-		bulk_values.push(InsMedia::new(video.id(), video.provider().to_string(), filename));
+		bulk_values.push(InsMedia::new(video.id(), String::from(video.provider()), filename));
 	}
 
 	// currently does not work, see https://github.com/diesel-rs/diesel/discussions/3115
@@ -249,7 +249,11 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(&line) {
 			let affected = insert_insmedia(
-				&InsMedia::new(&cap[2], Provider::from(&cap[1]).to_string(), "unknown (none-provided)"),
+				&InsMedia::new(
+					&cap[2],
+					String::from(&Provider::from(&cap[1])),
+					"unknown (none-provided)",
+				),
 				merge_to,
 			)?;
 
@@ -440,21 +444,10 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("unknown (none-provided)"),
-				Video::new("------------", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("unknown (none-provided)"),
-				Video::new("aaaaaaaaaaaa", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("unknown (none-provided)"),
+				Video::new("____________", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
+				Video::new("------------", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
+				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
 				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_dl_finished(true)
-					.with_edit_asked(true)
 					.with_filename("unknown (none-provided)"),
 			];
 
@@ -525,22 +518,10 @@ mod test {
 			assert!(res0.is_ok());
 
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile1"),
-				Video::new("------------", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile2"),
-				Video::new("aaaaaaaaaaaa", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile4"),
+				Video::new("____________", Provider::Other("youtube".into())).with_filename("someFile1"),
+				Video::new("------------", Provider::Other("youtube".into())).with_filename("someFile2"),
+				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someFile3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someFile4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -586,10 +567,8 @@ mod test {
 				.load::<Media>(&mut connection0)
 				.expect("Expected a successfully query");
 
-			let cmp_vec: Vec<Video> = vec![Video::new("someid", Provider::Other("someprovider".to_owned()))
-				.with_dl_finished(true)
-				.with_edit_asked(true)
-				.with_filename("sometitle")];
+			let cmp_vec: Vec<Video> =
+				vec![Video::new("someid", Provider::Other("someprovider".to_owned())).with_filename("sometitle")];
 
 			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 		}
@@ -614,21 +593,10 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("unknown (none-provided)"),
-				Video::new("------------", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("unknown (none-provided)"),
-				Video::new("aaaaaaaaaaaa", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("unknown (none-provided)"),
+				Video::new("____________", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
+				Video::new("------------", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
+				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
 				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_dl_finished(true)
-					.with_edit_asked(true)
 					.with_filename("unknown (none-provided)"),
 			];
 
@@ -733,22 +701,10 @@ mod test {
 			assert!(res0.is_ok());
 
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile1"),
-				Video::new("------------", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile2"),
-				Video::new("aaaaaaaaaaaa", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someFile4"),
+				Video::new("____________", Provider::Other("youtube".into())).with_filename("someFile1"),
+				Video::new("------------", Provider::Other("youtube".into())).with_filename("someFile2"),
+				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someFile3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someFile4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -815,22 +771,10 @@ mod test {
 			assert!(res0.is_ok());
 
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someTitle1"),
-				Video::new("------------", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someTitle2"),
-				Video::new("aaaaaaaaaaaa", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someTitle3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someTitle4"),
+				Video::new("____________", Provider::Other("youtube".into())).with_filename("someTitle1"),
+				Video::new("------------", Provider::Other("youtube".into())).with_filename("someTitle2"),
+				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someTitle3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someTitle4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -881,22 +825,10 @@ mod test {
 
 			let cmp_vec: Vec<Video> = vec![
 				// should have the title updated
-				Video::new("____________", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("some A title"),
-				Video::new("------------", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someTitle2"),
-				Video::new("aaaaaaaaaaaa", Provider::Youtube)
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someTitle3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_dl_finished(true)
-					.with_edit_asked(true)
-					.with_filename("someTitle4"),
+				Video::new("____________", Provider::Other("youtube".into())).with_filename("some A title"),
+				Video::new("------------", Provider::Other("youtube".into())).with_filename("someTitle2"),
+				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someTitle3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someTitle4"),
 			];
 
 			let found = media_archive::dsl::media_archive
