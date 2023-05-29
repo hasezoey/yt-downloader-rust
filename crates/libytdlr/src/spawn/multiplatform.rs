@@ -16,5 +16,5 @@ pub fn spawn_command<P: AsRef<OsStr>>(binary_name: &P) -> Command {
 #[cfg(target_os = "windows")]
 #[inline]
 pub fn spawn_command<P: AsRef<OsStr>>(binary_name: &P) -> Command {
-	return Command::new(binary);
+	return Command::new(binary_name);
 }
