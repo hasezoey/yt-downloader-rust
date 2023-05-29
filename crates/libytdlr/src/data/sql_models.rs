@@ -6,7 +6,6 @@ use diesel::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Queryable)]
 #[diesel(table_name = media_archive)]
-// #[diesel(treat_none_as_default_value = false)]
 pub struct Media {
 	/// The ID of the video, auto-incremented upwards
 	pub _id:         i64,
@@ -22,7 +21,6 @@ pub struct Media {
 
 #[derive(Debug, Clone, PartialEq, Insertable)]
 #[diesel(table_name = media_archive)]
-// #[diesel(treat_none_as_default_value = false)]
 pub struct InsMedia {
 	/// The ID of the media given used by the provider
 	pub media_id: String,
