@@ -5,13 +5,7 @@ use indicatif::{
 	ProgressStyle,
 };
 use once_cell::sync::Lazy;
-use std::{
-	fs::File,
-	io::{
-		BufReader,
-		Error as ioError,
-	},
-};
+use std::io::Error as ioError;
 
 /// Handler function for the "archive import" subcommand
 /// This function is mainly to keep the code structured and sorted
@@ -43,8 +37,6 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 
 	let (_new_archive, mut connection) = utils::handle_connect(archive_path, &bar, main_args)?;
 
-	let mut reader = BufReader::new(File::open(input_path)?);
-
 	let pgcb_import = |imp| {
 		if main_args.is_interactive() {
 			match imp {
@@ -65,7 +57,7 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 		}
 	};
 
-	import_any_archive(&mut reader, &mut connection, pgcb_import)?;
+	import_any_archive(input_path, &mut connection, pgcb_import)?;
 
 	return Ok(());
 }

@@ -6,7 +6,14 @@ use diesel::{
 };
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::io::BufRead;
+use std::{
+	fs::File,
+	io::{
+		BufRead,
+		BufReader,
+	},
+	path::Path,
+};
 
 use crate::data::{
 	old_archive::{
@@ -78,18 +85,20 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 /// Calls [`import_ytdl_archive`] when its a ytdl archive and [`import_ytdlr_json_archive`] when its a ytdl-r archive
 ///
 /// This function modifies the input `archive`, and so will return `()`
-pub fn import_any_archive<T: BufRead, S: FnMut(ImportProgress)>(
-	reader: &mut T,
+pub fn import_any_archive<S: FnMut(ImportProgress)>(
+	input_path: &Path,
 	merge_to: &mut SqliteConnection,
 	pgcb: S,
 ) -> Result<(), crate::Error> {
 	log::debug!("import any archive");
 
-	return match detect_archive_type(reader)? {
-		ArchiveType::JSON => import_ytdlr_json_archive(reader, merge_to, pgcb),
+	let mut reader = BufReader::new(File::open(input_path)?);
+
+	return match detect_archive_type(&mut reader)? {
+		ArchiveType::JSON => import_ytdlr_json_archive(&mut reader, merge_to, pgcb),
 		ArchiveType::SQLite => todo!(),
 		// Assume "Unknown" is a YTDL Archive (plain text)
-		ArchiveType::Unknown => import_ytdl_archive(reader, merge_to, pgcb),
+		ArchiveType::Unknown => import_ytdl_archive(&mut reader, merge_to, pgcb),
 	};
 }
 
@@ -229,8 +238,12 @@ pub fn insert_insmedia(input: &InsMedia, connection: &mut SqliteConnection) -> R
 mod test {
 	use super::*;
 	use crate::data::old_archive::video::Video;
-	use std::ops::Deref;
+	use std::path::PathBuf;
 	use std::sync::RwLock;
+	use std::{
+		io::Write,
+		ops::Deref,
+	};
 	use tempfile::{
 		Builder as TempBuilder,
 		TempDir,
@@ -259,6 +272,17 @@ mod test {
 			crate::main::sql_utils::sqlite_connect(&path).expect("Expected SQLite to successfully start"),
 			testdir,
 		);
+	}
+
+	/// Test helper to create a input_data file with the provided data in the provided directory
+	fn create_input_data(data: &str, input_dir: &Path) -> PathBuf {
+		let file_path = input_dir.join("input_data");
+		let mut file = std::fs::File::create(&file_path).expect("Expected file creation to not fail");
+
+		file.write_all(data.as_bytes())
+			.expect("Expected write_all to be successful");
+
+		return file_path;
 	}
 
 	mod detect_archive_type {
@@ -330,15 +354,12 @@ mod test {
 		#[test]
 		fn test_unexpected_eof() {
 			let string0 = "";
-			let (mut dummy_connection, _tempdir) = create_connection();
+			let (mut dummy_connection, tempdir) = create_connection();
+			let input_data_path = create_input_data(&string0, tempdir.as_ref());
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
-			let ret = import_any_archive(
-				&mut string0.as_bytes(),
-				&mut dummy_connection,
-				callback_counter(&pgcounter),
-			);
+			let ret = import_any_archive(&input_data_path, &mut dummy_connection, callback_counter(&pgcounter));
 			assert!(ret.is_err());
 			assert_eq!(0, pgcounter.read().expect("read failed").len());
 			assert_eq!(
@@ -349,7 +370,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdl() {
-			let (mut connection0, _tempdir) = create_connection();
+			let (mut connection0, tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = "
@@ -358,8 +379,9 @@ mod test {
 			youtube aaaaaaaaaaaa
 			soundcloud 0000000000
 			";
+			let input_data_path = create_input_data(&string0, tempdir.as_ref());
 
-			let res0 = import_any_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
+			let res0 = import_any_archive(&input_data_path, &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
 			let cmp_vec: Vec<Video> = vec![
@@ -403,7 +425,7 @@ mod test {
 
 		#[test]
 		fn test_any_to_ytdlr() {
-			let (mut connection0, _tempdir) = create_connection();
+			let (mut connection0, tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
 			let string0 = r#"
@@ -441,8 +463,9 @@ mod test {
 				]
 			}
 			"#;
+			let input_data_path = create_input_data(&string0, tempdir.as_ref());
 
-			let res0 = import_any_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
+			let res0 = import_any_archive(&input_data_path, &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
 
