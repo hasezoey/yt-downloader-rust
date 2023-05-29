@@ -173,7 +173,6 @@ impl Check for ArchiveSubCommands {
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct ArchiveImport {
 	/// The Archive file to import from
-	#[arg()]
 	pub file_path: PathBuf,
 }
 
