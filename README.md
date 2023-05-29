@@ -189,6 +189,7 @@ ytdlr archive search title="Some Good Title"
 ytdlr archive search title=sometitle
 ytdlr archive search "title=Some Good Title"
 ytdlr archive search inserted=">=2023-04"
+ytdlr archive search provider=youtube title="bug"
 ```
 
 ## Notes
@@ -197,6 +198,5 @@ This Project is mainly a personal project, so it is currently tailored to my use
 
 ## Project TODO
 
-- [ ] add QOL command `archive search` to search through the archive by any column
 - [ ] add ability to start a play (like mpv) before choosing to edit
 - [ ] add ability to go back in the edit list
