@@ -11,36 +11,30 @@ use std::path::{
 	PathBuf,
 };
 
-use super::{
-	media_provider::MediaProvider,
-	media_stage::MediaStage,
-};
+use super::media_provider::MediaProvider;
 use crate::data::sql_models::InsMedia;
 
 /// Contains Media Information, like file-name and last processed status
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MediaInfo {
 	/// The file-name of the media
-	pub filename:   Option<PathBuf>,
+	pub filename: Option<PathBuf>,
 	/// The title of the media, may differ from "filename"
-	pub title:      Option<String>,
+	pub title:    Option<String>,
 	/// The ID of the media,
-	pub id:         String,
+	pub id:       String,
 	/// The Provider that provided this media
-	pub provider:   Option<MediaProvider>,
-	/// The stage this media had last processed
-	pub last_stage: MediaStage,
+	pub provider: Option<MediaProvider>,
 }
 
 impl MediaInfo {
 	/// Crate a new instance of [`MediaInfo`]
 	pub fn new<I: AsRef<str>>(id: I) -> Self {
 		return Self {
-			id:         id.as_ref().into(),
-			filename:   None,
-			title:      None,
-			last_stage: MediaStage::None,
-			provider:   None,
+			id:       id.as_ref().into(),
+			filename: None,
+			title:    None,
+			provider: None,
 		};
 	}
 
@@ -128,22 +122,20 @@ mod test {
 	fn test_new() {
 		assert_eq!(
 			MediaInfo {
-				id:         "".to_owned(),
-				filename:   None,
-				title:      None,
-				last_stage: MediaStage::None,
-				provider:   None,
+				id:       "".to_owned(),
+				filename: None,
+				title:    None,
+				provider: None,
 			},
 			MediaInfo::new("")
 		);
 
 		assert_eq!(
 			MediaInfo {
-				id:         "hello".to_owned(),
-				filename:   None,
-				title:      None,
-				last_stage: MediaStage::None,
-				provider:   None,
+				id:       "hello".to_owned(),
+				filename: None,
+				title:    None,
+				provider: None,
 			},
 			MediaInfo::new("hello")
 		);
@@ -153,11 +145,10 @@ mod test {
 	fn test_with_filename() {
 		assert_eq!(
 			MediaInfo {
-				id:         "someid".to_owned(),
-				filename:   Some(PathBuf::from("Hello")),
-				title:      None,
-				last_stage: MediaStage::None,
-				provider:   None,
+				id:       "someid".to_owned(),
+				filename: Some(PathBuf::from("Hello")),
+				title:    None,
+				provider: None,
 			},
 			MediaInfo::new("someid").with_filename("Hello")
 		);
@@ -167,11 +158,10 @@ mod test {
 	fn test_with_title() {
 		assert_eq!(
 			MediaInfo {
-				id:         "someid".to_owned(),
-				filename:   None,
-				title:      Some("Hello".to_owned()),
-				last_stage: MediaStage::None,
-				provider:   None,
+				id:       "someid".to_owned(),
+				filename: None,
+				title:    Some("Hello".to_owned()),
+				provider: None,
 			},
 			MediaInfo::new("someid").with_title("Hello")
 		);
@@ -181,11 +171,10 @@ mod test {
 	fn test_with_provider() {
 		assert_eq!(
 			MediaInfo {
-				id:         "someid".to_owned(),
-				filename:   None,
-				title:      None,
-				last_stage: MediaStage::None,
-				provider:   Some(MediaProvider::Youtube),
+				id:       "someid".to_owned(),
+				filename: None,
+				title:    None,
+				provider: Some(MediaProvider::Youtube),
 			},
 			MediaInfo::new("someid").with_provider(MediaProvider::Youtube)
 		);

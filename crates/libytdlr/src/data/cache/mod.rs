@@ -3,4 +3,3 @@
 
 pub mod media_info;
 pub mod media_provider;
-pub mod media_stage;
