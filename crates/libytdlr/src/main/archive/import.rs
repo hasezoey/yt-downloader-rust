@@ -96,10 +96,65 @@ pub fn import_any_archive<S: FnMut(ImportProgress)>(
 
 	return match detect_archive_type(&mut reader)? {
 		ArchiveType::JSON => import_ytdlr_json_archive(&mut reader, merge_to, pgcb),
-		ArchiveType::SQLite => todo!(),
+		ArchiveType::SQLite => import_ytdlr_sqlite_archive(input_path, merge_to, pgcb),
 		// Assume "Unknown" is a YTDL Archive (plain text)
 		ArchiveType::Unknown => import_ytdl_archive(&mut reader, merge_to, pgcb),
 	};
+}
+
+/// Import a YTDL-Rust (sqlite) Archive
+///
+/// This function modifies the input `archive`, and so will return `()`
+pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
+	input_path: &Path,
+	merge_to: &mut SqliteConnection,
+	mut pgcb: S,
+) -> Result<(), crate::Error> {
+	log::debug!("import ytdl sqlite archive");
+
+	// also applies migrations to input data before copying, because diesel can seemingly only support one version, and i dont want to implement handling for this
+	let mut input_connection = crate::main::sql_utils::sqlite_connect(&input_path)?;
+
+	let max_id_result = media_archive::dsl::media_archive
+		.select(diesel::dsl::max(media_archive::dsl::_id))
+		.first::<Option<i32>>(&mut input_connection)
+		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+
+	pgcb(ImportProgress::Starting);
+
+	if let Some(num) = max_id_result {
+		let num = usize::try_from(num).map_err(|err| {
+			return crate::Error::other(format!(
+				"Expected to be able to convert _id column to usize, error: {}",
+				err
+			));
+		})?; // TODO: actually change the type to a usize
+		pgcb(ImportProgress::SizeHint(num));
+	} else {
+		log::warn!("Could not get the max_id of the input (got None)");
+	}
+
+	let mut affected_rows = 0usize;
+
+	let lines_iter = media_archive::dsl::media_archive
+		// order by oldest to newest
+		.order(media_archive::inserted_at.asc())
+		.load_iter::<Media, diesel::connection::DefaultLoadingMode>(&mut input_connection)
+		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+
+	// HACK: the following is currently just a workaround because of https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301
+	for (index, val) in lines_iter.enumerate() {
+		let val = val.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+		pgcb(ImportProgress::Increase(1, index));
+		let insmedia = InsMedia::new(val.media_id, val.provider, val.title);
+		let affected = insert_insmedia(&insmedia, merge_to)?;
+
+		affected_rows += affected;
+	}
+
+	pgcb(ImportProgress::Finished(affected_rows));
+
+	return Ok(());
 }
 
 /// Regex for removing known file extension from imported filenames
@@ -116,7 +171,7 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	merge_to: &mut SqliteConnection,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
-	log::debug!("import ytdl archive");
+	log::debug!("import ytdl json archive");
 
 	pgcb(ImportProgress::Starting);
 
@@ -632,7 +687,7 @@ mod test {
 		use super::*;
 
 		#[test]
-		fn test_basic_ytdlr() {
+		fn test_basic_ytdlr_json() {
 			let (mut connection0, _tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -715,6 +770,141 @@ mod test {
 				],
 				pgcounter.read().expect("failed to read").deref()
 			);
+		}
+	}
+
+	mod import_ytdlr_sqlite_archive {
+		use super::*;
+
+		/// Test helper function to create a connection AND get a clean testing dir path
+		fn create_connection_input(data: &[InsMedia], temp_dir: &Path) -> PathBuf {
+			// chrono is used to create a different database for each thread
+			let path = temp_dir.join(format!("{}-input-sqlite.db", chrono::Utc::now()));
+
+			// remove if already exists to have a clean test
+			if path.exists() {
+				std::fs::remove_file(&path).expect("Expected the file to be removed");
+			}
+
+			let mut connection =
+				crate::main::sql_utils::sqlite_connect(&path).expect("Expected SQLite to successfully start");
+
+			for data in data {
+				insert_insmedia(&data, &mut connection).expect("Expected Successful insert");
+			}
+
+			return path;
+		}
+
+		#[test]
+		fn test_basic_ytdlr_sqlite() {
+			let (mut connection0, tempdir) = create_connection();
+			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
+
+			let insert_data = &[
+				InsMedia::new("____________", "youtube", "someTitle1"),
+				InsMedia::new("------------", "youtube", "someTitle2"),
+				InsMedia::new("aaaaaaaaaaaa", "youtube", "someTitle3"),
+				InsMedia::new("0000000000", "soundcloud", "someTitle4"),
+			];
+
+			let input_sqlite_path = create_connection_input(insert_data, &tempdir.as_ref());
+
+			let res0 = import_ytdlr_sqlite_archive(&input_sqlite_path, &mut connection0, callback_counter(&pgcounter));
+
+			assert!(res0.is_ok());
+
+			let cmp_vec: Vec<Video> = vec![
+				Video::new("____________", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someTitle1"),
+				Video::new("------------", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someTitle2"),
+				Video::new("aaaaaaaaaaaa", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someTitle3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someTitle4"),
+			];
+
+			let found = media_archive::dsl::media_archive
+				.order(media_archive::_id.asc())
+				.load::<Media>(&mut connection0)
+				.expect("Expected a successfully query");
+
+			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
+			assert_eq!(
+				&vec![
+					ImportProgress::Starting,
+					ImportProgress::SizeHint(4), // Size Hint of 4, because of a intermediate array length
+					// index start at 0, thanks to json array index
+					ImportProgress::Increase(1, 0),
+					ImportProgress::Increase(1, 1),
+					ImportProgress::Increase(1, 2),
+					ImportProgress::Increase(1, 3),
+					ImportProgress::Finished(4)
+				],
+				pgcounter.read().expect("failed to read").deref()
+			);
+		}
+
+		#[test]
+		fn test_conflict() {
+			let (mut connection0, tempdir) = create_connection();
+			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
+
+			// insert conflicting data
+			insert_insmedia(
+				&InsMedia::new("____________", "youtube", "someTitle1"),
+				&mut connection0,
+			)
+			.expect("Expected insert to be successful");
+
+			let insert_data = &[
+				InsMedia::new("____________", "youtube", "some A title"), // different title
+				InsMedia::new("------------", "youtube", "someTitle2"),
+				InsMedia::new("aaaaaaaaaaaa", "youtube", "someTitle3"),
+				InsMedia::new("0000000000", "soundcloud", "someTitle4"),
+			];
+
+			let input_sqlite_path = create_connection_input(insert_data, &tempdir.as_ref());
+
+			let res0 = import_ytdlr_sqlite_archive(&input_sqlite_path, &mut connection0, callback_counter(&pgcounter));
+
+			assert!(res0.is_ok());
+
+			let cmp_vec: Vec<Video> = vec![
+				// should have the title updated
+				Video::new("____________", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("some A title"),
+				Video::new("------------", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someTitle2"),
+				Video::new("aaaaaaaaaaaa", Provider::Youtube)
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someTitle3"),
+				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
+					.with_dl_finished(true)
+					.with_edit_asked(true)
+					.with_filename("someTitle4"),
+			];
+
+			let found = media_archive::dsl::media_archive
+				.order(media_archive::_id.asc())
+				.load::<Media>(&mut connection0)
+				.expect("Expected a successfully query");
+
+			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 		}
 	}
 }
