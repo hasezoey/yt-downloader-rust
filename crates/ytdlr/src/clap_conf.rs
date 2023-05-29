@@ -58,12 +58,12 @@ pub struct CliDerive {
 impl CliDerive {
 	/// Execute clap::Parser::parse and apply custom validation and transformation logic
 	#[must_use]
-	pub fn custom_parse() -> Self {
+	pub fn custom_parse() -> Result<Self, crate::Error> {
 		let mut parsed = Self::parse();
 
-		Check::check(&mut parsed).expect("Expected the check to not fail"); // TODO: this should maybe be actually handled
+		Check::check(&mut parsed)?;
 
-		return parsed;
+		return Ok(parsed);
 	}
 
 	/// Get if the mode is interactive or not

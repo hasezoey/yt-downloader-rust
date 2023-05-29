@@ -73,7 +73,7 @@ static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
 fn main() -> Result<(), crate::Error> {
 	let logger_handle = logger::setup_logger()?;
 
-	let cli_matches = CliDerive::custom_parse();
+	let cli_matches = CliDerive::custom_parse()?;
 
 	if cli_matches.debug_enabled() {
 		warn!("Requesting Debugger");
