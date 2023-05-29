@@ -431,11 +431,12 @@ fn get_editor_base(maybe_editor: &Option<PathBuf>) -> Result<PathBuf, crate::Err
 fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 	'test_editor: loop {
 		let test_result = test_editor_base_valid(path);
-		if test_result.is_ok() {
-			return Ok(Some(path.to_owned()));
-		}
 
-		let err = test_result.expect_err("Expected \"if is_ok\" to return");
+		let err = if let Err(err) = test_result {
+			err
+		} else {
+			return Ok(Some(path.to_owned()));
+		};
 
 		println!("Editor base is not available, Error: {err}");
 

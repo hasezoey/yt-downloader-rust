@@ -373,11 +373,11 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), ioError> {
 
 			let cap = PID_OF_ARCHIVE.captures(&file_name);
 
-			if cap.is_none() {
+			let cap = if let Some(cap) = cap {
+				cap
+			} else {
 				continue;
-			}
-
-			let cap = cap.expect("Expected is_none to continue");
+			};
 
 			cap.get(1).expect("Expected group 1 to always exist").as_str()
 		};

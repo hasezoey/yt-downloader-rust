@@ -34,10 +34,7 @@ pub fn command_search(main_args: &CliDerive, sub_args: &ArchiveSearch) -> Result
 		return Err(ioError::new(std::io::ErrorKind::Other, "Archive is required for Import!").into());
 	}
 
-	let archive_path = main_args
-		.archive_path
-		.as_ref()
-		.expect("Expected archive check to have already returned");
+	let archive_path = main_args.archive_path.as_ref().expect("Expected if is_none to return");
 
 	let bar: ProgressBar = ProgressBar::hidden();
 	// dont set progress bar target, only required for handle_connect currently
@@ -82,7 +79,7 @@ pub fn command_search(main_args: &CliDerive, sub_args: &ArchiveSearch) -> Result
 
 	let lines_iter = query
 		.load::<Media>(&mut connection)
-		.expect("DEBUG everything should be fine");
+		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
 
 	if lines_iter.is_empty() {
 		println!("No Results found");

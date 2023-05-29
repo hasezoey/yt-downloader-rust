@@ -20,8 +20,7 @@ pub fn command_completions(_main_args: &CliDerive, sub_args: &CommandCompletions
 			if v.exists() {
 				return Err(crate::Error::other("Output file already exists"));
 			}
-			std::fs::create_dir_all(v.parent().expect("Expected input filename to have a parent"))
-				.expect("Expected create_dir_all to be successfull");
+			std::fs::create_dir_all(v.parent().expect("Expected input filename to have a parent"))?;
 			BufWriter::new(Box::from(std::fs::File::create(v)?))
 		},
 		None => BufWriter::new(Box::from(std::io::stdout())),
