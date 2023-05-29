@@ -113,7 +113,7 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 	log::debug!("import ytdl sqlite archive");
 
 	// also applies migrations to input data before copying, because diesel can seemingly only support one version, and i dont want to implement handling for this
-	let mut input_connection = crate::main::sql_utils::sqlite_connect(&input_path)?;
+	let mut input_connection = crate::main::sql_utils::sqlite_connect(input_path)?;
 
 	let max_id_result = media_archive::dsl::media_archive
 		.select(diesel::dsl::max(media_archive::dsl::_id))
@@ -410,7 +410,7 @@ mod test {
 		fn test_unexpected_eof() {
 			let string0 = "";
 			let (mut dummy_connection, tempdir) = create_connection();
-			let input_data_path = create_input_data(&string0, tempdir.as_ref());
+			let input_data_path = create_input_data(string0, tempdir.as_ref());
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -434,7 +434,7 @@ mod test {
 			youtube aaaaaaaaaaaa
 			soundcloud 0000000000
 			";
-			let input_data_path = create_input_data(&string0, tempdir.as_ref());
+			let input_data_path = create_input_data(string0, tempdir.as_ref());
 
 			let res0 = import_any_archive(&input_data_path, &mut connection0, callback_counter(&pgcounter));
 
@@ -518,7 +518,7 @@ mod test {
 				]
 			}
 			"#;
-			let input_data_path = create_input_data(&string0, tempdir.as_ref());
+			let input_data_path = create_input_data(string0, tempdir.as_ref());
 
 			let res0 = import_any_archive(&input_data_path, &mut connection0, callback_counter(&pgcounter));
 
@@ -790,7 +790,7 @@ mod test {
 				crate::main::sql_utils::sqlite_connect(&path).expect("Expected SQLite to successfully start");
 
 			for data in data {
-				insert_insmedia(&data, &mut connection).expect("Expected Successful insert");
+				insert_insmedia(data, &mut connection).expect("Expected Successful insert");
 			}
 
 			return path;
@@ -808,7 +808,7 @@ mod test {
 				InsMedia::new("0000000000", "soundcloud", "someTitle4"),
 			];
 
-			let input_sqlite_path = create_connection_input(insert_data, &tempdir.as_ref());
+			let input_sqlite_path = create_connection_input(insert_data, tempdir.as_ref());
 
 			let res0 = import_ytdlr_sqlite_archive(&input_sqlite_path, &mut connection0, callback_counter(&pgcounter));
 
@@ -873,7 +873,7 @@ mod test {
 				InsMedia::new("0000000000", "soundcloud", "someTitle4"),
 			];
 
-			let input_sqlite_path = create_connection_input(insert_data, &tempdir.as_ref());
+			let input_sqlite_path = create_connection_input(insert_data, tempdir.as_ref());
 
 			let res0 = import_ytdlr_sqlite_archive(&input_sqlite_path, &mut connection0, callback_counter(&pgcounter));
 

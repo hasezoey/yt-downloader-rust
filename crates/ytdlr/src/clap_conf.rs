@@ -57,7 +57,6 @@ pub struct CliDerive {
 
 impl CliDerive {
 	/// Execute clap::Parser::parse and apply custom validation and transformation logic
-	#[must_use]
 	pub fn custom_parse() -> Result<Self, crate::Error> {
 		let mut parsed = Self::parse();
 
