@@ -9,7 +9,7 @@ use std::{
 };
 
 use libytdlr::diesel;
-use libytdlr::traits::context::DownloadOptions;
+use libytdlr::traits::download_options::DownloadOptions;
 
 use crate::clap_conf::ArchiveMode;
 

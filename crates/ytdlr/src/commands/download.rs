@@ -17,7 +17,7 @@ use indicatif::{
 use libytdlr::main::download::YTDL_ARCHIVE_PREFIX;
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
-	traits::context::DownloadOptions,
+	traits::download_options::DownloadOptions,
 	*,
 };
 use once_cell::sync::Lazy;

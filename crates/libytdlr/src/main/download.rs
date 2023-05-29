@@ -20,7 +20,7 @@ use crate::{
 		media_info::MediaInfo,
 		media_provider::MediaProvider,
 	},
-	traits::context::DownloadOptions,
+	traits::download_options::DownloadOptions,
 };
 
 #[derive(Debug, Clone, PartialEq)]
