@@ -3,7 +3,7 @@
 
 diesel::table! {
 	media_archive (_id) {
-		_id -> Integer,
+		_id -> BigInt,
 		media_id -> Text,
 		provider -> Text,
 		title -> Text,

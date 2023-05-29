@@ -117,18 +117,18 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 
 	let max_id_result = media_archive::dsl::media_archive
 		.select(diesel::dsl::max(media_archive::dsl::_id))
-		.first::<Option<i32>>(&mut input_connection)
+		.first::<Option<i64>>(&mut input_connection)
 		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
 
 	pgcb(ImportProgress::Starting);
 
 	if let Some(num) = max_id_result {
-		let num = usize::try_from(num).map_err(|err| {
+		// sqlite only support signed integers, but the rowid will always be positive (at least should be) and conversion should be possible
+		let num = usize::try_from(num).map_err(|_| {
 			return crate::Error::other(format!(
-				"Expected to be able to convert _id column to usize, error: {}",
-				err
+				"Failed to convert column _id i64 to usize, expected the number to be positive"
 			));
-		})?; // TODO: actually change the type to a usize
+		})?;
 		pgcb(ImportProgress::SizeHint(num));
 	} else {
 		log::warn!("Could not get the max_id of the input (got None)");

@@ -9,7 +9,7 @@ use diesel::prelude::*;
 // #[diesel(treat_none_as_default_value = false)]
 pub struct Media {
 	/// The ID of the video, auto-incremented upwards
-	pub _id:         i32,
+	pub _id:         i64,
 	/// The ID of the media given used by the provider
 	pub media_id:    String,
 	/// The Provider from where this media was downloaded from
