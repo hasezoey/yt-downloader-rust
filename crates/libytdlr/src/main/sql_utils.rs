@@ -13,7 +13,8 @@ use super::archive::import::ImportProgress;
 /// All migrations from "libytdlr/migrations" embedded into the binary
 pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
 
-/// Open a SQLite Connection for `sqlite_path`
+/// Open a SQLite Connection for `sqlite_path` and apply sqlite migrations
+/// does not migrate archive formats, use [migrate_and_connect] instead
 pub fn sqlite_connect<P: AsRef<Path>>(sqlite_path: P) -> Result<SqliteConnection, crate::Error> {
 	return match sqlite_path.as_ref().to_str() {
 		Some(path) => {
