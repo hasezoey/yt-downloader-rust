@@ -5,9 +5,9 @@ use indicatif::{
 	ProgressBar,
 	ProgressDrawTarget,
 };
-use libytdlr::diesel::SqliteConnection;
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
+	diesel::SqliteConnection,
 	main::archive::import::ImportProgress,
 	spawn::{
 		ffmpeg::ffmpeg_version,

@@ -1,8 +1,8 @@
-use crate::state::DownloadState;
-use crate::utils;
 use crate::{
 	clap_conf::*,
 	commands::download::quirks::apply_metadata,
+	state::DownloadState,
+	utils,
 };
 use colored::{
 	Color,
@@ -14,9 +14,9 @@ use indicatif::{
 	ProgressDrawTarget,
 	ProgressStyle,
 };
-use libytdlr::main::download::YTDL_ARCHIVE_PREFIX;
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
+	main::download::YTDL_ARCHIVE_PREFIX,
 	traits::download_options::DownloadOptions,
 	*,
 };

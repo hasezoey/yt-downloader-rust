@@ -8,8 +8,10 @@ use std::{
 	},
 };
 
-use libytdlr::diesel;
-use libytdlr::traits::download_options::DownloadOptions;
+use libytdlr::{
+	diesel,
+	traits::download_options::DownloadOptions,
+};
 
 use crate::clap_conf::ArchiveMode;
 

@@ -1,5 +1,7 @@
-use crate::clap_conf::*;
-use crate::utils;
+use crate::{
+	clap_conf::*,
+	utils,
+};
 use indicatif::{
 	ProgressBar,
 	ProgressStyle,
