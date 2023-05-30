@@ -106,7 +106,7 @@ where
 
 	let mut was_success = true;
 
-	let as_string = String::from_utf8(command_output.stderr)?;
+	let as_string = String::from_utf8_lossy(&command_output.stderr);
 
 	// check if the output contains this one string, because ffmpeg does not offer a "probe" mode without using "ffprobe"
 	// and will always exit with "1" and this message if that happens
@@ -118,7 +118,7 @@ where
 		return Err(unsuccessfull_command_exit(command_output.status, &as_string));
 	}
 
-	return Ok(as_string);
+	return Ok(as_string.into());
 }
 
 /// Regex to parse the format from "input #0" from ffmpeg output
