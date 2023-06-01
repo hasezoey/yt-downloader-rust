@@ -2,6 +2,15 @@
 
 This is a manually written changelog, and only tracks front-facing changes since version [`v0.5.0`](#v050)
 
+## next
+
+- `download`: change editors to run with inherited STDIO
+- `download`: add ability to play the current element in the edit stage
+- `download`: add ability to go back elements in the edit stage
+- ffmpeg: fix error on invalid utf8 sequence
+- change Termination requests to not be based on time anymore
+- some more internal refactoring
+
 ## v0.7.0
 
 - `download`: truncate filenames to be below 255 bytes (most filesystems only support filenames up to 255 bytes)
