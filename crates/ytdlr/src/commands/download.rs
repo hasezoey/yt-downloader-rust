@@ -1165,7 +1165,7 @@ fn finish_with_move(
 	let mut moved_count = 0usize;
 	pgbar.set_draw_target(ProgressDrawTarget::stderr());
 
-	for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
+	for media_helper in final_media.mediainfo_map.values() {
 		pgbar.inc(1);
 		let media = &media_helper.data;
 		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(media) {
@@ -1225,7 +1225,7 @@ fn finish_with_tagger(
 	std::fs::create_dir_all(&final_dir_path)?;
 	pgbar.set_draw_target(ProgressDrawTarget::stderr());
 
-	for media_helper in /* utils::find_editable_files(download_path)? */ final_media.mediainfo_map.values() {
+	for media_helper in final_media.mediainfo_map.values() {
 		pgbar.inc(1);
 		let media = &media_helper.data;
 		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(media) {
