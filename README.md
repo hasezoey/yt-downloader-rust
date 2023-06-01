@@ -198,4 +198,4 @@ This Project is mainly a personal project, so it is currently tailored to my use
 
 ## Project TODO
 
-- [ ] add ability to go back in the edit list
+Current all TODOs are done

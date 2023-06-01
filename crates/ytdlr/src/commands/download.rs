@@ -511,6 +511,15 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	return Ok(());
 }
 
+/// Helper enum to decide what to do in the finish media loop (to not have to nest calls)
+#[derive(Debug, PartialEq)]
+enum EditCtrl {
+	/// Indicate that the loop is finished
+	Finished,
+	/// Indicate that the loop should continue
+	Goback,
+}
+
 /// Wrapper for [`command_download`] to house the part where in case of error a recovery needs to be written
 fn download_wrapper(
 	main_args: &CliDerive,
@@ -527,10 +536,19 @@ fn download_wrapper(
 	}
 
 	let download_path = download_state.get_download_path();
+	// determines wheter the "reverse" argument for "edit_media" is set
+	let mut looped_once = false;
 
-	edit_media(main_args, sub_args, download_path, finished_media)?;
+	// loop so that when selecting "b" in "finish_media" to be able to go back to editing
+	loop {
+		edit_media(main_args, sub_args, download_path, finished_media, looped_once)?;
+		looped_once = true;
 
-	finish_media(main_args, sub_args, download_path, pgbar, finished_media)?;
+		match finish_media(main_args, sub_args, download_path, pgbar, finished_media)? {
+			EditCtrl::Finished => break,
+			EditCtrl::Goback => continue,
+		}
+	}
 
 	return Ok(());
 }
@@ -719,23 +737,52 @@ fn do_download(
 }
 
 /// Start editing loop for all provided media
+/// set "reverse" to start the editing on the last element
 fn edit_media(
 	main_args: &CliDerive,
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
 	final_media: &MediaInfoArr,
+	reverse: bool,
 ) -> Result<(), crate::Error> {
 	if !main_args.is_interactive() {
 		info!("Skipping asking for media, because \"is_interactive\" is \"false\"");
 		return Ok(());
 	}
 
+	if final_media.is_empty() {
+		println!("Skipping asking for media, because there is no media to edit");
+		return Ok(());
+	}
+
 	let media_sorted_vec = final_media.as_sorted_vec();
+	let mut next_index = 0;
+
+	if reverse {
+		next_index = media_sorted_vec.len() - 1; // case of 0 - 1 should be solved by the "is_empty" above
+	}
+
+	// storage for when a element needs to be skipped (like missing filename) to know what should be done
+	let mut go_back = false;
+
 	// ask for editing
 	// TODO: consider renaming before asking for edit
-	'for_media_loop: for media_helper in media_sorted_vec.iter() {
+	'media_loop: loop {
 		// handle terminate
 		check_termination()?;
+
+		// safety reset, because otherwise if element 0 is "skipped" (like no filename) then it would be a infinite loop
+		if next_index == 0 {
+			go_back = false;
+		}
+
+		let opt = media_sorted_vec.get(next_index);
+		next_index += 1;
+
+		let media_helper = match opt {
+			Some(v) => v,
+			None => break,
+		};
 
 		let media = &media_helper.data;
 		let media_filename = match &media.filename {
@@ -743,9 +790,16 @@ fn edit_media(
 			None => {
 				println!("\"{}\" did not have a filename!", media.id);
 				println!("debug: {media:#?}");
-				continue 'for_media_loop;
+
+				// try to go back to the next element
+				if go_back {
+					next_index = next_index.saturating_sub(2);
+				}
+
+				continue 'media_loop;
 			},
 		};
+		go_back = false;
 		let media_path = download_path.join(media_filename);
 		// extra loop is required for printing the help and asking again
 		'ask_do_loop: loop {
@@ -761,12 +815,12 @@ fn edit_media(
 						.as_ref()
 						.map_or("".into(), |msg| format!(" ({msg})"))
 				),
-				&["h", "y", "N", "a", "v", "p"],
+				&["h", "y", "N", "a", "v", "p", "b"],
 				"n",
 			)?;
 
 			match input.as_str() {
-				"n" => continue 'for_media_loop,
+				"n" => continue 'media_loop,
 				"y" => match utils::get_filetype(media_filename) {
 					utils::FileType::Video => {
 						println!("Found filetype to be of video");
@@ -788,7 +842,7 @@ fn edit_media(
 							"a" => run_editor_wrap(&sub_args.audio_editor, &media_path)?,
 							"v" => run_editor_wrap(&sub_args.video_editor, &media_path)?,
 							"b" => return Err(crate::Error::other("Abort Selected")),
-							"n" => continue 'for_media_loop,
+							"n" => continue 'media_loop,
 							_ => unreachable!("get_input should only return a OK value from the possible array"),
 						}
 					},
@@ -817,6 +871,18 @@ fn edit_media(
 					// re-do the loop, because it was only played
 					continue 'ask_do_loop;
 				},
+				"b" => {
+					// QOL message to notify that the earliest index is already in use
+					if next_index == 1 {
+						println!("Cannot go back further");
+					}
+
+					next_index = next_index.saturating_sub(2); // remove the "+1" for the next that was already added, and remove another 1 to get back to the last element
+
+					go_back = true;
+
+					continue 'media_loop;
+				},
 				_ => unreachable!("get_input should only return a OK value from the possible array"),
 			}
 
@@ -836,7 +902,7 @@ fn edit_media(
 				);
 			}
 
-			continue 'for_media_loop;
+			continue 'media_loop;
 		}
 	}
 
@@ -1083,10 +1149,10 @@ fn finish_media(
 	download_path: &std::path::Path,
 	pgbar: &ProgressBar,
 	final_media: &MediaInfoArr,
-) -> Result<(), ioError> {
+) -> Result<EditCtrl, ioError> {
 	if final_media.mediainfo_map.is_empty() {
 		println!("No files to move or tag");
-		return Ok(());
+		return Ok(EditCtrl::Finished);
 	}
 
 	// first set the draw-target so that any subsequent setting change does not cause a draw
@@ -1100,9 +1166,16 @@ fn finish_media(
 		// current choices are:
 		// move all media that is found to the final_directory (specified via options or defaulted), or
 		// open the tagger and let the tagger handle the moving
-		match utils::get_input("[m]ove Media to Output Directory or Open [p]icard?", &["m", "p"], "")?.as_str() {
+		match utils::get_input(
+			"[m]ove Media to Output Directory or Open [p]icard or go [b]ack to editing?",
+			&["m", "p", "b"],
+			"",
+		)?
+		.as_str()
+		{
 			"m" => finish_with_move(sub_args, download_path, pgbar, final_media)?,
 			"p" => finish_with_tagger(sub_args, download_path, pgbar, final_media)?,
+			"b" => return Ok(EditCtrl::Goback),
 			_ => unreachable!("get_input should only return a OK value from the possible array"),
 		}
 	} else {
@@ -1119,7 +1192,7 @@ fn finish_media(
 		println!("{} Found Editable file that have not been moved.\nConsider running recovery mode if no other ytdlr is running (with 0 URLs)", "WARN".color(Color::TrueColor { r: 255, g: 135, b: 0 }));
 	}
 
-	return Ok(());
+	return Ok(EditCtrl::Finished);
 }
 
 /// Move all media in `final_media` to it final resting place in `download_path`
