@@ -261,6 +261,11 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 		.arg("--print")
 		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
 		.arg("after_video:PARSE_END '%(extractor)s' '%(id)s'");
+	// print once after the video got fully processed to get a consistent end point
+	ytdl_args
+		.arg("--print")
+		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
+		.arg("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s");
 
 	// ensure ytdl is printing progress reports
 	ytdl_args.arg("--progress");
@@ -290,6 +295,7 @@ enum CustomParseType {
 	Start(MediaInfo),
 	End(MediaInfo),
 	Playlist(usize),
+	Move(MediaInfo),
 }
 
 /// Line type for a ytdl output line
@@ -362,6 +368,10 @@ impl LineType {
 			return Some(Self::Custom);
 		}
 
+		if input.starts_with("MOVE") {
+			return Some(Self::Custom);
+		}
+
 		if ERROR_TYPE_REGEX.is_match(input) {
 			return Some(Self::Error);
 		}
@@ -417,6 +427,10 @@ impl LineType {
 		static PARSE_PLAYLIST_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?mi)^PLAYLIST '([^']+)'$").unwrap();
 		});
+		/// Regex to get all information from the Parsing helper "MOVE"
+		static PARSE_MOVE_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?mi)^MOVE '([^']+)' '([^']+)' (.+)$").unwrap();
+		});
 
 		let input = input.as_ref();
 
@@ -444,6 +458,27 @@ impl LineType {
 				// the following is unreachable, because the Regex ensures that only "START" and "END" match
 				_ => unreachable!(),
 			}
+		}
+
+		// handle "MOVE" lines
+		// cannot be merged easily with "PARSE_END", because of https://github.com/yt-dlp/yt-dlp/issues/7197#issuecomment-1572066439
+		if let Some(cap) = PARSE_MOVE_REGEX.captures(input) {
+			let provider = &cap[1];
+			let id = &cap[2];
+			let file_path = std::path::PathBuf::from(&cap[3]);
+
+			let filename = if let Some(name) = file_path.file_name() {
+				name
+			} else {
+				info!("MOVE path from youtube-dl did not have a file_name!");
+				return None;
+			};
+
+			return Some(CustomParseType::Move(
+				MediaInfo::new(id)
+					.with_provider(MediaProvider::from_str_like(provider))
+					.with_filename(filename),
+			));
 		}
 
 		// handle "PLAYLIST" lines
@@ -556,6 +591,19 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 							CustomParseType::Playlist(count) => {
 								debug!("Found PLAYLIST {count}");
 								pgcb(DownloadProgress::PlaylistInfo(count));
+							},
+							CustomParseType::Move(mi) => {
+								debug!("Found MOVE: \"{}\" \"{:?}\" \"{:?}\"", mi.id, mi.provider, mi.filename);
+
+								if let Some(last_mediainfo) = current_mediainfo.as_mut() {
+									last_mediainfo.set_filename(
+										mi.filename.expect(
+											"Expected try_get_parse_helper to return a mediainfo with filename",
+										),
+									);
+								} else {
+									debug!("Found MOVE, but did not have a current_mediainfo");
+								}
 							},
 						}
 					}
@@ -788,6 +836,8 @@ mod test {
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
 					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--print"),
+					OsString::from("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s"),
 					OsString::from("--progress"),
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
@@ -833,6 +883,8 @@ mod test {
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
 					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--print"),
+					OsString::from("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s"),
 					OsString::from("--progress"),
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
@@ -877,6 +929,8 @@ mod test {
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
 					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--print"),
+					OsString::from("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s"),
 					OsString::from("--progress"),
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
@@ -926,6 +980,8 @@ mod test {
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
 					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--print"),
+					OsString::from("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s"),
 					OsString::from("--progress"),
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
@@ -989,6 +1045,8 @@ mod test {
 					OsString::from("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s"),
 					OsString::from("--print"),
 					OsString::from("after_video:PARSE_END '%(extractor)s' '%(id)s'"),
+					OsString::from("--print"),
+					OsString::from("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s"),
 					OsString::from("--progress"),
 					OsString::from("--newline"),
 					OsString::from("--no-simulate"),
