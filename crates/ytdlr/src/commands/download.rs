@@ -528,26 +528,6 @@ fn download_wrapper(
 
 	let download_path = download_state.get_download_path();
 
-	// TODO: check if the following is still something that should be done
-
-	// merge found filenames into existing mediainfo
-	for new_media in utils::find_editable_files(download_path)? {
-		if let Some(media) = finished_media.get_mut(&format!(
-			"{}-{}",
-			new_media
-				.provider
-				.as_ref()
-				.map_or_else(|| return "unknown", |v| return v.to_str()),
-			new_media.id
-		)) {
-			let new_media_filename = new_media
-				.filename
-				.expect("Expected MediaInfo to have a filename from \"try_from_filename\"");
-
-			media.data.set_filename(new_media_filename);
-		}
-	}
-
 	edit_media(main_args, sub_args, download_path, finished_media)?;
 
 	finish_media(main_args, sub_args, download_path, pgbar, finished_media)?;
@@ -1303,6 +1283,24 @@ fn try_find_and_read_recovery_files(
 			finished_media_vec.insert_with_comment(media, format!("From Recovery file of pid {pid_of_file}"));
 		}
 		read_files.push(file);
+	}
+
+	// recovery files dont contain the file path, so find editable file and merge them
+	for new_media in utils::find_editable_files(&path)? {
+		if let Some(media) = finished_media_vec.get_mut(&format!(
+			"{}-{}",
+			new_media
+				.provider
+				.as_ref()
+				.map_or_else(|| return "unknown", |v| return v.to_str()),
+			new_media.id
+		)) {
+			let new_media_filename = new_media
+				.filename
+				.expect("Expected MediaInfo to have a filename from \"find_editable_files\"");
+
+			media.data.set_filename(new_media_filename);
+		}
 	}
 
 	return Ok(read_files);
