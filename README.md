@@ -198,5 +198,4 @@ This Project is mainly a personal project, so it is currently tailored to my use
 
 ## Project TODO
 
-- [ ] add ability to start a play (like mpv) before choosing to edit
 - [ ] add ability to go back in the edit list

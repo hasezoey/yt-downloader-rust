@@ -786,7 +786,7 @@ fn edit_media(
 						.as_ref()
 						.map_or("".into(), |msg| format!(" ({msg})"))
 				),
-				&["h", "y", "N", "a", "v" /* , "p" */],
+				&["h", "y", "N", "a", "v", "p"],
 				"n",
 			)?;
 
@@ -836,12 +836,12 @@ fn edit_media(
 				"v" => {
 					run_editor_wrap(&sub_args.video_editor, &media_path)?;
 				},
-				// "p" => {
-				// 	utils::run_editor(&sub_args.player_editor, &media_path)?;
+				"p" => {
+					utils::run_editor(&sub_args.player_editor, &media_path)?;
 
-				// 	// re-do the loop, because it was only played
-				// 	continue 'ask_do_loop;
-				// },
+					// re-do the loop, because it was only played
+					continue 'ask_do_loop;
+				},
 				_ => unreachable!("get_input should only return a OK value from the possible array"),
 			}
 

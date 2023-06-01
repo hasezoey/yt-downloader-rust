@@ -339,6 +339,10 @@ pub struct CommandDownload {
 	/// Must be either a absolute path or findable via PATH
 	#[arg(long = "tagger", env = "YTDL_TAGGER")]
 	pub tagger_editor:             Option<PathBuf>,
+	/// Media player Command to use
+	/// Must be either a absolute path or findable via PATH
+	#[arg(long = "player", env = "YTDL_PLAYER")]
+	pub player_editor:             Option<PathBuf>,
 	/// Output path for any command that outputs a file
 	#[arg(short, long, env = "YTDL_OUT")]
 	pub output_path:               Option<PathBuf>,
@@ -403,6 +407,7 @@ impl Default for CommandDownload {
 			no_check_recovery: false,
 			open_tagger: false,
 			sub_langs: None,
+			player_editor: None,
 		}
 	}
 }
