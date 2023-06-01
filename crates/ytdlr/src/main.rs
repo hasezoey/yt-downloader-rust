@@ -19,39 +19,34 @@ mod utils;
 
 /// Simple struct to keep all data for termination requests (ctrlc handler)
 struct TerminateData {
-	/// Stores the last time a terminate was requested, if ever
-	terminate: Option<std::time::Instant>,
 	/// Stores the message to display when pressing CTRLC
-	msg:       String,
+	msg:                 String,
 	/// Stores wheter the handler is enabled or disabled
 	/// "disabled" means no termination setting
-	enabled:   bool,
+	enabled:             bool,
+	/// Stores wheter termination has been requested
+	terminate_requested: bool,
 }
 
 impl Default for TerminateData {
 	fn default() -> Self {
 		return TerminateData {
-			terminate: None,
-			msg:       String::from(DEFAULT_TERMINATE_MSG),
-			enabled:   true,
+			msg:                 String::from(DEFAULT_TERMINATE_MSG),
+			enabled:             true,
+			terminate_requested: false,
 		};
 	}
 }
 
 impl TerminateData {
-	/// Check if a Termination is requested and still valid
-	pub fn should_terminate(&self) -> bool {
-		let inst = match self.terminate {
-			Some(v) => v,
-			None => return false,
-		};
-
-		return inst.elapsed().as_secs() <= 3;
+	/// Check if termination has been requested
+	pub fn termination_requested(&self) -> bool {
+		return self.terminate_requested;
 	}
 
 	/// Set the time when the terminate was requested
-	pub fn set_terminate_time(&mut self) {
-		self.terminate = Some(std::time::Instant::now());
+	pub fn set_terminate(&mut self) {
+		self.terminate_requested = true;
 	}
 
 	/// Get the termination message
@@ -81,7 +76,7 @@ impl TerminateData {
 }
 
 /// Default Termination request message
-const DEFAULT_TERMINATE_MSG: &str = "Press Again to Terminate within the next 3 seconds";
+const DEFAULT_TERMINATE_MSG: &str = "Termination requested, press again to terminate immediately";
 
 /// Global instance of [TerminateData] for termination handling
 static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
@@ -139,11 +134,12 @@ fn main() -> Result<(), crate::Error> {
 			}
 		}
 
-		if terminate_write.should_terminate() {
+		if terminate_write.termination_requested() {
+			info!("Immediate Termination requested");
 			std::process::exit(-1);
 		}
 		println!("{}", terminate_write.get_msg());
-		terminate_write.set_terminate_time();
+		terminate_write.set_terminate();
 	})
 	.map_err(|err| return crate::Error::other(format!("{err}")))?;
 

@@ -250,7 +250,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 				if crate::TERMINATE
 					.read()
 					.map_err(|err| return crate::Error::other(format!("{err}")))?
-					.should_terminate()
+					.termination_requested()
 				{
 					return Err(crate::Error::other("Termination Requested"));
 				}

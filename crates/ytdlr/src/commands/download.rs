@@ -61,7 +61,7 @@ fn check_termination() -> Result<(), crate::Error> {
 	if crate::TERMINATE
 		.read()
 		.map_err(|err| return crate::Error::other(format!("{err}")))?
-		.should_terminate()
+		.termination_requested()
 	{
 		return Err(crate::Error::other("Termination Requested"));
 	}
@@ -473,13 +473,6 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	// run AFTER finding all files, so that the correct filename is already set for files, and only information gets updated
 	let found_recovery_files =
 		try_find_and_read_recovery_files(&mut finished_media, download_state.get_download_path())?;
-
-	crate::TERMINATE
-		.write()
-		.map_err(|err| return crate::Error::other(format!("{err}")))?
-		.set_msg(String::from(
-			"Termination has been requested, press again to terminate immediately",
-		));
 
 	// TODO: consider cross-checking archive if the files from recovery are already in the archive and get a proper title
 
