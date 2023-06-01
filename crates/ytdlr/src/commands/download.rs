@@ -159,10 +159,7 @@ impl Recovery {
 	pub fn fmt_line(media: &data::cache::media_info::MediaInfo) -> String {
 		return format!(
 			"'{}'-'{}'-{}\n",
-			media
-				.provider
-				.as_ref()
-				.expect("Expected downloaded media to have a provider"),
+			media.provider.as_ref(),
 			media.id,
 			media.title.as_ref().expect("Expected downloaded media to have a title")
 		);
@@ -178,11 +175,7 @@ impl Recovery {
 
 		let cap = FROM_LINE_REGEX.captures(line)?;
 
-		return Some(
-			data::cache::media_info::MediaInfo::new(&cap[2])
-				.with_provider(data::cache::media_provider::MediaProvider::from_str_like(&cap[1]))
-				.with_title(&cap[3]),
-		);
+		return Some(data::cache::media_info::MediaInfo::new(&cap[2], &cap[1]).with_title(&cap[3]));
 	}
 
 	/// Try to read the recovery from the given path
@@ -281,14 +274,7 @@ impl MediaInfoArr {
 		let order = self.next_order;
 		self.next_order += 1;
 
-		let key = format!(
-			"{}-{}",
-			mediainfo
-				.provider
-				.as_ref()
-				.map_or_else(|| return "unknown", |v| return v.to_str()),
-			mediainfo.id,
-		);
+		let key = format!("{}-{}", mediainfo.provider.as_ref(), mediainfo.id,);
 
 		return self
 			.mediainfo_map
@@ -1359,14 +1345,7 @@ fn try_find_and_read_recovery_files(
 
 	// recovery files dont contain the file path, so find editable file and merge them
 	for new_media in utils::find_editable_files(path)? {
-		if let Some(media) = finished_media_vec.get_mut(&format!(
-			"{}-{}",
-			new_media
-				.provider
-				.as_ref()
-				.map_or_else(|| return "unknown", |v| return v.to_str()),
-			new_media.id
-		)) {
+		if let Some(media) = finished_media_vec.get_mut(&format!("{}-{}", new_media.provider.as_ref(), new_media.id)) {
 			let new_media_filename = new_media
 				.filename
 				.expect("Expected MediaInfo to have a filename from \"find_editable_files\"");
@@ -1383,8 +1362,6 @@ mod test {
 	use super::*;
 
 	mod recovery {
-		use libytdlr::data::cache::media_provider::MediaProvider;
-
 		use super::*;
 
 		#[test]
@@ -1396,22 +1373,14 @@ mod test {
 			// test a proper name
 			let input = "'provider'-'id'-Some Title";
 			assert_eq!(
-				Some(
-					MediaInfo::new("id")
-						.with_provider(MediaProvider::from("provider"))
-						.with_title("Some Title")
-				),
+				Some(MediaInfo::new("id", "provider").with_title("Some Title")),
 				Recovery::try_from_line(input)
 			);
 
 			// test a proper name with dots
 			let input = "'provider'-'id'-Some Title ver.2";
 			assert_eq!(
-				Some(
-					MediaInfo::new("id")
-						.with_provider(MediaProvider::from("provider"))
-						.with_title("Some Title ver.2")
-				),
+				Some(MediaInfo::new("id", "provider").with_title("Some Title ver.2")),
 				Recovery::try_from_line(input)
 			);
 		}

@@ -24,17 +24,17 @@ pub struct MediaInfo {
 	/// The ID of the media,
 	pub id:       String,
 	/// The Provider that provided this media
-	pub provider: Option<MediaProvider>,
+	pub provider: MediaProvider,
 }
 
 impl MediaInfo {
 	/// Crate a new instance of [`MediaInfo`]
-	pub fn new<I: AsRef<str>>(id: I) -> Self {
+	pub fn new<I: AsRef<str>, P: Into<MediaProvider>>(id: I, provider: P) -> Self {
 		return Self {
 			id:       id.as_ref().into(),
 			filename: None,
 			title:    None,
-			provider: None,
+			provider: provider.into(),
 		};
 	}
 
@@ -52,13 +52,6 @@ impl MediaInfo {
 		return self;
 	}
 
-	/// Builder function to add a provider
-	pub fn with_provider(mut self, provider: MediaProvider) -> Self {
-		self.provider = Some(provider);
-
-		return self;
-	}
-
 	/// Set the filename of the current [`MediaInfo`]
 	pub fn set_filename<F: AsRef<Path>>(&mut self, filename: F) {
 		self.filename = Some(filename.as_ref().into());
@@ -66,7 +59,7 @@ impl MediaInfo {
 
 	/// Set the Provider of the current [`MediaInfo`]
 	pub fn set_provider(&mut self, provider: MediaProvider) {
-		self.provider = Some(provider);
+		self.provider = provider;
 	}
 
 	/// Try to create a [`MediaInfo`] instance from a filename
@@ -91,12 +84,7 @@ impl MediaInfo {
 
 		let cap = FROM_PATH_REGEX.captures(filestem)?;
 
-		return Some(
-			Self::new(&cap[2])
-				.with_provider(MediaProvider::from_str_like(&cap[1]))
-				.with_title(&cap[3])
-				.with_filename(filename),
-		);
+		return Some(Self::new(&cap[2], &cap[1]).with_title(&cap[3]).with_filename(filename));
 	}
 }
 
@@ -104,9 +92,7 @@ impl From<&MediaInfo> for InsMedia {
 	fn from(v: &MediaInfo) -> Self {
 		return Self::new(
 			v.id.clone(),
-			v.provider
-				.clone()
-				.map_or_else(|| return "unknown (none-provided)".to_owned(), |v| return v.to_string()),
+			v.provider.clone(),
 			v.title
 				.clone()
 				.unwrap_or_else(|| return "unknown (none-provided)".to_owned()),
@@ -125,9 +111,9 @@ mod test {
 				id:       "".to_owned(),
 				filename: None,
 				title:    None,
-				provider: None,
+				provider: "".into(),
 			},
-			MediaInfo::new("")
+			MediaInfo::new("", "")
 		);
 
 		assert_eq!(
@@ -135,9 +121,9 @@ mod test {
 				id:       "hello".to_owned(),
 				filename: None,
 				title:    None,
-				provider: None,
+				provider: "hello".into(),
 			},
-			MediaInfo::new("hello")
+			MediaInfo::new("hello", "hello")
 		);
 	}
 
@@ -148,9 +134,9 @@ mod test {
 				id:       "someid".to_owned(),
 				filename: Some(PathBuf::from("Hello")),
 				title:    None,
-				provider: None,
+				provider: "".into(),
 			},
-			MediaInfo::new("someid").with_filename("Hello")
+			MediaInfo::new("someid", "").with_filename("Hello")
 		);
 	}
 
@@ -161,9 +147,9 @@ mod test {
 				id:       "someid".to_owned(),
 				filename: None,
 				title:    Some("Hello".to_owned()),
-				provider: None,
+				provider: "".into(),
 			},
-			MediaInfo::new("someid").with_title("Hello")
+			MediaInfo::new("someid", "").with_title("Hello")
 		);
 	}
 
@@ -174,9 +160,9 @@ mod test {
 				id:       "someid".to_owned(),
 				filename: None,
 				title:    None,
-				provider: Some(MediaProvider::from("youtube")),
+				provider: MediaProvider::from("youtube"),
 			},
-			MediaInfo::new("someid").with_provider(MediaProvider::from("youtube"))
+			MediaInfo::new("someid", "youtube")
 		);
 	}
 
@@ -185,16 +171,13 @@ mod test {
 		// test with full options
 		assert_eq!(
 			InsMedia::new("someid", "someprovider", "sometitle"),
-			(&MediaInfo::new("someid")
-				.with_provider(MediaProvider::from("someprovider"))
-				.with_title("sometitle"))
-				.into()
+			(&MediaInfo::new("someid", "someprovider").with_title("sometitle")).into()
 		);
 
 		// test with only id
 		assert_eq!(
-			InsMedia::new("someid", "unknown (none-provided)", "unknown (none-provided)"),
-			(&MediaInfo::new("someid")).into()
+			InsMedia::new("someid", "unknown", "unknown (none-provided)"),
+			(&MediaInfo::new("someid", "unknown")).into()
 		);
 	}
 
@@ -208,8 +191,7 @@ mod test {
 		let input = "'provider'-'id'-Some Title.something";
 		assert_eq!(
 			Some(
-				MediaInfo::new("id")
-					.with_provider(MediaProvider::from("provider"))
+				MediaInfo::new("id", "provider")
 					.with_title("Some Title")
 					.with_filename("'provider'-'id'-Some Title.something")
 			),

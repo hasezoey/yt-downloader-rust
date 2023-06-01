@@ -16,10 +16,7 @@ use std::{
 };
 
 use crate::{
-	data::cache::{
-		media_info::MediaInfo,
-		media_provider::MediaProvider,
-	},
+	data::cache::media_info::MediaInfo,
 	traits::download_options::DownloadOptions,
 };
 
@@ -444,16 +441,10 @@ impl LineType {
 				"START" => {
 					let title = &cap[4];
 
-					return Some(CustomParseType::Start(
-						MediaInfo::new(id)
-							.with_title(title)
-							.with_provider(MediaProvider::from_str_like(provider)),
-					));
+					return Some(CustomParseType::Start(MediaInfo::new(id, provider).with_title(title)));
 				},
 				"END" => {
-					return Some(CustomParseType::End(
-						MediaInfo::new(id).with_provider(MediaProvider::from_str_like(provider)),
-					));
+					return Some(CustomParseType::End(MediaInfo::new(id, provider)));
 				},
 				// the following is unreachable, because the Regex ensures that only "START" and "END" match
 				_ => unreachable!(),
@@ -475,9 +466,7 @@ impl LineType {
 			};
 
 			return Some(CustomParseType::Move(
-				MediaInfo::new(id)
-					.with_provider(MediaProvider::from_str_like(provider))
-					.with_filename(filename),
+				MediaInfo::new(id, provider).with_filename(filename),
 			));
 		}
 
@@ -1146,9 +1135,7 @@ mod test {
 			let input = "PARSE_START 'youtube' '-----------' Some Title Here";
 			assert_eq!(
 				Some(CustomParseType::Start(
-					MediaInfo::new("-----------")
-						.with_provider(MediaProvider::from_str_like("youtube"))
-						.with_title("Some Title Here")
+					MediaInfo::new("-----------", "youtube").with_title("Some Title Here")
 				)),
 				LineType::Custom.try_get_parse_helper(input)
 			);
@@ -1156,9 +1143,7 @@ mod test {
 			// should find "PARSE_END" and get "provider, id"
 			let input = "PARSE_END 'youtube' '-----------'";
 			assert_eq!(
-				Some(CustomParseType::End(
-					MediaInfo::new("-----------").with_provider(MediaProvider::from_str_like("youtube"))
-				)),
+				Some(CustomParseType::End(MediaInfo::new("-----------", "youtube"))),
 				LineType::Custom.try_get_parse_helper(input)
 			);
 
@@ -1220,9 +1205,7 @@ PARSE_END 'youtube' '-----------'
 			assert_eq!(1, res.len());
 
 			assert_eq!(
-				vec![MediaInfo::new("-----------")
-					.with_provider(MediaProvider::from("youtube"))
-					.with_title("Some Title Here")],
+				vec![MediaInfo::new("-----------", "youtube").with_title("Some Title Here")],
 				res
 			);
 		}
@@ -1293,12 +1276,8 @@ PARSE_END 'soundcloud' '----------1'
 
 			assert_eq!(
 				vec![
-					MediaInfo::new("----------0")
-						.with_provider(MediaProvider::from("youtube"))
-						.with_title("Some Title Here 0"),
-					MediaInfo::new("----------1")
-						.with_provider(MediaProvider::from("soundcloud"))
-						.with_title("Some Title Here 1")
+					MediaInfo::new("----------0", "youtube").with_title("Some Title Here 0"),
+					MediaInfo::new("----------1", "soundcloud").with_title("Some Title Here 1")
 				],
 				res
 			);
