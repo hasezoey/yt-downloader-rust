@@ -17,7 +17,6 @@ use indicatif::{
 use libytdlr::{
 	data::cache::{
 		media_info::MediaInfo,
-		media_provider::MediaProvider,
 	},
 	main::download::YTDL_ARCHIVE_PREFIX,
 	traits::download_options::DownloadOptions,
@@ -1361,7 +1360,7 @@ fn try_find_and_read_recovery_files(
 	}
 
 	// recovery files dont contain the file path, so find editable file and merge them
-	for new_media in utils::find_editable_files(&path)? {
+	for new_media in utils::find_editable_files(path)? {
 		if let Some(media) = finished_media_vec.get_mut(&format!(
 			"{}-{}",
 			new_media

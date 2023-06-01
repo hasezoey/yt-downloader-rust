@@ -107,7 +107,7 @@ mod test {
 	fn test_clone() {
 		assert_eq!(
 			Provider::Other("youtube".into()),
-			Provider::Other("youtube".into()).clone()
+			Provider::Other("youtube".into())
 		);
 	}
 }

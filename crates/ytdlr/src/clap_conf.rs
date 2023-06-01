@@ -394,7 +394,7 @@ impl Check for CommandDownload {
 #[cfg(test)]
 impl Default for CommandDownload {
 	fn default() -> Self {
-		Self {
+		return Self {
 			audio_editor: None,
 			output_path: None,
 			video_editor: None,
@@ -408,7 +408,7 @@ impl Default for CommandDownload {
 			open_tagger: false,
 			sub_langs: None,
 			player_editor: None,
-		}
+		};
 	}
 }
 
@@ -509,11 +509,9 @@ mod test {
 			let homedir = Path::new("/custom/home");
 			std::env::set_var("HOME", homedir);
 
-			let mut original = {
-				let mut cmd = CommandDownload::default();
-				cmd.output_path = Some(PathBuf::from("~/somedir"));
-
-				cmd
+			let mut original = CommandDownload {
+				output_path: Some(PathBuf::from("~/somedir")),
+				..Default::default()
 			};
 
 			// check that the original does not have the path fixed yet
