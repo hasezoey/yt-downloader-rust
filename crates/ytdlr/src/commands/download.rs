@@ -229,6 +229,7 @@ impl Recovery {
 }
 
 /// Helper struct to keep the order of download / addition and the data, with names
+#[derive(Debug, PartialEq)]
 struct MediaHelper {
 	/// The actual [`MediaInfo`] that is stored
 	data:    MediaInfo,
@@ -245,6 +246,7 @@ impl MediaHelper {
 }
 
 /// Custom HashMap for [`MediaInfo`] to keep usage easy
+#[derive(Debug, PartialEq)]
 struct MediaInfoArr {
 	mediainfo_map: HashMap<String, MediaHelper>,
 	next_order:    usize,
