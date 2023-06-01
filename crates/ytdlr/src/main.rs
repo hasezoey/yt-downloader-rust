@@ -19,8 +19,6 @@ mod utils;
 
 /// Simple struct to keep all data for termination requests (ctrlc handler)
 struct TerminateData {
-	/// Stores the message to display when pressing CTRLC
-	msg:                 String,
 	/// Stores wheter the handler is enabled or disabled
 	/// "disabled" means no termination setting
 	enabled:             bool,
@@ -31,7 +29,6 @@ struct TerminateData {
 impl Default for TerminateData {
 	fn default() -> Self {
 		return TerminateData {
-			msg:                 String::from(DEFAULT_TERMINATE_MSG),
 			enabled:             true,
 			terminate_requested: false,
 		};
@@ -47,16 +44,6 @@ impl TerminateData {
 	/// Set the time when the terminate was requested
 	pub fn set_terminate(&mut self) {
 		self.terminate_requested = true;
-	}
-
-	/// Get the termination message
-	pub fn get_msg(&self) -> &String {
-		return &self.msg;
-	}
-
-	/// Set the termination message
-	pub fn set_msg(&mut self, msg: String) {
-		self.msg = msg;
 	}
 
 	/// Set handler to be disabled until re-enabled
@@ -76,7 +63,7 @@ impl TerminateData {
 }
 
 /// Default Termination request message
-const DEFAULT_TERMINATE_MSG: &str = "Termination requested, press again to terminate immediately";
+const TERMINATE_MSG: &str = "Termination requested, press again to terminate immediately";
 
 /// Global instance of [TerminateData] for termination handling
 static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
@@ -138,7 +125,7 @@ fn main() -> Result<(), crate::Error> {
 			info!("Immediate Termination requested");
 			std::process::exit(-1);
 		}
-		println!("{}", terminate_write.get_msg());
+		println!("{}", TERMINATE_MSG);
 		terminate_write.set_terminate();
 	})
 	.map_err(|err| return crate::Error::other(format!("{err}")))?;
