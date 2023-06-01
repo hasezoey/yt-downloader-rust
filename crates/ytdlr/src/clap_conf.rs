@@ -390,6 +390,28 @@ impl Check for CommandDownload {
 	}
 }
 
+// Simple default implementation for testing use only
+#[cfg(test)]
+impl Default for CommandDownload {
+	fn default() -> Self {
+		Self {
+			audio_editor: None,
+			output_path: None,
+			video_editor: None,
+			audio_only_enable: false,
+			reapply_thumbnail_disable: false,
+			urls: Vec::new(),
+			archive_mode: ArchiveMode::Default,
+			print_youtubedl_stdout: false,
+			print_editor_stdout: false,
+			tagger_editor: None,
+			no_check_recovery: false,
+			open_tagger: false,
+			sub_langs: None,
+		}
+	}
+}
+
 /// Manually run the Re-Apply Thumbnail step for a file with a specific image
 #[derive(Debug, Parser, Clone, PartialEq)]
 pub struct CommandReThumbnail {
@@ -594,21 +616,7 @@ mod test {
 		#[test]
 		fn test_check() {
 			{
-				let init_default_download = SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				});
+				let init_default_download = SubCommands::Download(CommandDownload::default());
 
 				let mut cloned = init_default_download.clone();
 				assert!(cloned.check().is_ok());
@@ -641,21 +649,7 @@ mod test {
 				archive_path: None,
 				explicit_tty: None,
 				force_color:  false,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			let mut cloned = init_default.clone();
@@ -676,21 +670,7 @@ mod test {
 				archive_path: Some(PathBuf::from("~/somedir")),
 				explicit_tty: None,
 				force_color:  false,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			let mut cloned = init_default.clone();
@@ -714,21 +694,7 @@ mod test {
 				archive_path: None,
 				explicit_tty: None,
 				force_color:  false,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			let mut cloned = init_default.clone();
@@ -748,21 +714,7 @@ mod test {
 				archive_path: None,
 				explicit_tty: Some(false),
 				force_color:  false,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			assert!(!explicit_disable.is_interactive());
@@ -774,21 +726,7 @@ mod test {
 				archive_path: None,
 				explicit_tty: Some(true),
 				force_color:  false,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			assert!(explicit_enable.is_interactive());
@@ -803,21 +741,7 @@ mod test {
 				archive_path: None,
 				explicit_tty: None,
 				force_color:  true,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			assert!(explicit_disable.enable_colors());
@@ -832,21 +756,7 @@ mod test {
 				archive_path: None,
 				explicit_tty: Some(false),
 				force_color:  false,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			assert!(!explicit_disable.enable_colors());
@@ -858,21 +768,7 @@ mod test {
 				archive_path: None,
 				explicit_tty: Some(true),
 				force_color:  false,
-				subcommands:  SubCommands::Download(CommandDownload {
-					audio_editor: None,
-					output_path: None,
-					video_editor: None,
-					audio_only_enable: false,
-					reapply_thumbnail_disable: false,
-					urls: Vec::new(),
-					archive_mode: ArchiveMode::Default,
-					print_youtubedl_stdout: false,
-					print_editor_stdout: false,
-					tagger_editor: None,
-					no_check_recovery: false,
-					open_tagger: false,
-					sub_langs: None,
-				}),
+				subcommands:  SubCommands::Download(CommandDownload::default()),
 			};
 
 			assert!(explicit_enable.enable_colors());
