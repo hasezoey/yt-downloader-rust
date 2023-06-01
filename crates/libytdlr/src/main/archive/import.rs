@@ -433,11 +433,10 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
-				Video::new("------------", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
-				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_filename("unknown (none-provided)"),
+				Video::new("____________", Provider::from("youtube")).with_filename("unknown (none-provided)"),
+				Video::new("------------", Provider::from("youtube")).with_filename("unknown (none-provided)"),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("unknown (none-provided)"),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename("unknown (none-provided)"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -507,10 +506,10 @@ mod test {
 			assert!(res0.is_ok());
 
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Other("youtube".into())).with_filename("someFile1"),
-				Video::new("------------", Provider::Other("youtube".into())).with_filename("someFile2"),
-				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someFile3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someFile4"),
+				Video::new("____________", Provider::from("youtube")).with_filename("someFile1"),
+				Video::new("------------", Provider::from("youtube")).with_filename("someFile2"),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someFile3"),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someFile4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -557,7 +556,7 @@ mod test {
 				.expect("Expected a successfully query");
 
 			let cmp_vec: Vec<Video> =
-				vec![Video::new("someid", Provider::Other("someprovider".to_owned())).with_filename("sometitle")];
+				vec![Video::new("someid", Provider::from("someprovider")).with_filename("sometitle")];
 
 			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
 		}
@@ -582,11 +581,10 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
-				Video::new("------------", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
-				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("unknown (none-provided)"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned()))
-					.with_filename("unknown (none-provided)"),
+				Video::new("____________", Provider::from("youtube")).with_filename("unknown (none-provided)"),
+				Video::new("------------", Provider::from("youtube")).with_filename("unknown (none-provided)"),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("unknown (none-provided)"),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename("unknown (none-provided)"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -690,10 +688,10 @@ mod test {
 			assert!(res0.is_ok());
 
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Other("youtube".into())).with_filename("someFile1"),
-				Video::new("------------", Provider::Other("youtube".into())).with_filename("someFile2"),
-				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someFile3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someFile4"),
+				Video::new("____________", Provider::from("youtube")).with_filename("someFile1"),
+				Video::new("------------", Provider::from("youtube")).with_filename("someFile2"),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someFile3"),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someFile4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -760,10 +758,10 @@ mod test {
 			assert!(res0.is_ok());
 
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::Other("youtube".into())).with_filename("someTitle1"),
-				Video::new("------------", Provider::Other("youtube".into())).with_filename("someTitle2"),
-				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someTitle3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someTitle4"),
+				Video::new("____________", Provider::from("youtube")).with_filename("someTitle1"),
+				Video::new("------------", Provider::from("youtube")).with_filename("someTitle2"),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someTitle3"),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someTitle4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -814,10 +812,10 @@ mod test {
 
 			let cmp_vec: Vec<Video> = vec![
 				// should have the title updated
-				Video::new("____________", Provider::Other("youtube".into())).with_filename("some A title"),
-				Video::new("------------", Provider::Other("youtube".into())).with_filename("someTitle2"),
-				Video::new("aaaaaaaaaaaa", Provider::Other("youtube".into())).with_filename("someTitle3"),
-				Video::new("0000000000", Provider::Other("soundcloud".to_owned())).with_filename("someTitle4"),
+				Video::new("____________", Provider::from("youtube")).with_filename("some A title"),
+				Video::new("------------", Provider::from("youtube")).with_filename("someTitle2"),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someTitle3"),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someTitle4"),
 			];
 
 			let found = media_archive::dsl::media_archive

@@ -92,9 +92,9 @@ mod test {
 			Video {
 				file_name: String::from(""),
 				id:        String::from("helloid1"),
-				provider:  provider::Provider::Other("unknown".into()),
+				provider:  provider::Provider::from("unknown"),
 			},
-			Video::new("helloid1", provider::Provider::Other("unknown".into()))
+			Video::new("helloid1", provider::Provider::from("unknown"))
 		);
 
 		// Test basic, with String
@@ -102,9 +102,9 @@ mod test {
 			Video {
 				file_name: String::from(""),
 				id:        String::from("helloid2"),
-				provider:  provider::Provider::Other("unknown".into()),
+				provider:  provider::Provider::from("unknown"),
 			},
-			Video::new("helloid2".to_owned(), provider::Provider::Other("unknown".into()))
+			Video::new("helloid2".to_owned(), provider::Provider::from("unknown"))
 		);
 	}
 
@@ -114,44 +114,44 @@ mod test {
 			Video {
 				file_name: String::from("hello_filename"),
 				id:        String::from("helloid"),
-				provider:  provider::Provider::Other("unknown".into()),
+				provider:  provider::Provider::from("unknown"),
 			},
-			Video::new("helloid", provider::Provider::Other("unknown".into())).with_filename("hello_filename")
+			Video::new("helloid", provider::Provider::from("unknown")).with_filename("hello_filename")
 		)
 	}
 
 	#[test]
 	fn test_get_functions() {
-		let var = Video::new("hello_id", provider::Provider::Other("youtube".into())).with_filename("hello_file");
+		let var = Video::new("hello_id", provider::Provider::from("youtube")).with_filename("hello_file");
 
 		assert_eq!("hello_file", var.file_name());
-		assert_eq!(&provider::Provider::Other("youtube".into()), var.provider());
+		assert_eq!(&provider::Provider::from("youtube"), var.provider());
 		assert_eq!("hello_id", var.id());
 	}
 
 	#[test]
 	fn test_set_provider() {
-		let mut video1 = Video::new("id", provider::Provider::Other("youtube".into()));
-		video1.set_provider(provider::Provider::Other("hello".to_owned()));
-		assert_eq!(Video::new("id", provider::Provider::Other("hello".to_owned())), video1);
+		let mut video1 = Video::new("id", provider::Provider::from("youtube"));
+		video1.set_provider(provider::Provider::from("hello"));
+		assert_eq!(Video::new("id", provider::Provider::from("hello")), video1);
 	}
 
 	#[test]
 	fn test_set_file_name() {
-		let mut video1 = Video::new("id", provider::Provider::Other("unknown".into()));
+		let mut video1 = Video::new("id", provider::Provider::from("unknown"));
 		video1.set_file_name("Hello");
 		assert_eq!(
-			Video::new("id", provider::Provider::Other("unknown".into())).with_filename("Hello"),
+			Video::new("id", provider::Provider::from("unknown")).with_filename("Hello"),
 			video1
 		);
 	}
 
 	#[test]
 	fn test_clone() {
-		let video1 = Video::new("id1", provider::Provider::Other("SomethingElse".to_owned()));
+		let video1 = Video::new("id1", provider::Provider::from("SomethingElse"));
 
 		assert_eq!(
-			Video::new("id1", provider::Provider::Other("SomethingElse".to_owned())),
+			Video::new("id1", provider::Provider::from("SomethingElse")),
 			Video::clone(&video1)
 		);
 	}
@@ -169,7 +169,7 @@ mod test {
 			};
 
 			assert_eq!(
-				Video::new("someid", provider::Provider::Other("youtube".into())).with_filename("helloTitle"),
+				Video::new("someid", provider::Provider::from("youtube")).with_filename("helloTitle"),
 				Video::from(&media)
 			);
 		}
