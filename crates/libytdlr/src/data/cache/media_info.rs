@@ -174,9 +174,9 @@ mod test {
 				id:       "someid".to_owned(),
 				filename: None,
 				title:    None,
-				provider: Some(MediaProvider::Youtube),
+				provider: Some(MediaProvider::from("youtube")),
 			},
-			MediaInfo::new("someid").with_provider(MediaProvider::Youtube)
+			MediaInfo::new("someid").with_provider(MediaProvider::from("youtube"))
 		);
 	}
 
@@ -186,7 +186,7 @@ mod test {
 		assert_eq!(
 			InsMedia::new("someid", "someprovider", "sometitle"),
 			(&MediaInfo::new("someid")
-				.with_provider(MediaProvider::Other("someprovider".to_owned()))
+				.with_provider(MediaProvider::from("someprovider"))
 				.with_title("sometitle"))
 				.into()
 		);
@@ -209,7 +209,7 @@ mod test {
 		assert_eq!(
 			Some(
 				MediaInfo::new("id")
-					.with_provider(MediaProvider::Other("provider".to_owned()))
+					.with_provider(MediaProvider::from("provider"))
 					.with_title("Some Title")
 					.with_filename("'provider'-'id'-Some Title.something")
 			),

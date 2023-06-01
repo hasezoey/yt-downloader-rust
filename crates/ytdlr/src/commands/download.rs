@@ -15,9 +15,7 @@ use indicatif::{
 	ProgressStyle,
 };
 use libytdlr::{
-	data::cache::{
-		media_info::MediaInfo,
-	},
+	data::cache::media_info::MediaInfo,
 	main::download::YTDL_ARCHIVE_PREFIX,
 	traits::download_options::DownloadOptions,
 	*,
@@ -1400,7 +1398,7 @@ mod test {
 			assert_eq!(
 				Some(
 					MediaInfo::new("id")
-						.with_provider(MediaProvider::Other("provider".to_owned()))
+						.with_provider(MediaProvider::from("provider"))
 						.with_title("Some Title")
 				),
 				Recovery::try_from_line(input)
@@ -1411,7 +1409,7 @@ mod test {
 			assert_eq!(
 				Some(
 					MediaInfo::new("id")
-						.with_provider(MediaProvider::Other("provider".to_owned()))
+						.with_provider(MediaProvider::from("provider"))
 						.with_title("Some Title ver.2")
 				),
 				Recovery::try_from_line(input)

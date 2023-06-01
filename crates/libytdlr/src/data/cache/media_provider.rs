@@ -1,36 +1,31 @@
 //! Module containing [`MediaProvider`]
 
-/// Enum for providers that shows what provider is used for [`super::media_info::MediaInfo`]
-/// Has Variants that either are common or need special handling, otherwise will result in [`MediaProvider::Other`]
-#[derive(Debug, PartialEq, Clone)]
+use serde::{
+	Deserialize,
+	Serialize,
+};
+
+/// NewType struct to contain the provider in formatted form for [`super::media_info::MediaInfo`]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum MediaProvider {
-	Youtube,
-	Soundcloud,
-	// this case is ensured to be
-	Other(String),
-}
+pub struct MediaProvider(String);
 
 impl MediaProvider {
 	/// Get current current [`MediaProvider`] as a str
 	pub fn to_str(&self) -> &str {
-		return match self {
-			MediaProvider::Youtube => "youtube",
-			MediaProvider::Soundcloud => "soundcloud",
-			MediaProvider::Other(v) => v,
-		};
+		return &self.0;
 	}
 
 	/// Convert a String-like to a [`MediaProvider`]
 	/// Input will be trimmed and lowercased for matching
 	pub fn from_str_like<I: AsRef<str>>(input: I) -> Self {
-		let lower = input.as_ref().trim().to_lowercase();
+		let mut lower = input.as_ref().trim().to_lowercase();
 
-		return match lower.as_str() {
-			"youtube" => Self::Youtube,
-			"soundcloud" => Self::Soundcloud,
-			_ => Self::Other(lower),
-		};
+		if lower.is_empty() {
+			lower.push_str("unknown");
+		}
+
+		return Self(lower);
 	}
 }
 
@@ -79,43 +74,6 @@ impl std::fmt::Display for MediaProvider {
 	}
 }
 
-// Implement custom Serialize because otherwise serde would use the variant names instead of the to_string names
-impl serde::Serialize for MediaProvider {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: serde::Serializer,
-	{
-		return serializer.serialize_str(&String::from(self));
-	}
-}
-
-// Implement custom Deserialize because otherwise serde would look-up the variant names instead of the from_string names
-impl<'de> serde::Deserialize<'de> for MediaProvider {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-	where
-		D: serde::Deserializer<'de>,
-	{
-		struct MediaProviderVisitor;
-
-		impl<'de> serde::de::Visitor<'de> for MediaProviderVisitor {
-			type Value = MediaProvider;
-
-			// {"provider": "something"} will always result in an str
-			fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
-				return Ok(MediaProvider::from(v));
-			}
-
-			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-				write!(formatter, "a String to be parsed into a MediaProvider")?;
-
-				return Ok(());
-			}
-		}
-
-		return deserializer.deserialize_str(MediaProviderVisitor);
-	}
-}
-
 #[cfg(test)]
 mod test {
 	use super::*;
@@ -125,50 +83,72 @@ mod test {
 
 		#[test]
 		fn test_from_string() {
-			assert_eq!(MediaProvider::Youtube, MediaProvider::from("youtube"));
-			assert_eq!(MediaProvider::Soundcloud, MediaProvider::from("soundcloud"));
-			assert_eq!(MediaProvider::Other("other".to_owned()), MediaProvider::from("other"));
+			assert_eq!(MediaProvider("youtube".to_owned()), MediaProvider::from("youtube"));
+			assert_eq!(
+				MediaProvider("soundcloud".to_owned()),
+				MediaProvider::from("soundcloud")
+			);
+			assert_eq!(MediaProvider("other".to_owned()), MediaProvider::from("other"));
 		}
 
 		#[test]
 		fn test_fromstr() {
-			assert_eq!(Ok(MediaProvider::Youtube), "youtube".parse());
-			assert_eq!(Ok(MediaProvider::Soundcloud), "soundcloud".parse());
-			assert_eq!(Ok(MediaProvider::Other("other".to_owned())), "other".parse());
+			assert_eq!(Ok(MediaProvider("youtube".to_owned())), "youtube".parse());
+			assert_eq!(Ok(MediaProvider("soundcloud".to_owned())), "soundcloud".parse());
+			assert_eq!(Ok(MediaProvider("other".to_owned())), "other".parse());
 		}
 
 		#[test]
 		fn test_as_string() {
 			// reference
-			assert_eq!(String::from("youtube"), String::from(&MediaProvider::Youtube));
-			assert_eq!(String::from("soundcloud"), String::from(&MediaProvider::Soundcloud));
 			assert_eq!(
-				String::from("other"),
-				String::from(&MediaProvider::Other("other".to_owned()))
+				String::from("youtube"),
+				String::from(&MediaProvider("youtube".to_owned()))
 			);
+			assert_eq!(
+				String::from("soundcloud"),
+				String::from(&MediaProvider("soundcloud".to_owned()))
+			);
+			assert_eq!(String::from("other"), String::from(&MediaProvider("other".to_owned())));
 
 			// owned
-			assert_eq!(String::from("youtube"), String::from(MediaProvider::Youtube));
-			assert_eq!(String::from("soundcloud"), String::from(MediaProvider::Soundcloud));
 			assert_eq!(
-				String::from("other"),
-				String::from(MediaProvider::Other("other".to_owned()))
+				String::from("youtube"),
+				String::from(MediaProvider("youtube".to_owned()))
 			);
+			assert_eq!(
+				String::from("soundcloud"),
+				String::from(MediaProvider("soundcloud".to_owned()))
+			);
+			assert_eq!(String::from("other"), String::from(MediaProvider("other".to_owned())));
 		}
 
 		#[test]
 		fn test_as_ref_str() {
-			assert_eq!("youtube", MediaProvider::Youtube.as_ref());
-			assert_eq!("soundcloud", MediaProvider::Soundcloud.as_ref());
-			assert_eq!("other", MediaProvider::Other("other".to_owned()).as_ref());
+			assert_eq!("youtube", MediaProvider("youtube".to_owned()).as_ref());
+			assert_eq!("soundcloud", MediaProvider("soundcloud".to_owned()).as_ref());
+			assert_eq!("other", MediaProvider("other".to_owned()).as_ref());
 		}
 
 		#[test]
 		fn test_serialize_deserialize() {
 			use serde_test::*;
-			assert_tokens(&MediaProvider::Youtube, &[Token::String("youtube")]);
-			assert_tokens(&MediaProvider::Soundcloud, &[Token::String("soundcloud")]);
-			assert_tokens(&MediaProvider::Other("other".to_owned()), &[Token::String("other")]);
+
+			assert_tokens(
+				&MediaProvider("youtube".to_owned()),
+				&[Token::NewtypeStruct { name: "MediaProvider" }, Token::String("youtube")],
+			);
+			assert_tokens(
+				&MediaProvider("soundcloud".to_owned()),
+				&[
+					Token::NewtypeStruct { name: "MediaProvider" },
+					Token::String("soundcloud"),
+				],
+			);
+			assert_tokens(
+				&MediaProvider("other".to_owned()),
+				&[Token::NewtypeStruct { name: "MediaProvider" }, Token::String("other")],
+			);
 		}
 	}
 
@@ -177,32 +157,35 @@ mod test {
 
 		#[test]
 		fn test_to_str() {
-			assert_eq!("youtube", MediaProvider::Youtube.to_str());
-			assert_eq!("soundcloud", MediaProvider::Soundcloud.to_str());
-			assert_eq!("other", MediaProvider::Other("other".to_owned()).to_str());
+			assert_eq!("youtube", MediaProvider("youtube".to_owned()).to_str());
+			assert_eq!("soundcloud", MediaProvider("soundcloud".to_owned()).to_str());
+			assert_eq!("other", MediaProvider("other".to_owned()).to_str());
 		}
 
 		#[test]
 		fn test_from_str_like() {
 			// str
-			assert_eq!(MediaProvider::Youtube, MediaProvider::from_str_like("youtube"));
-			assert_eq!(MediaProvider::Soundcloud, MediaProvider::from_str_like("soundcloud"));
 			assert_eq!(
-				MediaProvider::Other("other".to_owned()),
-				MediaProvider::from_str_like("other")
+				MediaProvider("youtube".to_owned()),
+				MediaProvider::from_str_like("youtube")
 			);
+			assert_eq!(
+				MediaProvider("soundcloud".to_owned()),
+				MediaProvider::from_str_like("soundcloud")
+			);
+			assert_eq!(MediaProvider("other".to_owned()), MediaProvider::from_str_like("other"));
 
 			// String
 			assert_eq!(
-				MediaProvider::Youtube,
+				MediaProvider("youtube".to_owned()),
 				MediaProvider::from_str_like(String::from("youtube"))
 			);
 			assert_eq!(
-				MediaProvider::Soundcloud,
+				MediaProvider("soundcloud".to_owned()),
 				MediaProvider::from_str_like(String::from("soundcloud"))
 			);
 			assert_eq!(
-				MediaProvider::Other("other".to_owned()),
+				MediaProvider("other".to_owned()),
 				MediaProvider::from_str_like(String::from("other"))
 			);
 		}

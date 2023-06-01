@@ -1221,7 +1221,7 @@ PARSE_END 'youtube' '-----------'
 
 			assert_eq!(
 				vec![MediaInfo::new("-----------")
-					.with_provider(MediaProvider::Youtube)
+					.with_provider(MediaProvider::from("youtube"))
 					.with_title("Some Title Here")],
 				res
 			);
@@ -1294,10 +1294,10 @@ PARSE_END 'soundcloud' '----------1'
 			assert_eq!(
 				vec![
 					MediaInfo::new("----------0")
-						.with_provider(MediaProvider::Youtube)
+						.with_provider(MediaProvider::from("youtube"))
 						.with_title("Some Title Here 0"),
 					MediaInfo::new("----------1")
-						.with_provider(MediaProvider::Soundcloud)
+						.with_provider(MediaProvider::from("soundcloud"))
 						.with_title("Some Title Here 1")
 				],
 				res
