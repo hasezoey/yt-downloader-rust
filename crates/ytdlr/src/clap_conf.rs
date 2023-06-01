@@ -356,10 +356,6 @@ pub struct CommandDownload {
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
 	#[arg(long = "youtubedl-stdout")]
 	pub print_youtubedl_stdout:    bool,
-	/// Print Editor stdout (both video & audio)
-	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
-	#[arg(long = "editor-stdout")]
-	pub print_editor_stdout:       bool,
 	/// Disables allowing 0 URL's to just check the recovery
 	#[arg(long = "no-check-recovery")]
 	pub no_check_recovery:         bool,
@@ -403,7 +399,6 @@ impl Default for CommandDownload {
 			urls: Vec::new(),
 			archive_mode: ArchiveMode::Default,
 			print_youtubedl_stdout: false,
-			print_editor_stdout: false,
 			tagger_editor: None,
 			no_check_recovery: false,
 			open_tagger: false,

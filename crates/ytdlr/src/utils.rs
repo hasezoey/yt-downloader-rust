@@ -1,6 +1,9 @@
 //! Utils for the `ytdlr` binary
 
-use crate::clap_conf::*;
+use crate::{
+	clap_conf::*,
+	TERMINATE,
+};
 use indicatif::{
 	ProgressBar,
 	ProgressDrawTarget,
@@ -21,8 +24,6 @@ use std::{
 		OsString,
 	},
 	io::{
-		BufRead,
-		BufReader,
 		Error as ioError,
 		Write,
 	},
@@ -296,7 +297,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 
 /// Run a editor with provided path and resolve not having a editor
 /// `path` input is not checked to be a file or directory, so it should be checked beforehand
-pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdout: bool) -> Result<(), crate::Error> {
+pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), crate::Error> {
 	if !path.exists() {
 		return Err(ioError::new(
 			std::io::ErrorKind::NotFound,
@@ -308,85 +309,43 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path, print_editor_stdo
 	let mut editor_child = {
 		let mut cmd = libytdlr::spawn::editor::base_editor(&get_editor_base(maybe_editor)?, path);
 
-		if print_editor_stdout {
-			cmd.stdout(Stdio::piped());
-		} else {
-			cmd.stdout(Stdio::null());
-		}
+		cmd.stderr(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stdin(Stdio::inherit());
 
-		cmd.stderr(Stdio::piped()).stdin(Stdio::null());
+		debug!("Spawning Command with inherited STDIO");
+
+		// disable the termination handler, because we have spawned a command which inherits STDIO and handles the signals
+		TERMINATE
+			.write()
+			.expect("Expected TERMINATE handler to not be poisoned")
+			.disable();
 
 		cmd.spawn()
 	}?;
 
-	let stderr_reader = BufReader::new(
-		editor_child
-			.stderr
-			.take()
-			.ok_or_else(|| return crate::Error::other("Failed to take Editor Child's STDERR"))?,
-	);
-
-	let editor_child_stderr_thread = std::thread::Builder::new()
-		.name("editor stderr handler".to_owned())
-		.spawn(move || {
-			stderr_reader
-				.lines()
-				.filter_map(|line| return line.ok())
-				.for_each(|line| {
-					info!("editor [STDERR]: \"{}\"", line);
-				})
-		})?;
-
-	let mut editor_child_stdout_thread = None;
-
-	// only create a stdout handler thread if needed
-	if print_editor_stdout {
-		let stdout_reader = BufReader::new(
-			editor_child
-				.stdout
-				.take()
-				.ok_or_else(|| return crate::Error::other("Failed to take Editor Child's STDOUT"))?,
-		);
-
-		editor_child_stdout_thread = Some(
-			std::thread::Builder::new()
-				.name("editor stdout handler".to_owned())
-				.spawn(move || {
-					stdout_reader
-						.lines()
-						.filter_map(|line| return line.ok())
-						.for_each(|line| {
-							trace!("editor [STDOUT]: \"{}\"", line);
-						})
-				})?,
-		)
-	}
-
 	// wait until the editor_child has exited and get the status
 	let editor_child_exit_status = editor_child.wait()?; // not checking for termination, because in rust there is currently no way to detach a child
 
-	editor_child_stderr_thread.join().map_err(|err| {
-		return crate::Error::other(format!("Joining the editor_child STDERR handle failed: {err:?}"));
-	})?;
-
-	if let Some(thread) = editor_child_stdout_thread {
-		thread.join().map_err(|err| {
-			return crate::Error::other(format!("Joining the editor_child STDOUT handle failed: {err:?}"));
-		})?;
-	}
+	TERMINATE
+		.write()
+		.expect("Expected TERMINATE handler to not be poisoned")
+		.enable();
 
 	if !editor_child_exit_status.success() {
-		return Err(match editor_child_exit_status.code() {
-			Some(code) => crate::Error::other(format!("editor_child exited with code: {code}")),
+		match editor_child_exit_status.code() {
+			Some(code) => {
+				info!("Command exited with status-code {code}");
+			},
 			None => {
 				let signal = match editor_child_exit_status.signal() {
 					Some(code) => code.to_string(),
 					None => "None".to_owned(),
 				};
 
-				crate::Error::other(format!("editor_child exited with signal: {signal}"))
+				info!("Command exited with signal {signal}");
 			},
-		});
+		}
 	}
 
 	return Ok(());

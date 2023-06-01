@@ -23,6 +23,9 @@ struct TerminateData {
 	terminate: Option<std::time::Instant>,
 	/// Stores the message to display when pressing CTRLC
 	msg:       String,
+	/// Stores wheter the handler is enabled or disabled
+	/// "disabled" means no termination setting
+	enabled:   bool,
 }
 
 impl Default for TerminateData {
@@ -30,6 +33,7 @@ impl Default for TerminateData {
 		return TerminateData {
 			terminate: None,
 			msg:       String::from(DEFAULT_TERMINATE_MSG),
+			enabled:   true,
 		};
 	}
 }
@@ -59,6 +63,21 @@ impl TerminateData {
 	pub fn set_msg(&mut self, msg: String) {
 		self.msg = msg;
 	}
+
+	/// Set handler to be disabled until re-enabled
+	pub fn disable(&mut self) {
+		self.enabled = false;
+	}
+
+	/// Re-enable handler
+	pub fn enable(&mut self) {
+		self.enabled = true;
+	}
+
+	/// Get wheter the handler is enabled or not
+	pub fn is_enabled(&self) -> bool {
+		return self.enabled;
+	}
 }
 
 /// Default Termination request message
@@ -86,6 +105,15 @@ fn main() -> Result<(), crate::Error> {
 
 	// basic crtlc handler, may not be the best method
 	ctrlc::set_handler(move || {
+		// dont run handler if handler is meant to be disabled
+		if !TERMINATE
+			.read()
+			.expect("Should be able to acquire read lock")
+			.is_enabled()
+		{
+			return;
+		}
+
 		let mut tries = 5;
 
 		let mut terminate_write;
