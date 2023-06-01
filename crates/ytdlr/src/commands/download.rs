@@ -854,7 +854,9 @@ fn edit_media(
 					[n] skip element and move onto the next one\n\
 					[y] edit element, automatically choose editor\n\
 					[a] edit element with audio editor\n\
-					[v] edit element with video editor\
+					[v] edit element with video editor\n\
+					[p] start the element with a media player\n\
+					[b] go back a element\
 					"
 					);
 					continue 'ask_do_loop;
