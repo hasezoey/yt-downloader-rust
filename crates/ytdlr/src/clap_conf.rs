@@ -483,6 +483,7 @@ impl Check for CommandCompletions {
 	}
 }
 
+// the following tests make use of environment variables (explicitly and implicitly), and may conflict with eachother
 #[cfg(test)]
 mod test {
 	use super::*;
@@ -491,27 +492,15 @@ mod test {
 	mod command_download {
 		use super::*;
 
+		// basic test that CommandDownload correctly parses and that Check returns a ok result
 		#[test]
-		fn test_check() {
-			let init_default = CommandDownload {
-				audio_editor: None,
-				output_path: None,
-				video_editor: None,
-				audio_only_enable: false,
-				reapply_thumbnail_disable: false,
-				urls: Vec::new(),
-				archive_mode: ArchiveMode::Default,
-				print_youtubedl_stdout: false,
-				print_editor_stdout: false,
-				tagger_editor: None,
-				no_check_recovery: false,
-				open_tagger: false,
-				sub_langs: None,
-			};
+		fn test_basic_parse_and_check() {
+			// the following is not quite a "clean" state, because "parse_from" still looks at environment variables
+			let original = CommandDownload::parse_from(vec![""].iter());
 
-			let mut cloned = init_default.clone();
-			assert!(cloned.check().is_ok());
-			assert_eq!(init_default, cloned);
+			let mut cloned = original.clone();
+			assert!(cloned.check().is_ok()); // should always be successful, regardless of if "parse_from" looks at the environment variables or not
+			assert_eq!(original, cloned);
 		}
 
 		#[test]
@@ -520,28 +509,23 @@ mod test {
 			let homedir = Path::new("/custom/home");
 			std::env::set_var("HOME", homedir);
 
-			let mut init_default = CommandDownload {
-				audio_editor: None,
-				output_path: Some(PathBuf::from("~/somedir")),
-				video_editor: None,
-				audio_only_enable: false,
-				reapply_thumbnail_disable: false,
-				urls: Vec::new(),
-				archive_mode: ArchiveMode::Default,
-				print_youtubedl_stdout: false,
-				print_editor_stdout: false,
-				tagger_editor: None,
-				no_check_recovery: false,
-				open_tagger: false,
-				sub_langs: None,
+			let mut original = {
+				let mut cmd = CommandDownload::default();
+				cmd.output_path = Some(PathBuf::from("~/somedir"));
+
+				cmd
 			};
 
-			let mut cloned = init_default.clone();
+			// check that the original does not have the path fixed yet
+			assert_eq!(original.output_path, Some(PathBuf::from("~/somedir")));
+
+			let mut cloned = original.clone();
 			assert!(cloned.check().is_ok());
 
-			// manually fix in the init
-			init_default.output_path = Some(homedir.join("somedir"));
-			assert_eq!(init_default, cloned);
+			// manually fix the original
+			original.output_path = Some(homedir.join("somedir"));
+			// check that the cloned(auto fixed) version matches what the manual fix is doing
+			assert_eq!(original, cloned);
 		}
 	}
 
