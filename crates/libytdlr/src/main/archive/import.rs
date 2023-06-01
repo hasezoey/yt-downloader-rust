@@ -142,7 +142,6 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 		.load_iter::<Media, diesel::connection::DefaultLoadingMode>(&mut input_connection)
 		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
 
-	// HACK: the following is currently just a workaround because of https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301
 	for (index, val) in lines_iter.enumerate() {
 		let val = val.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
 		pgcb(ImportProgress::Increase(1, index));
@@ -189,18 +188,8 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 		bulk_values.push(InsMedia::new(video.id(), String::from(video.provider()), filename));
 	}
 
-	// currently does not work, see https://github.com/diesel-rs/diesel/discussions/3115
-	// let affected_rows = diesel::insert_into(media_archive::table)
-	// 	.values(&bulk_values)
-	// 	.on_conflict((media_id, provider))
-	// 	.do_update()
-	// 	.set(title.eq(excluded(title)))
-	// 	.execute(merge_to)
-	// 	.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
-
 	let mut affected_rows = 0usize;
 
-	// HACK: the following is currently just a workaround because of https://github.com/diesel-rs/diesel/discussions/3115#discussioncomment-2509301
 	for val in bulk_values.iter() {
 		let affected = insert_insmedia(val, merge_to)?;
 
