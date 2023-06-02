@@ -72,7 +72,7 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 		return Ok(
 			match crate::main::archive::import::detect_archive_type(&mut sqlite_path_reader)? {
 				super::archive::import::ArchiveType::Unknown => return Err(crate::Error::other(format!("Migrate-To Path already exists, but is of unknown type! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
-				super::archive::import::ArchiveType::JSON => return Err(crate::Error::other(format!("Migrate-To Path already eixsts and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
+				super::archive::import::ArchiveType::JSON => return Err(crate::Error::other(format!("Migrate-To Path already exists and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
 				super::archive::import::ArchiveType::SQLite => {
 					// this has to be done before, because the following ".into" call will move the value
 					let connection = sqlite_connect(&migrate_to_path)?;
@@ -412,7 +412,7 @@ mod test {
 
 			assert_eq!(
 				res.to_string(),
-				format!("Other: Migrate-To Path already eixsts and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", path.to_string_lossy())
+				format!("Other: Migrate-To Path already exists and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", path.to_string_lossy())
 			);
 			assert_eq!(0, pgcounter.read().expect("read failed").len());
 		}
