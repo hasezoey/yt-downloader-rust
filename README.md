@@ -208,4 +208,4 @@ This Project is mainly a personal project, so it is currently tailored to my use
 
 ## Project TODO
 
-Current all TODOs are done
+Currently there is nothing to-do.
