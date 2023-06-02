@@ -344,14 +344,14 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 
 	if !ffmpeg_child_exit_status.success() {
 		return Err(match ffmpeg_child_exit_status.code() {
-			Some(code) => crate::Error::other(format!("ffmpeg_child exited with code: {code}")),
+			Some(code) => crate::Error::command_unsuccessful(format!("ffmpeg_child exited with code: {code}")),
 			None => {
 				let signal = match ffmpeg_child_exit_status.signal() {
 					Some(code) => code.to_string(),
 					None => "None".to_owned(),
 				};
 
-				crate::Error::other(format!("ffmpeg_child exited with signal: {signal}"))
+				crate::Error::command_unsuccessful(format!("ffmpeg_child exited with signal: {signal}"))
 			},
 		});
 	}
@@ -578,7 +578,7 @@ mod test {
 			assert!(result.is_err());
 
 			assert_eq!(
-				crate::Error::other("ffmpeg_child exited with code: 1"),
+				crate::Error::command_unsuccessful("ffmpeg_child exited with code: 1"),
 				result.expect_err("Expected Assert to test Result to be ERR")
 			);
 		}

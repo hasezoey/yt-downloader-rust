@@ -976,11 +976,15 @@ mod quirks {
 
 		if !exit_status.success() {
 			debug!("ffmpeg did not exist successfully, displaying log:");
-			debug!("STDERR {}", String::from_utf8_lossy(&output.stderr));
+			let output = String::from_utf8_lossy(&output.stderr);
+			debug!("STDERR {}", output);
 
-			return Err(crate::Error::other(format!(
-				"ffmpeg metadata save command failed, code: {}",
-				exit_status.code().map_or("None".into(), |v| return v.to_string())
+			let last_lines = output.lines().rev().take(5).collect::<String>();
+
+			return Err(crate::Error::command_unsuccessful(format!(
+				"FFMPEG metadata save command failed, code: {}, last lines:\n{}",
+				exit_status.code().map_or("None".into(), |v| return v.to_string()),
+				last_lines
 			)));
 		}
 
@@ -1113,11 +1117,15 @@ mod quirks {
 
 		if !exit_status.success() {
 			debug!("ffmpeg did not exist successfully, displaying log:");
-			debug!("STDERR {}", String::from_utf8_lossy(&output.stderr));
+			let output = String::from_utf8_lossy(&output.stderr);
+			debug!("STDERR {}", output);
 
-			return Err(crate::Error::other(format!(
-				"ffmpeg metadata apply command failed, code: {}",
-				exit_status.code().map_or("None".into(), |v| return v.to_string())
+			let last_lines = output.lines().rev().take(5).collect::<String>();
+
+			return Err(crate::Error::command_unsuccessful(format!(
+				"FFMPEG metadata apply command failed, code: {}, last lines:\n{}",
+				exit_status.code().map_or("None".into(), |v| return v.to_string()),
+				last_lines
 			)));
 		}
 
