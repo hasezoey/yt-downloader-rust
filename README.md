@@ -7,9 +7,12 @@ Also contains some helper functions like [rethumbnailing](#rethumbnail).
 ## Requirements
 
 - Linux / Mac - build with POSIX system paths in mind (Windows *might* work)
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) above `2023.03.03`, but the latest available is recommended installed and be accessable via the command `yt-dlp`
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) above `2023.03.03`*1 and be accessable via the command `yt-dlp`
 - ffmpeg is installed and be accessable via the command `ffmpeg`
 - `libsqlite3-0`(ubuntu) or `core/sqlite`(arch) needs to be present
+
+Notes:
+- *1 it is recommended to use the latest version available for `yt-dlp`
 
 ### Building requirements
 
