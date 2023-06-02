@@ -56,7 +56,7 @@ impl Error {
 	fn_string!(other, ErrorInner::Other);
 	fn_string!(no_captures, ErrorInner::NoCapturesFound);
 	fn_string!(unexpected_eof, ErrorInner::UnexpectedEOF);
-	fn_string!(command_unsuccessful, ErrorInner::CommandNotSuccesfull);
+	fn_string!(command_unsuccessful, ErrorInner::CommandNotSuccesful);
 }
 
 impl PartialEq for Error {
@@ -109,7 +109,7 @@ pub enum ErrorInner {
 
 	/// Variant for when a spawned command was not successfull
 	#[error("CommandNotSuccessfull: {0}")]
-	CommandNotSuccesfull(String),
+	CommandNotSuccesful(String),
 	/// Variant for when no regex captures have been found
 	#[error("NoCapturesFound: {0}")]
 	NoCapturesFound(String),
@@ -130,7 +130,7 @@ impl PartialEq for ErrorInner {
 			(Self::SQLConnectionError(l0), Self::SQLConnectionError(r0)) => return l0 == r0,
 			(Self::SQLOperationError(l0), Self::SQLOperationError(r0)) => return l0 == r0,
 
-			(Self::CommandNotSuccesfull(l0), Self::CommandNotSuccesfull(r0)) => return l0 == r0,
+			(Self::CommandNotSuccesful(l0), Self::CommandNotSuccesful(r0)) => return l0 == r0,
 			(Self::NoCapturesFound(l0), Self::NoCapturesFound(r0)) => return l0 == r0,
 			(Self::Other(l0), Self::Other(r0)) => return l0 == r0,
 			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
