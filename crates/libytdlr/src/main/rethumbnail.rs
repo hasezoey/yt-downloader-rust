@@ -290,8 +290,8 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	}
 
 	if output_dir.exists() && !output_dir.is_dir() {
-		return Err(crate::Error::other(format!(
-			"output_dir exists but is not a directory! (Path: \"{}\")",
+		return Err(crate::Error::not_a_directory(format!(
+			"output_dir exists but is not a directory! Path: \"{}\"",
 			output_dir.to_string_lossy()
 		)));
 	}

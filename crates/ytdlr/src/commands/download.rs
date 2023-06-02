@@ -1293,11 +1293,10 @@ fn try_find_and_read_recovery_files(
 	path: &Path,
 ) -> Result<Vec<PathBuf>, crate::Error> {
 	if !path.is_dir() {
-		return Err(ioError::new(
-			std::io::ErrorKind::Other, // TODO: replace "Other" with "NotADirectory" when stable
-			"Path to find recovery files is not existing or a directory!",
-		)
-		.into());
+		return Err(crate::Error::not_a_directory(format!(
+			"Path for recovery files was not a directory! Path: \"{}\"",
+			path.to_string_lossy()
+		)));
 	}
 
 	let mut read_files: Vec<PathBuf> = Vec::new();
