@@ -8,9 +8,11 @@ use std::process::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+pub const YTDL_BIN_NAME: &str = "yt-dlp";
+
 #[inline]
 pub fn base_ytdl() -> Command {
-	return super::multiplatform::spawn_command(&"youtube-dl");
+	return super::multiplatform::spawn_command(&YTDL_BIN_NAME);
 }
 
 /// Regex to parse the version from a "youtube-dl --version" output

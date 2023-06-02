@@ -7,7 +7,7 @@ Also contains some helper functions like [rethumbnailing](#rethumbnail).
 ## Requirements
 
 - Linux / Mac - build with POSIX system paths in mind (Windows *might* work)
-- youtube-dl or yt-dlp installed and be accessable via the command `youtube-dl`
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) above `2023.03.03`, but the latest available is recommended installed and be accessable via the command `yt-dlp`
 - ffmpeg is installed and be accessable via the command `ffmpeg`
 - `libsqlite3-0`(ubuntu) or `core/sqlite`(arch) needs to be present
 

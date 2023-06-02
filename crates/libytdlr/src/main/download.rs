@@ -17,6 +17,7 @@ use std::{
 
 use crate::{
 	data::cache::media_info::MediaInfo,
+	spawn::ytdl::YTDL_BIN_NAME,
 	traits::download_options::DownloadOptions,
 };
 
@@ -52,7 +53,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 		let args = assemble_ytdl_command(connection, options)?;
 
 		// merge stderr into stdout
-		duct::cmd("youtube-dl", args).stderr_to_stdout().reader()?
+		duct::cmd(YTDL_BIN_NAME, args).stderr_to_stdout().reader()?
 	};
 
 	let stdout_reader = BufReader::new(&ytdl_child);
