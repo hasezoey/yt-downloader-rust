@@ -56,7 +56,6 @@ impl Error {
 	fn_string!(other, ErrorInner::Other);
 	fn_string!(no_captures, ErrorInner::NoCapturesFound);
 	fn_string!(unexpected_eof, ErrorInner::UnexpectedEOF);
-	fn_string!(unexpected_exit, ErrorInner::UnexpectedProcessExit);
 	fn_string!(command_unsuccessful, ErrorInner::CommandNotSuccesfull);
 }
 
@@ -112,9 +111,6 @@ pub enum ErrorInner {
 	/// Variant for Other messages
 	#[error("Other: {0}")]
 	Other(String),
-	/// Variant for a Unexpected Process Exit (like when ytdl fails to spawn)
-	#[error("UnexpectedProcessExit: {0}")]
-	UnexpectedProcessExit(String),
 	/// Variant for a diesel Connection Error (sql i/o)
 	#[error("SQLConnectionError: {0}")]
 	SQLConnectionError(#[from] diesel::ConnectionError),
@@ -137,8 +133,6 @@ impl PartialEq for ErrorInner {
 			(Self::SQLOperationError(l0), Self::SQLOperationError(r0)) => return l0 == r0,
 			// Always return "false" for a serde_json::Error
 			(Self::SerdeJSONError(_l0), Self::SerdeJSONError(_r0)) => return false,
-			// Always return "false" for a Unexpected Process Exit
-			(Self::UnexpectedProcessExit(_l0), Self::UnexpectedProcessExit(_r0)) => return false,
 			(_, _) => return false,
 		}
 	}
