@@ -9,7 +9,14 @@ Also contains some helper functions like [rethumbnailing](#rethumbnail).
 - Linux / Mac - build with POSIX system paths in mind (Windows *might* work)
 - youtube-dl or yt-dlp installed and be accessable via the command `youtube-dl`
 - ffmpeg is installed and be accessable via the command `ffmpeg`
-- rust stable 1.65 or higher
+- `libsqlite3-0`(ubuntu) or `core/sqlite`(arch) needs to be present
+
+### Building requirements
+
+- rust stable 1.65 profile `minimal` or higher is needed
+- `build-essentail`(ubuntu) or `base-devel`(arch) needs to be installed
+- `libsqlite3-dev`(ubuntu) or `core/sqlite`(arch) needs to be installed
+- `git` needs to be available (required by build-script)
 
 ## Usage
 
