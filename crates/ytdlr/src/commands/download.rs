@@ -479,7 +479,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 				warn!("Failed to write recovery: {}", rerr)
 			}
 
-			return Err(err.into());
+			return Err(err);
 		},
 	}
 
