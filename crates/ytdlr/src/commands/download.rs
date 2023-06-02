@@ -327,12 +327,13 @@ where
 /**
  * Find all files that match the temporary ytdl archive name, and remove all whose pid is not alive anymore
  */
-fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), ioError> {
+fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 	if !path.is_dir() {
 		return Err(ioError::new(
 			std::io::ErrorKind::Other, // TODO: replace "Other" with "NotADirectory" when stable
 			"Path to find recovery files is not existing or a directory!",
-		));
+		)
+		.into());
 	}
 
 	// IMPORTANT: currently sysinfo creates threads, but never closes them (even when going out of scope)
@@ -511,7 +512,7 @@ fn download_wrapper(
 	download_state: &mut DownloadState,
 	finished_media: &mut MediaInfoArr,
 	only_recovery: bool,
-) -> Result<(), ioError> {
+) -> Result<(), crate::Error> {
 	if !only_recovery {
 		do_download(main_args, sub_args, pgbar, download_state, finished_media)?;
 	} else {
@@ -1134,7 +1135,7 @@ fn finish_media(
 	download_path: &std::path::Path,
 	pgbar: &ProgressBar,
 	final_media: &MediaInfoArr,
-) -> Result<EditCtrl, ioError> {
+) -> Result<EditCtrl, crate::Error> {
 	if final_media.mediainfo_map.is_empty() {
 		println!("No files to move or tag");
 		return Ok(EditCtrl::Finished);
@@ -1187,7 +1188,7 @@ fn finish_with_move(
 	download_path: &std::path::Path,
 	pgbar: &ProgressBar,
 	final_media: &MediaInfoArr,
-) -> Result<(), ioError> {
+) -> Result<(), crate::Error> {
 	debug!("Moving all files to the final destination");
 
 	let final_dir_path = sub_args.output_path.as_ref().map_or_else(
@@ -1256,7 +1257,7 @@ fn finish_with_tagger(
 	download_path: &std::path::Path,
 	pgbar: &ProgressBar,
 	final_media: &MediaInfoArr,
-) -> Result<(), ioError> {
+) -> Result<(), crate::Error> {
 	debug!("Renaming files for Tagger");
 
 	let final_dir_path = download_path.join("final");
@@ -1290,12 +1291,13 @@ fn finish_with_tagger(
 fn try_find_and_read_recovery_files(
 	finished_media_vec: &mut MediaInfoArr,
 	path: &Path,
-) -> Result<Vec<PathBuf>, ioError> {
+) -> Result<Vec<PathBuf>, crate::Error> {
 	if !path.is_dir() {
 		return Err(ioError::new(
 			std::io::ErrorKind::Other, // TODO: replace "Other" with "NotADirectory" when stable
 			"Path to find recovery files is not existing or a directory!",
-		));
+		)
+		.into());
 	}
 
 	let mut read_files: Vec<PathBuf> = Vec::new();

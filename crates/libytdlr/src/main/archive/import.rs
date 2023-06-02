@@ -117,8 +117,7 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 
 	let max_id_result = media_archive::dsl::media_archive
 		.select(diesel::dsl::max(media_archive::dsl::_id))
-		.first::<Option<i64>>(&mut input_connection)
-		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+		.first::<Option<i64>>(&mut input_connection)?;
 
 	pgcb(ImportProgress::Starting);
 
@@ -139,11 +138,10 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 	let lines_iter = media_archive::dsl::media_archive
 		// order by oldest to newest
 		.order(media_archive::inserted_at.asc())
-		.load_iter::<Media, diesel::connection::DefaultLoadingMode>(&mut input_connection)
-		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+		.load_iter::<Media, diesel::connection::DefaultLoadingMode>(&mut input_connection)?;
 
 	for (index, val) in lines_iter.enumerate() {
-		let val = val.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+		let val = val?;
 		pgcb(ImportProgress::Increase(1, index));
 		let insmedia = InsMedia::new(val.media_id, val.provider, val.title);
 		let affected = insert_insmedia(&insmedia, merge_to)?;
@@ -279,7 +277,7 @@ pub fn insert_insmedia(input: &InsMedia, connection: &mut SqliteConnection) -> R
 		.do_update()
 		.set(media_archive::title.eq(excluded(media_archive::title)))
 		.execute(connection)
-		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()));
+		.map_err(|err| return crate::Error::from(err));
 }
 
 #[cfg(test)]

@@ -77,9 +77,7 @@ pub fn command_search(main_args: &CliDerive, sub_args: &ArchiveSearch) -> Result
 		}
 	}
 
-	let lines_iter = query
-		.load::<Media>(&mut connection)
-		.map_err(|err| return crate::Error::SQLOperationError(err.to_string()))?;
+	let lines_iter = query.load::<Media>(&mut connection)?;
 
 	if lines_iter.is_empty() {
 		println!("No Results found");

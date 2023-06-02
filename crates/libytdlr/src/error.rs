@@ -1,29 +1,38 @@
 //! Module for the Error type this library uses
-use std::fmt::Display;
 
 /// Error type for "yt-downloader-rust", implements all Error types that could happen in this lib
-#[derive(Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
 	/// Wrapper Variant for [`std::io::Error`]
-	IoError(std::io::Error),
+	#[error("IoError: {0}")]
+	IoError(#[from] std::io::Error),
 	/// Wrapper Variant for [`std::string::FromUtf8Error`]
-	FromStringUTF8Error(std::string::FromUtf8Error),
+	#[error("FromStringUTF8Error: {0}")]
+	FromStringUTF8Error(#[from] std::string::FromUtf8Error),
 	/// Variant for when a spawned command was not successfull
+	#[error("CommandNotSuccessfull: {0}")]
 	CommandNotSuccesfull(String),
 	/// Variant for when no regex captures have been found
+	#[error("NoCapturesFound: {0}")]
 	NoCapturesFound(String),
 	/// Variant for when a Unexpected EOF happened (like in import)
+	#[error("UnexpectedEOF: {0}")]
 	UnexpectedEOF(String),
 	/// Variant for serde-json Errors
-	SerdeJSONError(serde_json::Error),
+	#[error("SerdeJSONError: {0}")]
+	SerdeJSONError(#[from] serde_json::Error),
 	/// Variant for Other messages
+	#[error("Other: {0}")]
 	Other(String),
 	/// Variant for a Unexpected Process Exit (like when ytdl fails to spawn)
+	#[error("UnexpectedProcessExit: {0}")]
 	UnexpectedProcessExit(String),
 	/// Variant for a diesel Connection Error (sql i/o)
-	SQLConnectionError(diesel::ConnectionError),
+	#[error("SQLConnectionError: {0}")]
+	SQLConnectionError(#[from] diesel::ConnectionError),
 	/// Variant for a diesel SQL Operation Error
-	SQLOperationError(String),
+	#[error("SQLOperationError: {0}")]
+	SQLOperationError(#[from] diesel::result::Error),
 }
 
 impl Error {
@@ -35,7 +44,7 @@ impl Error {
 	}
 }
 
-// this is custom, because "std::io::Error" does not implement "PartialEq", but "std::io::ErrorKind" does
+// this is custom, some errors like "std::io::Error" do not implement "PartialEq", but some inner type may do
 impl PartialEq for Error {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
@@ -55,56 +64,3 @@ impl PartialEq for Error {
 		}
 	}
 }
-
-impl From<std::io::Error> for Error {
-	fn from(err: std::io::Error) -> Self {
-		return Self::IoError(err);
-	}
-}
-
-impl From<std::string::FromUtf8Error> for Error {
-	fn from(err: std::string::FromUtf8Error) -> Self {
-		return Self::FromStringUTF8Error(err);
-	}
-}
-
-impl From<serde_json::Error> for Error {
-	fn from(err: serde_json::Error) -> Self {
-		return Self::SerdeJSONError(err);
-	}
-}
-
-impl From<Error> for std::io::Error {
-	fn from(err: Error) -> Self {
-		return std::io::Error::new(std::io::ErrorKind::Other, format!("{err}"));
-	}
-}
-
-impl From<diesel::ConnectionError> for Error {
-	fn from(err: diesel::ConnectionError) -> Self {
-		return Self::SQLConnectionError(err);
-	}
-}
-
-impl Display for Error {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		return write!(
-			f,
-			"{}",
-			match &self {
-				Self::CommandNotSuccesfull(s) => format!("CommandNotSuccessfull: {s}"),
-				Self::NoCapturesFound(s) => format!("NoCapturesFound: {s}"),
-				Self::FromStringUTF8Error(v) => format!("FromStringUTF8Error: {v}"),
-				Self::IoError(v) => format!("IoError: {v}"),
-				Self::UnexpectedEOF(v) => format!("UnexpectedEOF: {v}"),
-				Self::SerdeJSONError(v) => format!("SerdeJSONError: {v}"),
-				Self::UnexpectedProcessExit(v) => format!("UnexpectedProcessExit: {v}"),
-				Self::SQLConnectionError(v) => format!("SQLConnectionError: {v}"),
-				Self::SQLOperationError(v) => format!("SQLOperationError: {v}"),
-				Self::Other(v) => format!("Other: {v}"),
-			}
-		);
-	}
-}
-
-impl std::error::Error for Error {}

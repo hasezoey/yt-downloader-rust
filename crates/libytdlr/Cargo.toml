@@ -17,6 +17,7 @@ diesel = { version = "2.1", features = ["sqlite", "chrono"] }
 diesel_migrations = { version = "2.1" }
 chrono = "0.4"
 duct = "0.13" # required to pipe stderr into stdout
+thiserror = "1.0"
 
 [dev-dependencies]
 serde_test = "1.0.159"
