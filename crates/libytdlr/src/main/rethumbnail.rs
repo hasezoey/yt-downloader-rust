@@ -217,8 +217,8 @@ pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, cr
 	}
 
 	if !media_path.is_file() {
-		return Err(crate::Error::other(format!(
-			"media_path is not a file! (Path: \"{}\")",
+		return Err(crate::Error::not_a_file(format!(
+			"media_path is not a file! Path: \"{}\"",
 			media_path.to_string_lossy()
 		)));
 	}
@@ -276,8 +276,8 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	}
 
 	if !image_path.is_file() {
-		return Err(crate::Error::other(format!(
-			"image_path is not a file! (Path: \"{}\")",
+		return Err(crate::Error::not_a_file(format!(
+			"image_path is not a file! Path: \"{}\"",
 			image_path.to_string_lossy()
 		)));
 	}

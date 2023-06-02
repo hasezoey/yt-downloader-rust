@@ -62,8 +62,8 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	// check if the "migrate-to" path already exists, and use that directly instead or error of already existing
 	if migrate_to_path.exists() {
 		if !migrate_to_path.is_file() {
-			return Err(crate::Error::other(format!(
-				"Migrate-To Path exists but is not a file! (Path: \"{}\")",
+			return Err(crate::Error::not_a_file(format!(
+				"Migrate-To Path exists but is not a file! Path: \"{}\"",
 				migrate_to_path.to_string_lossy()
 			)));
 		}

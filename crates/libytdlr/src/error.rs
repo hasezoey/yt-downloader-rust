@@ -58,6 +58,7 @@ impl Error {
 	fn_string!(unexpected_eof, ErrorInner::UnexpectedEOF);
 	fn_string!(command_unsuccessful, ErrorInner::CommandNotSuccesful);
 	fn_string!(not_a_directory, ErrorInner::NotADirectory);
+	fn_string!(not_a_file, ErrorInner::NotAFile);
 }
 
 impl PartialEq for Error {
@@ -121,6 +122,9 @@ pub enum ErrorInner {
 	/// TODO: replace with io::ErrorKind::NotADirectory once stable https://github.com/rust-lang/rust/issues/86442
 	#[error("NotADirectory: {0}")]
 	NotADirectory(String),
+	/// Variant for when a file path was expected but did not exist yet or was not a file
+	#[error("NotAFile: {0}")]
+	NotAFile(String),
 	/// Variant for Other messages
 	#[error("Other: {0}")]
 	Other(String),
@@ -140,6 +144,7 @@ impl PartialEq for ErrorInner {
 			(Self::Other(l0), Self::Other(r0)) => return l0 == r0,
 			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
 			(Self::NotADirectory(l0), Self::NotADirectory(r0)) => return l0 == r0,
+			(Self::NotAFile(l0), Self::NotAFile(r0)) => return l0 == r0,
 
 			(_, _) => return false,
 		}
