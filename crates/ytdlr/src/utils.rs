@@ -53,7 +53,7 @@ pub fn require_ytdl_installed() -> Result<(), ioError> {
 	require_ffmpeg_installed()?;
 
 	if let Err(err) = ytdl_version() {
-		log::error!("Could not start or find ytdl! Error: {}", err);
+		log::error!("Could not start or find youtube-dl! Error: {}", err);
 
 		return Err(ioError::new(
 			std::io::ErrorKind::NotFound,
