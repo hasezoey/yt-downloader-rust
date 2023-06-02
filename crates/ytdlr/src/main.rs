@@ -162,6 +162,14 @@ fn main() -> Result<(), crate::Error> {
 
 	if let Err(err) = res {
 		eprintln!("A Error occured:\n{err}");
+		let backtrace = err.get_backtrace();
+		match backtrace.status() {
+			std::backtrace::BacktraceStatus::Captured => eprintln!("Backtrace:\n{}", backtrace),
+			std::backtrace::BacktraceStatus::Disabled => {
+				eprintln!("Backtrace is disabled, enable with RUST_BACKTRACE=true")
+			},
+			_ => eprintln!("Backtrace is unsupported"),
+		}
 		std::process::exit(1);
 	}
 

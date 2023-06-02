@@ -47,7 +47,7 @@ static FFMPEG_VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
 pub(crate) fn unsuccessfull_command_exit(status: std::process::ExitStatus, output: &str) -> crate::Error {
 	let last_lines = output.lines().rev().take(5).collect::<String>();
 
-	return crate::Error::CommandNotSuccesfull(format!(
+	return crate::Error::command_unsuccessful(format!(
 		"FFMPEG did not successfully exit! Exit Code: {}\nLast Lines:\n{}",
 		status.code().map_or("None".to_string(), |v| return v.to_string()),
 		last_lines
@@ -82,7 +82,7 @@ fn ffmpeg_parse_version(input: &str) -> Result<String, crate::Error> {
 	return Ok(FFMPEG_VERSION_REGEX
 		.captures_iter(input)
 		.next()
-		.ok_or_else(|| return crate::Error::NoCapturesFound("FFMPEG Version could not be determined".to_owned()))?[1]
+		.ok_or_else(|| return crate::Error::no_captures("FFMPEG Version could not be determined"))?[1]
 		.to_owned());
 }
 
@@ -133,9 +133,9 @@ pub fn parse_format(input: &str) -> Result<Vec<&str>, crate::Error> {
 	let formats = FFMPEG_PARSE_FORMAT
 		.captures_iter(input)
 		.next()
-		.ok_or_else(|| return crate::Error::NoCapturesFound("FFMPEG Format could not be determined (1)".to_owned()))?
+		.ok_or_else(|| return crate::Error::no_captures("FFMPEG Format could not be determined (1)"))?
 		.get(1)
-		.ok_or_else(|| return crate::Error::NoCapturesFound("FFMPEG Format could not be determined (2)".to_owned()))?;
+		.ok_or_else(|| return crate::Error::no_captures("FFMPEG Format could not be determined (2)"))?;
 
 	let formats_vec: Vec<&str> = formats.as_str().split(',').collect();
 
@@ -150,9 +150,7 @@ mod test {
 	pub fn test_ffmpeg_parse_version_invalid_input() {
 		assert_eq!(
 			super::ffmpeg_parse_version("hello"),
-			Err(crate::Error::NoCapturesFound(
-				"FFMPEG Version could not be determined".to_owned()
-			))
+			Err(crate::Error::no_captures("FFMPEG Version could not be determined"))
 		);
 	}
 
@@ -178,9 +176,7 @@ libpostproc    55.  9.100 / 55.  9.100
 	pub fn test_parse_format_invalid_input() {
 		assert_eq!(
 			super::parse_format("hello"),
-			Err(crate::Error::NoCapturesFound(
-				"FFMPEG Format could not be determined (1)".to_owned()
-			))
+			Err(crate::Error::no_captures("FFMPEG Format could not be determined (1)"))
 		);
 	}
 

@@ -35,9 +35,7 @@ pub fn ytdl_version() -> Result<String, crate::Error> {
 		.wait_with_output()?;
 
 	if !command_output.status.success() {
-		return Err(crate::Error::CommandNotSuccesfull(
-			"FFMPEG did not successfully exit!".to_string(),
-		));
+		return Err(crate::Error::command_unsuccessful("FFMPEG did not successfully exit!"));
 	}
 
 	let as_string = String::from_utf8(command_output.stdout)?;
@@ -51,7 +49,7 @@ fn ytdl_parse_version(input: &str) -> Result<String, crate::Error> {
 	return Ok(YTDL_VERSION_REGEX
 		.captures_iter(input)
 		.next()
-		.ok_or_else(|| return crate::Error::NoCapturesFound("YTDL Version could not be determined".to_owned()))?[1]
+		.ok_or_else(|| return crate::Error::no_captures("YTDL Version could not be determined"))?[1]
 		.to_owned());
 }
 
@@ -63,9 +61,7 @@ mod test {
 	pub fn test_ytdl_parse_version_invalid_input() {
 		assert_eq!(
 			super::ytdl_parse_version("hello"),
-			Err(crate::Error::NoCapturesFound(
-				"YTDL Version could not be determined".to_owned()
-			))
+			Err(crate::Error::no_captures("YTDL Version could not be determined"))
 		);
 	}
 

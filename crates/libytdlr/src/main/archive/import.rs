@@ -60,8 +60,8 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 	let buffer = reader.fill_buf()?; // read a bit of the reader, but dont consume the reader's contents
 
 	if buffer.is_empty() {
-		return Err(crate::Error::UnexpectedEOF(
-			"Detected Empty File, Cannot detect format".to_owned(),
+		return Err(crate::Error::unexpected_eof(
+			"Detected Empty File, Cannot detect format",
 		));
 	}
 
@@ -256,7 +256,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	// Error if no valid lines have been found from the reader
 	if successfull == 0 {
-		return Err(crate::Error::NoCapturesFound(format!(
+		return Err(crate::Error::no_captures(format!(
 			"No valid lines have been found from the reader! Failed Captures: {failed_captures}"
 		)));
 	}
@@ -342,8 +342,8 @@ mod test {
 
 			assert!(ret0.is_err());
 			assert_eq!(
-				Err(crate::Error::UnexpectedEOF(
-					"Detected Empty File, Cannot detect format".to_owned()
+				Err(crate::Error::unexpected_eof(
+					"Detected Empty File, Cannot detect format"
 				)),
 				ret0
 			);
@@ -409,7 +409,7 @@ mod test {
 			assert!(ret.is_err());
 			assert_eq!(0, pgcounter.read().expect("read failed").len());
 			assert_eq!(
-				crate::Error::UnexpectedEOF("Detected Empty File, Cannot detect format".to_owned()),
+				crate::Error::unexpected_eof("Detected Empty File, Cannot detect format"),
 				ret.unwrap_err()
 			)
 		}
@@ -616,8 +616,8 @@ mod test {
 
 			assert!(res0.is_err());
 			assert_eq!(
-				Err(crate::Error::NoCapturesFound(
-					"No valid lines have been found from the reader! Failed Captures: false".to_owned()
+				Err(crate::Error::no_captures(
+					"No valid lines have been found from the reader! Failed Captures: false"
 				)),
 				res0
 			);
@@ -628,8 +628,8 @@ mod test {
 
 			assert!(res0.is_err());
 			assert_eq!(
-				Err(crate::Error::NoCapturesFound(
-					"No valid lines have been found from the reader! Failed Captures: true".to_owned()
+				Err(crate::Error::no_captures(
+					"No valid lines have been found from the reader! Failed Captures: true"
 				)),
 				res0
 			);

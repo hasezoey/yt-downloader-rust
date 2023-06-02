@@ -172,10 +172,7 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	};
 
 	let stderr_reader = BufReader::new(child.stderr.take().ok_or_else(|| {
-		return crate::Error::IoError(std::io::Error::new(
-			std::io::ErrorKind::BrokenPipe,
-			"Failed to get Child STDERR",
-		));
+		return crate::Error::custom_ioerror(std::io::ErrorKind::BrokenPipe, "Failed to get Child STDERR");
 	})?);
 
 	// offload the stderr reader to a different thread to not block main
@@ -210,18 +207,17 @@ pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, cr
 	let media_path = media_path.as_ref();
 
 	if !media_path.exists() {
-		return Err(std::io::Error::new(
+		return Err(crate::Error::custom_ioerror(
 			std::io::ErrorKind::NotFound,
 			format!(
 				"media_path does not exist! (Path: \"{}\")",
 				media_path.to_string_lossy()
 			),
-		)
-		.into());
+		));
 	}
 
 	if !media_path.is_file() {
-		return Err(crate::Error::Other(format!(
+		return Err(crate::Error::other(format!(
 			"media_path is not a file! (Path: \"{}\")",
 			media_path.to_string_lossy()
 		)));
@@ -280,7 +276,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	}
 
 	if !image_path.is_file() {
-		return Err(crate::Error::Other(format!(
+		return Err(crate::Error::other(format!(
 			"image_path is not a file! (Path: \"{}\")",
 			image_path.to_string_lossy()
 		)));
@@ -294,7 +290,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	}
 
 	if output_dir.exists() && !output_dir.is_dir() {
-		return Err(crate::Error::Other(format!(
+		return Err(crate::Error::other(format!(
 			"output_dir exists but is not a directory! (Path: \"{}\")",
 			output_dir.to_string_lossy()
 		)));
@@ -305,7 +301,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	let output_path = {
 		let filename = image_path
 			.file_name()
-			.ok_or_else(|| return crate::Error::Other("Expected image_path to have a filename".to_owned()))?;
+			.ok_or_else(|| return crate::Error::other("Expected image_path to have a filename"))?;
 		let mut tmp_path = output_dir.join(filename);
 
 		tmp_path.set_extension("jpg");
@@ -326,10 +322,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	let mut ffmpeg_child = cmd.spawn()?;
 
 	let stderr_reader = BufReader::new(ffmpeg_child.stderr.take().ok_or_else(|| {
-		return crate::Error::IoError(std::io::Error::new(
-			std::io::ErrorKind::BrokenPipe,
-			"Failed to get Child STDERR",
-		));
+		return crate::Error::custom_ioerror(std::io::ErrorKind::BrokenPipe, "Failed to get Child STDERR");
 	})?);
 
 	// offload the stderr reader to a different thread to not block main
@@ -346,19 +339,19 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 
 	// wait until the stderr thread has exited
 	ffmpeg_child_stderr_thread.join().map_err(|err| {
-		return crate::Error::Other(format!("Joining the ffmpeg_stderr STDERR handle failed: {err:?}"));
+		return crate::Error::other(format!("Joining the ffmpeg_stderr STDERR handle failed: {err:?}"));
 	})?;
 
 	if !ffmpeg_child_exit_status.success() {
 		return Err(match ffmpeg_child_exit_status.code() {
-			Some(code) => crate::Error::Other(format!("ffmpeg_child exited with code: {code}")),
+			Some(code) => crate::Error::other(format!("ffmpeg_child exited with code: {code}")),
 			None => {
 				let signal = match ffmpeg_child_exit_status.signal() {
 					Some(code) => code.to_string(),
 					None => "None".to_owned(),
 				};
 
-				crate::Error::Other(format!("ffmpeg_child exited with signal: {signal}"))
+				crate::Error::other(format!("ffmpeg_child exited with signal: {signal}"))
 			},
 		});
 	}
@@ -468,7 +461,7 @@ mod test {
 			assert!(output.is_err());
 
 			assert_eq!(
-				crate::Error::CommandNotSuccesfull("FFMPEG did not successfully exit! Exit Code: 1".to_owned()),
+				crate::Error::command_unsuccessful("FFMPEG did not successfully exit! Exit Code: 1"),
 				output.expect_err("Expected Assert to test Result to be ERR")
 			);
 		}
@@ -585,7 +578,7 @@ mod test {
 			assert!(result.is_err());
 
 			assert_eq!(
-				crate::Error::Other("ffmpeg_child exited with code: 1".to_owned()),
+				crate::Error::other("ffmpeg_child exited with code: 1"),
 				result.expect_err("Expected Assert to test Result to be ERR")
 			);
 		}

@@ -1,8 +1,96 @@
 //! Module for the Error type this library uses
 
+use std::{
+	backtrace::Backtrace,
+	io::Error as ioError,
+};
+
+/// Macro to not repeat having to do multiple implementations of a [ErrorInner] variant with the same string type
+macro_rules! fn_string {
+	($fn_name:ident, $fortype:expr) => {
+		#[doc = concat!("Create a new [Self] as [", stringify!($fortype), "]")]
+		pub fn $fn_name<M>(msg: M) -> Self
+		where
+			M: Into<String>,
+		{
+			return Self::new($fortype(msg.into()));
+		}
+	};
+}
+
+// TODO: change backtrace implementation to be by thiserror, if possible once features become stable
+// error_generic_member_access https://github.com/rust-lang/rust/issues/99301
+// provide_any https://github.com/rust-lang/rust/issues/96024
+
+/// Error type for libytdlr, contains a backtrace, wrapper around [ErrorInner]
+#[derive(Debug)]
+pub struct Error {
+	/// The actual error
+	source:    ErrorInner,
+	/// The backtrace for the error
+	backtrace: Backtrace,
+}
+
+impl Error {
+	/// Construct a new [Error] instance based on [ErrorInner]
+	pub fn new(source: ErrorInner) -> Self {
+		return Self {
+			source,
+			backtrace: Backtrace::capture(),
+		};
+	}
+
+	/// Get the backtrace that is stored
+	pub fn get_backtrace(&self) -> &Backtrace {
+		return &self.backtrace;
+	}
+
+	/// Create a custom [ioError] with this [Error] wrapped around
+	pub fn custom_ioerror<M>(kind: std::io::ErrorKind, msg: M) -> Self
+	where
+		M: Into<String>,
+	{
+		return Self::new(ErrorInner::IoError(ioError::new(kind, msg.into())));
+	}
+
+	fn_string!(other, ErrorInner::Other);
+	fn_string!(no_captures, ErrorInner::NoCapturesFound);
+	fn_string!(unexpected_eof, ErrorInner::UnexpectedEOF);
+	fn_string!(unexpected_exit, ErrorInner::UnexpectedProcessExit);
+	fn_string!(command_unsuccessful, ErrorInner::CommandNotSuccesfull);
+}
+
+impl PartialEq for Error {
+	fn eq(&self, other: &Self) -> bool {
+		return self.source == other.source;
+	}
+}
+
+impl std::fmt::Display for Error {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		return self.source.fmt(f);
+	}
+}
+
+impl std::error::Error for Error {
+	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+		return self.source.source();
+	}
+}
+
+// implement all From<> variants that ErrorInner also implements
+impl<T> From<T> for Error
+where
+	T: Into<ErrorInner>,
+{
+	fn from(value: T) -> Self {
+		return Self::new(value.into());
+	}
+}
+
 /// Error type for "yt-downloader-rust", implements all Error types that could happen in this lib
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum ErrorInner {
 	/// Wrapper Variant for [`std::io::Error`]
 	#[error("IoError: {0}")]
 	IoError(#[from] std::io::Error),
@@ -35,17 +123,8 @@ pub enum Error {
 	SQLOperationError(#[from] diesel::result::Error),
 }
 
-impl Error {
-	pub fn other<M>(msg: M) -> Self
-	where
-		M: Into<String>,
-	{
-		return Self::Other(msg.into());
-	}
-}
-
 // this is custom, some errors like "std::io::Error" do not implement "PartialEq", but some inner type may do
-impl PartialEq for Error {
+impl PartialEq for ErrorInner {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
 			(Self::IoError(l0), Self::IoError(r0)) => return l0.kind() == r0.kind(),

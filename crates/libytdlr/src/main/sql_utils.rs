@@ -24,7 +24,7 @@ pub fn sqlite_connect<P: AsRef<Path>>(sqlite_path: P) -> Result<SqliteConnection
 
 			return Ok(connection);
 		},
-		None => Err(crate::Error::Other(format!("SQLite only accepts UTF-8 Paths, and given path failed to be converted to a string without being lossy, Path (converted lossy): \"{}\"", sqlite_path.as_ref().to_string_lossy()))),
+		None => Err(crate::Error::other(format!("SQLite only accepts UTF-8 Paths, and given path failed to be converted to a string without being lossy, Path (converted lossy): \"{}\"", sqlite_path.as_ref().to_string_lossy()))),
 	};
 }
 
@@ -32,7 +32,7 @@ pub fn sqlite_connect<P: AsRef<Path>>(sqlite_path: P) -> Result<SqliteConnection
 #[inline]
 fn apply_sqlite_migrations(connection: &mut SqliteConnection) -> Result<(), crate::Error> {
 	let applied = diesel_migrations::MigrationHarness::run_pending_migrations(connection, MIGRATIONS)
-		.map_err(|err| return crate::Error::Other(format!("Applying SQL Migrations Errored! Error:\n{err}")))?;
+		.map_err(|err| return crate::Error::other(format!("Applying SQL Migrations Errored! Error:\n{err}")))?;
 
 	debug!("Applied Migrations: {:?}", applied);
 
@@ -62,7 +62,7 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	// check if the "migrate-to" path already exists, and use that directly instead or error of already existing
 	if migrate_to_path.exists() {
 		if !migrate_to_path.is_file() {
-			return Err(crate::Error::Other(format!(
+			return Err(crate::Error::other(format!(
 				"Migrate-To Path exists but is not a file! (Path: \"{}\")",
 				migrate_to_path.to_string_lossy()
 			)));
@@ -71,8 +71,8 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 		let mut sqlite_path_reader = BufReader::new(File::open(&migrate_to_path)?);
 		return Ok(
 			match crate::main::archive::import::detect_archive_type(&mut sqlite_path_reader)? {
-				super::archive::import::ArchiveType::Unknown => return Err(crate::Error::Other(format!("Migrate-To Path already exists, but is of unknown type! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
-				super::archive::import::ArchiveType::JSON => return Err(crate::Error::Other(format!("Migrate-To Path already eixsts and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
+				super::archive::import::ArchiveType::Unknown => return Err(crate::Error::other(format!("Migrate-To Path already exists, but is of unknown type! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
+				super::archive::import::ArchiveType::JSON => return Err(crate::Error::other(format!("Migrate-To Path already eixsts and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
 				super::archive::import::ArchiveType::SQLite => {
 					// this has to be done before, because the following ".into" call will move the value
 					let connection = sqlite_connect(&migrate_to_path)?;
@@ -88,8 +88,8 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	return Ok(
 		match crate::main::archive::import::detect_archive_type(&mut input_archive_reader)? {
 			super::archive::import::ArchiveType::Unknown => {
-				return Err(crate::Error::Other(
-					"Unknown Archive type to migrate, maybe try importing".into(),
+				return Err(crate::Error::other(
+					"Unknown Archive type to migrate, maybe try importing",
 				))
 			},
 			super::archive::import::ArchiveType::JSON => {
@@ -97,9 +97,8 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 
 				// handle case where the input path matches the changed path
 				if migrate_to_path == archive_path {
-					return Err(crate::Error::Other(
-						"Migration cannot be done: Input path matches output path (setting extension to \".db\")"
-							.into(),
+					return Err(crate::Error::other(
+						"Migration cannot be done: Input path matches output path (setting extension to \".db\")",
 					));
 				}
 

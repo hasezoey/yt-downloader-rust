@@ -599,7 +599,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					}
 				},
 				LineType::Error => {
-					return Err(crate::Error::Other(line));
+					return Err(crate::Error::other(line));
 				},
 			}
 		} else if !line.is_empty() {
