@@ -91,7 +91,6 @@ pub fn handle_connect<'a>(
 				ImportProgress::SizeHint(v) => bar.set_length(v.try_into().expect("Failed to convert usize to u64")),
 				ImportProgress::Increase(c, _i) => bar.inc(c.try_into().expect("Failed to convert usize to u64")),
 				ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Migrating {v} elements")),
-				_ => (),
 			}
 		} else {
 			match imp {
@@ -99,7 +98,6 @@ pub fn handle_connect<'a>(
 				ImportProgress::SizeHint(v) => println!("Migration SizeHint: {v}"),
 				ImportProgress::Increase(c, i) => println!("Migration Increase: {c}, Current Index: {i}"),
 				ImportProgress::Finished(v) => println!("Migration Finished, Successfull Migrations: {v}"),
-				_ => (),
 			}
 		}
 	};

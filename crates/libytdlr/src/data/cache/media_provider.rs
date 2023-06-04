@@ -7,7 +7,6 @@ use serde::{
 
 /// NewType struct to contain the provider in formatted form for [`super::media_info::MediaInfo`]
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-#[non_exhaustive]
 pub struct MediaProvider(String);
 
 impl MediaProvider {

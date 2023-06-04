@@ -26,7 +26,6 @@ use crate::data::{
 
 /// Enum to represent why the callback was called plus extra arguments
 #[derive(Debug, PartialEq)]
-#[non_exhaustive]
 pub enum ImportProgress {
 	/// Variant that indicates that a process has started (clear / reset progress bar)
 	/// Will always be called

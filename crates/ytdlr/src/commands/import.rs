@@ -41,7 +41,6 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 				ImportProgress::SizeHint(v) => bar.set_length(v.try_into().expect("Failed to convert usize to u64")),
 				ImportProgress::Increase(c, _i) => bar.inc(c.try_into().expect("Failed to convert usize to u64")),
 				ImportProgress::Finished(v) => bar.finish_with_message(format!("Finished Importing {v} elements")),
-				_ => (),
 			}
 		} else {
 			match imp {
@@ -49,7 +48,6 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 				ImportProgress::SizeHint(v) => println!("Import SizeHint: {v}"),
 				ImportProgress::Increase(c, i) => println!("Import Increase: {c}, Current Index: {i}"),
 				ImportProgress::Finished(v) => println!("Import Finished, Successfull Imports: {v}"),
-				_ => (),
 			}
 		}
 	};
