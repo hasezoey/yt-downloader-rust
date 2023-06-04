@@ -15,7 +15,6 @@ use std::{
 		PathBuf,
 	},
 	process::Stdio,
-	thread,
 };
 
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
@@ -180,12 +179,14 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	})?);
 
 	// offload the stderr reader to a different thread to not block main
-	let stderrreader_thread = thread::spawn(|| {
-		stderr_reader
-			.lines()
-			.filter_map(|v| return v.ok())
-			.for_each(|line| log::info!("ffmpeg STDERR: {}", line));
-	});
+	let stderrreader_thread = std::thread::Builder::new()
+		.name("ffmpeg stderr handler".to_owned())
+		.spawn(|| {
+			stderr_reader
+				.lines()
+				.filter_map(|v| return v.ok())
+				.for_each(|line| log::info!("ffmpeg STDERR: {}", line));
+		})?;
 
 	stderrreader_thread.join().expect("STDERR Reader Thread Join Failed");
 

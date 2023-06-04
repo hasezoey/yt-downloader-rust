@@ -237,11 +237,13 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 		// the following has to be done because "read_line" is blocking, but the ctrlc handler should still be able to work
 		{
 			let (tx, rx) = mpsc::channel::<Result<String, ioError>>();
-			let read_thread = std::thread::spawn(move || {
-				// input buffer for "read_line", 1 capacity, because of only expecting 1 character
-				let mut input = String::with_capacity(1);
-				let _ = tx.send(std::io::stdin().read_line(&mut input).map(|_| return input));
-			});
+			let read_thread = std::thread::Builder::new()
+				.name("ffmpeg stderr handler".to_owned())
+				.spawn(move || {
+					// input buffer for "read_line", 1 capacity, because of only expecting 1 character
+					let mut input = String::with_capacity(1);
+					let _ = tx.send(std::io::stdin().read_line(&mut input).map(|_| return input));
+				})?;
 
 			loop {
 				// handle terminate
