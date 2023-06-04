@@ -119,7 +119,7 @@ pub enum ErrorInner {
 	#[error("UnexpectedEOF: {0}")]
 	UnexpectedEOF(String),
 	/// Variant for when a directory path was expected but did not exist yet or was not a directory
-	/// TODO: replace with io::ErrorKind::NotADirectory once stable https://github.com/rust-lang/rust/issues/86442
+	/// TODO: replace with io::ErrorKind::NotADirectory once stable <https://github.com/rust-lang/rust/issues/86442>
 	#[error("NotADirectory: {0}")]
 	NotADirectory(String),
 	/// Variant for when a file path was expected but did not exist yet or was not a file

@@ -233,7 +233,7 @@ impl FromStr for ArchiveSearchColumn {
 }
 
 /// Parse a key-value pair from the input
-/// from https://github.com/clap-rs/clap/blob/78bb48b6b8ef4d597b4b30b9add7927a2b0b0d8d/examples/typed-derive.rs#L48-L59
+/// from <https://github.com/clap-rs/clap/blob/78bb48b6b8ef4d597b4b30b9add7927a2b0b0d8d/examples/typed-derive.rs#L48-L59>
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
 where
 	T: std::str::FromStr,
@@ -368,7 +368,7 @@ pub struct CommandDownload {
 	#[arg(long = "open-tagger")]
 	pub open_tagger:               bool,
 	/// Set which subtitle languages to download
-	/// see https://github.com/yt-dlp/yt-dlp#subtitle-options
+	/// see <https://github.com/yt-dlp/yt-dlp#subtitle-options>
 	#[arg(long = "sub-langs", env = "YTDL_SUB_LANGS")]
 	pub sub_langs:                 Option<String>,
 
