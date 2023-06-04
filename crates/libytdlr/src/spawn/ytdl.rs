@@ -8,8 +8,10 @@ use std::process::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+/// Binary name to spawn for the youtube-dl process
 pub const YTDL_BIN_NAME: &str = "yt-dlp";
 
+/// Create a new [YTDL_BIN_NAME] [Command] instance
 #[inline]
 pub fn base_ytdl() -> Command {
 	return super::multiplatform::spawn_command(&YTDL_BIN_NAME);

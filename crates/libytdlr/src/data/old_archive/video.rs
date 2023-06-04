@@ -4,6 +4,7 @@ use serde::Deserialize;
 
 use super::provider;
 
+/// Struct representing a Video in the JSON archive
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Video {
 	/// The "id" of the video, as provided by "yt-dl"

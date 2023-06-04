@@ -21,6 +21,7 @@ use crate::{
 	traits::download_options::DownloadOptions,
 };
 
+/// Enum for hooks to know what is currently happening
 #[derive(Debug, Clone, PartialEq)]
 pub enum DownloadProgress {
 	/// Variant representing that the download is starting

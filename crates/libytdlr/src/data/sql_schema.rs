@@ -1,4 +1,5 @@
 #![allow(clippy::implicit_return)]
+#![allow(missing_docs)]
 // @generated automatically by Diesel CLI.
 
 diesel::table! {

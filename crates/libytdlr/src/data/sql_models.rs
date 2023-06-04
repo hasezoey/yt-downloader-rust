@@ -4,6 +4,7 @@ use crate::data::sql_schema::*;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 
+/// Struct representing a Media table entry
 #[derive(Debug, Clone, PartialEq, Queryable)]
 #[diesel(table_name = media_archive)]
 pub struct Media {
@@ -19,6 +20,7 @@ pub struct Media {
 	pub inserted_at: NaiveDateTime,
 }
 
+/// Struct for inserting a [Media] into the database
 #[derive(Debug, Clone, PartialEq, Insertable)]
 #[diesel(table_name = media_archive)]
 pub struct InsMedia {
@@ -31,6 +33,7 @@ pub struct InsMedia {
 }
 
 impl InsMedia {
+	/// Create a new instance of [InsMedia]
 	pub fn new<MID: AsRef<str>, P: AsRef<str>, T: AsRef<str>>(media_id: MID, provider: P, title: T) -> Self {
 		return Self {
 			media_id: media_id.as_ref().into(),

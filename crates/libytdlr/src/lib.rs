@@ -3,7 +3,7 @@
 #![allow(clippy::needless_return)]
 #![allow(special_module_name)] // because of module "main", dont have a better name for that
 #![warn(clippy::implicit_return)]
-// #![deny(missing_docs)]
+#![warn(missing_docs)]
 
 #[macro_use]
 extern crate log;
