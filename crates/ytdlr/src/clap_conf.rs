@@ -27,13 +27,13 @@ trait Check {
 #[derive(Debug, Parser, Clone, PartialEq)]
 #[command(author, version, about, version = env!("YTDLR_VERSION"), long_about = None)]
 #[command(bin_name("ytdlr"))]
-#[command(disable_help_subcommand(true))] // Disable subcommand "help", only "-h --help" should be used
+#[command(disable_help_subcommand(true))] // Disable subcommand "help", only "-h" or "--help" should be used
 #[command(subcommand_negates_reqs(true))]
 pub struct CliDerive {
 	/// Set Loggin verbosity (0 - Default - WARN, 1 - INFO, 2 - DEBUG, 3 - TRACE)
 	#[arg(short, long, action = ArgAction::Count, env = "YTDL_VERBOSITY")]
 	pub verbosity:    u8,
-	/// Temporary directory path to store intermediate files (like downloaded files before being processed)
+	/// Temporary directory path to store intermediate files (like downloaded files before being moved)
 	#[arg(long = "tmp", env = "YTDL_TMP")]
 	pub tmp_path:     Option<PathBuf>,
 	/// Request vscode lldb debugger before continuing to execute.
@@ -56,7 +56,7 @@ pub struct CliDerive {
 }
 
 impl CliDerive {
-	/// Execute clap::Parser::parse and apply custom validation and transformation logic
+	/// Execute [clap::Parser::parse] and apply custom validation and transformation logic
 	pub fn custom_parse() -> Result<Self, crate::Error> {
 		let mut parsed = Self::parse();
 
@@ -118,14 +118,14 @@ impl Check for CliDerive {
 
 #[derive(Debug, Subcommand, Clone, PartialEq)]
 pub enum SubCommands {
-	/// The main purpose of the binary, download URL
+	/// The main purpose of the binary, download a URL(s)
 	Download(CommandDownload),
 	/// Archive Managing Commands
 	Archive(ArchiveDerive),
 	/// Re-Thumbnail specific files
-	#[command(alias = "rethumbnail")] // alias, otherwise only "re-thumbnail" would be valid
+	#[command(alias = "rethumbnail")] // alias, otherwise only "re-thumbnail" would be the only valid option
 	ReThumbnail(CommandReThumbnail),
-	/// Generate all shell completions
+	/// Generate shell completions
 	Completions(CommandCompletions),
 }
 

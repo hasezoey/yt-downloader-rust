@@ -29,7 +29,6 @@ use std::{
 		BufRead,
 		BufReader,
 		BufWriter,
-		Error as ioError,
 		Write,
 	},
 	path::{
@@ -159,7 +158,7 @@ impl Recovery {
 	pub fn fmt_line(media: &data::cache::media_info::MediaInfo) -> String {
 		return format!(
 			"'{}'-'{}'-{}\n",
-			media.provider.as_ref(),
+			media.provider,
 			media.id,
 			media.title.as_ref().expect("Expected downloaded media to have a title")
 		);
@@ -181,11 +180,16 @@ impl Recovery {
 	/// Try to read the recovery from the given path
 	pub fn read_recovery(path: &Path) -> Result<impl Iterator<Item = MediaInfo>, crate::Error> {
 		if !path.exists() {
-			return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Recovery File Path does not exist").into());
+			return Err(crate::Error::custom_ioerror(
+				std::io::ErrorKind::NotFound,
+				"Recovery File Path does not exist",
+			));
 		}
 		// error in case of not being a file, maybe consider changeing this to a function and ignoring if not existing
 		if !path.is_file() {
-			return Err(std::io::Error::new(std::io::ErrorKind::Other, "Recovery File Path is not a file").into());
+			return Err(
+				crate::Error::custom_ioerror(std::io::ErrorKind::Other, "Recovery File Path is not a file"),
+			);
 		}
 		let file_handle = BufReader::new(std::fs::File::open(path)?);
 
@@ -274,7 +278,7 @@ impl MediaInfoArr {
 		let order = self.next_order;
 		self.next_order += 1;
 
-		let key = format!("{}-{}", mediainfo.provider.as_ref(), mediainfo.id,);
+		let key = format!("{}-{}", mediainfo.provider.as_ref(), mediainfo.id);
 
 		return self
 			.mediainfo_map
@@ -307,7 +311,7 @@ impl MediaInfoArr {
 
 /// Truncate the given message to a lower size so that the progressbar does not do new-lines
 /// truncation is required because indicatif would do new-lines, and adding truncation would only work with a (static) maximum size
-/// NOTE: this currently only gets run once for each "SingleStartin" instead of every tick, so resizing the truncate will not be done (until next media)
+/// NOTE: this currently only gets run once for each "SingleStarting" instead of every tick, so resizing the truncate will not be done (until next media)
 fn truncate_message_term_width<M>(msg: &M) -> String
 where
 	M: AsRef<str>,
@@ -324,16 +328,12 @@ where
 	return utils::truncate_message_display_pos(msg, display_width_available, true).to_string();
 }
 
-/**
- * Find all files that match the temporary ytdl archive name, and remove all whose pid is not alive anymore
- */
+/// Find all files that match the temporary ytdl archive name, and remove all whose pid is not alive anymore
 fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 	if !path.is_dir() {
-		return Err(ioError::new(
-			std::io::ErrorKind::Other, // TODO: replace "Other" with "NotADirectory" when stable
+		return Err(crate::Error::not_a_directory(
 			"Path to find recovery files is not existing or a directory!",
-		)
-		.into());
+		));
 	}
 
 	// IMPORTANT: currently sysinfo creates threads, but never closes them (even when going out of scope)
@@ -519,7 +519,7 @@ fn download_wrapper(
 	}
 
 	let download_path = download_state.download_path();
-	// determines wheter the "reverse" argument for "edit_media" is set
+	// determines whether the "reverse" argument for "edit_media" is set
 	let mut looped_once = false;
 
 	// loop so that when selecting "b" in "finish_media" to be able to go back to editing
@@ -606,12 +606,10 @@ fn do_download(
 	download_state: &mut DownloadState,
 	finished_media: &mut MediaInfoArr,
 ) -> Result<(), crate::Error> {
-	let mut maybe_connection: Option<SqliteConnection> = {
-		if let Some(ap) = main_args.archive_path.as_ref() {
-			Some(utils::handle_connect(ap, pgbar, main_args)?.1)
-		} else {
-			None
-		}
+	let mut maybe_connection: Option<SqliteConnection> = if let Some(ap) = main_args.archive_path.as_ref() {
+		Some(utils::handle_connect(ap, pgbar, main_args)?.1)
+	} else {
+		None
 	};
 
 	// store "download_state" in a refcell, because rust complains that a borrow is made in "download_pgcb" and also later used while still in scope
@@ -652,7 +650,6 @@ fn do_download(
 		main::download::DownloadProgress::SingleFinished(_id) => {
 			pgbar.finish_and_clear();
 			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().title));
-			// pgbar.finish_with_message();
 		},
 		main::download::DownloadProgress::AllFinished(new_count) => {
 			pgbar.finish_and_clear();
@@ -908,7 +905,7 @@ fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path) -> Result<(), cr
 		apply_metadata(file, &metadata_file)?;
 
 		match std::fs::remove_file(&metadata_file) {
-			Ok(()) => (),
+			Ok(_) => (),
 			Err(err) => {
 				info!("Removing metadata file failed, error: {}", err);
 			},
@@ -1258,7 +1255,6 @@ fn finish_with_move(
 }
 
 /// Move all media in `final_media` to a temporary `final` directory (still in the tmpdir) and open the tagger
-/// Helper to separate out the possible paths
 fn finish_with_tagger(
 	sub_args: &CommandDownload,
 	download_path: &std::path::Path,
@@ -1331,12 +1327,9 @@ fn try_find_and_read_recovery_files(
 			}
 			opt.unwrap().1 // unwrap because "None" is checked above
 		};
-		let pid_of_file = {
-			let res = pid_str.parse::<usize>();
-			if res.is_err() {
-				continue;
-			}
-			res.unwrap() // unwrap because "Err" is checked above
+		let pid_of_file = match pid_str.parse::<usize>() {
+			Err(_) => continue,
+			Ok(v) => v,
 		};
 		// check that the pid of the file is actually not running anymore
 		// and just ignore them if the process exists

@@ -19,10 +19,10 @@ mod utils;
 
 /// Simple struct to keep all data for termination requests (ctrlc handler)
 struct TerminateData {
-	/// Stores wheter the handler is enabled or disabled
+	/// Stores whether the handler is enabled or disabled
 	/// "disabled" means no termination setting
 	enabled:             bool,
-	/// Stores wheter termination has been requested
+	/// Stores whether termination has been requested
 	terminate_requested: bool,
 }
 
@@ -41,7 +41,7 @@ impl TerminateData {
 		return self.terminate_requested;
 	}
 
-	/// Set the time when the terminate was requested
+	/// Set that termination has been requested
 	pub fn set_terminate(&mut self) {
 		self.terminate_requested = true;
 	}
@@ -56,7 +56,7 @@ impl TerminateData {
 		self.enabled = true;
 	}
 
-	/// Get wheter the handler is enabled or not
+	/// Get whether the handler is enabled or not
 	pub fn is_enabled(&self) -> bool {
 		return self.enabled;
 	}

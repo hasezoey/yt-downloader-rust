@@ -8,7 +8,6 @@ use indicatif::{
 };
 use libytdlr::main::archive::import::*;
 use once_cell::sync::Lazy;
-use std::io::Error as ioError;
 
 /// Handler function for the "archive import" subcommand
 /// This function is mainly to keep the code structured and sorted
@@ -18,14 +17,10 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 
 	let input_path = &sub_args.file_path;
 
-	if main_args.archive_path.is_none() {
-		return Err(ioError::new(std::io::ErrorKind::Other, "Archive is required for Import!").into());
-	}
-
-	let archive_path = main_args
-		.archive_path
-		.as_ref()
-		.expect("Expected archive check to have already returned");
+	let archive_path = match main_args.archive_path.as_ref() {
+		None => return Err(crate::Error::other("Archive is required for Import!")),
+		Some(v) => v,
+	};
 
 	static IMPORT_STYLE: Lazy<ProgressStyle> = Lazy::new(|| {
 		return ProgressStyle::default_bar()

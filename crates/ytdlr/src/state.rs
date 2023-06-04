@@ -106,13 +106,13 @@ impl DownloadOptions for DownloadState<'_> {
 		};
 
 		if self.archive_mode == ArchiveMode::None {
-			debug!("force_no_archive, not outputting any ytdl archive");
+			debug!("archive-mode is None, not outputting any ytdl archive");
 
 			return Some(Box::new([].into_iter()));
 		}
 
 		// function to use to format all output to a youtube-dl archive, consistent across all options
-		let fmfn = |v: Result<libytdlr::data::sql_models::Media, diesel::result::Error>| {
+		let fmtfn = |v: Result<libytdlr::data::sql_models::Media, diesel::result::Error>| {
 			let v = v.ok()?;
 			return Some(format!("{} {}\n", v.provider, v.media_id));
 		};
@@ -126,7 +126,7 @@ impl DownloadOptions for DownloadState<'_> {
 				.load_iter::<Media, diesel::connection::DefaultLoadingMode>(connection)
 				.ok()?
 				// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
-				.filter_map(fmfn);
+				.filter_map(fmtfn);
 
 			return Some(Box::new(lines_iter));
 		}
@@ -141,7 +141,7 @@ impl DownloadOptions for DownloadState<'_> {
 			.load_iter::<Media, diesel::connection::DefaultLoadingMode>(connection)
 			.ok()?
 			// the following has some explicit type-annotation for the argument, because otherwise rust-analyzer does not provide any types
-			.filter_map(fmfn);
+			.filter_map(fmtfn);
 
 		return Some(Box::new(lines_iter));
 	}

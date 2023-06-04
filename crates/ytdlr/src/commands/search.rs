@@ -17,9 +17,8 @@ use libytdlr::{
 	},
 	diesel,
 };
-use std::io::Error as ioError;
 
-/// Helper function to convert a given input to a like query (appending "%")
+/// Helper function to convert a given input to a "LIKE" query (appending "%")
 fn to_like_query(input: &str) -> String {
 	let mut res: String = input.to_owned();
 	res.push('%');
@@ -30,11 +29,10 @@ fn to_like_query(input: &str) -> String {
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 pub fn command_search(main_args: &CliDerive, sub_args: &ArchiveSearch) -> Result<(), crate::Error> {
-	if main_args.archive_path.is_none() {
-		return Err(ioError::new(std::io::ErrorKind::Other, "Archive is required for Import!").into());
-	}
-
-	let archive_path = main_args.archive_path.as_ref().expect("Expected if is_none to return");
+	let archive_path = match main_args.archive_path.as_ref() {
+		None => return Err(crate::Error::other("Archive is required for Search!")),
+		Some(v) => v,
+	};
 
 	let bar: ProgressBar = ProgressBar::hidden();
 	// dont set progress bar target, only required for handle_connect currently
@@ -84,6 +82,7 @@ pub fn command_search(main_args: &CliDerive, sub_args: &ArchiveSearch) -> Result
 		return Ok(());
 	}
 
+	// print header, if header is required
 	match sub_args.result_format {
 		SearchResultFormat::Normal => (),
 		SearchResultFormat::CSVC => {

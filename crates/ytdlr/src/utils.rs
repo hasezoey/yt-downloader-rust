@@ -41,14 +41,14 @@ use std::{
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-/// Helper function to set the progressbar to a draw target if mode is interactive
+/// Helper function to set the progressbar to a draw target based on if it is interactive
 pub fn set_progressbar(bar: &ProgressBar, main_args: &CliDerive) {
 	if main_args.is_interactive() {
 		bar.set_draw_target(ProgressDrawTarget::stderr());
 	}
 }
 
-/// Test if Youtube-DL(p) is installed and reachable, including required dependencies like ffmpeg
+/// Test if ytdl is installed and reachable, including required dependencies like ffmpeg
 pub fn require_ytdl_installed() -> Result<(), ioError> {
 	require_ffmpeg_installed()?;
 
@@ -78,7 +78,7 @@ pub fn require_ffmpeg_installed() -> Result<(), ioError> {
 	return Ok(());
 }
 
-/// Generic handler function for using [`libytdlr::main::sql_utils::migrate_and_connect`] with a [`ProgressBar`]
+/// Handler function for using [`libytdlr::main::sql_utils::migrate_and_connect`] with a [`ProgressBar`]
 pub fn handle_connect<'a>(
 	archive_path: &'a Path,
 	bar: &ProgressBar,
@@ -148,7 +148,7 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 	return Ok(mediainfo_vec);
 }
 
-/// Helper function to reduce nesting ofr [`find_editable_files`]
+/// Helper function to reduce nesting for [`find_editable_files`]
 /// for example, in a loop "?" cannot be used, but in a helper function
 #[inline]
 fn process_path_for_editable_files(path: PathBuf) -> Option<MediaInfo> {
@@ -299,11 +299,10 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 /// `path` input is not checked to be a file or directory, so it should be checked beforehand
 pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), crate::Error> {
 	if !path.exists() {
-		return Err(ioError::new(
+		return Err(crate::Error::custom_ioerror(
 			std::io::ErrorKind::NotFound,
 			format!("File to Edit does not exist! (Path: \"{}\")", path.to_string_lossy()),
-		)
-		.into());
+		));
 	}
 
 	let mut editor_child = {
@@ -325,7 +324,7 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), cra
 	}?;
 
 	// wait until the editor_child has exited and get the status
-	let editor_child_exit_status = editor_child.wait()?; // not checking for termination, because in rust there is currently no way to detach a child
+	let editor_child_exit_status = editor_child.wait()?;
 
 	TERMINATE
 		.write()
@@ -389,12 +388,9 @@ fn get_editor_base(maybe_editor: &Option<PathBuf>) -> Result<PathBuf, crate::Err
 /// Returns [`Ok(None)`] if a new path should be prompted
 fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 	'test_editor: loop {
-		let test_result = test_editor_base_valid(path);
-
-		let err = if let Err(err) = test_result {
-			err
-		} else {
-			return Ok(Some(path.to_owned()));
+		let err = match test_editor_base_valid(path) {
+			Ok(_) => return Ok(Some(path.to_owned())),
+			Err(err) => err,
 		};
 
 		println!("Editor base is not available, Error: {err}");
@@ -411,10 +407,13 @@ fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 }
 
 /// Helper function for [`get_editor_base`] to test the input argument if it is fully executeable
-fn test_editor_base_valid(path: &Path) -> Result<(), ioError> {
+fn test_editor_base_valid(path: &Path) -> Result<(), crate::Error> {
 	// this function currently does not much, but is here for future additions
 	if path.as_os_str().is_empty() {
-		return Err(ioError::new(std::io::ErrorKind::NotFound, "Editor base is empty!"));
+		return Err(crate::Error::custom_ioerror(
+			std::io::ErrorKind::NotFound,
+			"Editor base is empty!",
+		));
 	}
 
 	return Ok(());
@@ -463,7 +462,7 @@ pub fn fix_path<P: AsRef<Path>>(ip: P) -> Option<PathBuf> {
 	return libytdlr::utils::expand_tidle(ip);
 }
 
-/// Helper struct for [truncate_to_size_bytes] instead of having to use a tuple with unnamed fields
+/// Helper struct for [msg_to_cluster] instead of having to use a tuple with unnamed fields
 #[derive(Debug, PartialEq)]
 pub struct CharInfo<'a> {
 	/// Index of character in the characters vec
@@ -486,7 +485,7 @@ where
 	let msg = msg.as_ref();
 
 	let mut display_position = 0; // keep track of the actual displayed position
-	let mut size_bytes_to = 0; // keep track of how much bytes all the previous plus the current take
+	let mut size_bytes_to = 0; // keep track of how much bytes all the previous characters plus the current take
 
 	return msg
 		.grapheme_indices(true)
