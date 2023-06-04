@@ -2,5 +2,4 @@
 pub mod archive;
 pub mod download;
 pub mod rethumbnail;
-// pub mod check_archive; // checkarchive command
 pub mod sql_utils;
