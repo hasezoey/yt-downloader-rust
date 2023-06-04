@@ -226,7 +226,12 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	for (index, line) in lines_iter.enumerate() {
 		// evaluate result, then redefine variable as without result
-		let line = line?;
+		let _line = line?;
+		let line = _line.trim();
+
+		if line.is_empty() {
+			continue;
+		}
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(&line) {
 			let affected = insert_insmedia(
@@ -249,10 +254,10 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	}
 
 	// Error if no valid lines have been found from the reader
-	if affected_rows == 0 {
-		return Err(crate::Error::no_captures(format!(
-			"No valid lines have been found from the reader! Failed Captures: {failed_captures}"
-		)));
+	if failed_captures {
+		return Err(crate::Error::no_captures(
+			"No valid lines have been found from the reader!",
+		));
 	}
 
 	pgcb(ImportProgress::Finished(affected_rows));
@@ -608,22 +613,16 @@ mod test {
 
 			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
-			assert!(res0.is_err());
-			assert_eq!(
-				Err(crate::Error::no_captures(
-					"No valid lines have been found from the reader! Failed Captures: false"
-				)),
-				res0
-			);
+			assert!(res0.is_ok());
 
-			let string0 = "   ";
+			let string0 = "notvalid";
 
 			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_err());
 			assert_eq!(
 				Err(crate::Error::no_captures(
-					"No valid lines have been found from the reader! Failed Captures: true"
+					"No valid lines have been found from the reader!"
 				)),
 				res0
 			);
