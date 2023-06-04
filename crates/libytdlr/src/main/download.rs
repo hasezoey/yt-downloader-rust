@@ -360,11 +360,6 @@ impl LineType {
 			return Some(Self::ProviderSpecific);
 		}
 
-		// check for Generic lines that dont have a prefix
-		if GENERIC_TYPE_REGEX.is_match(input) {
-			return Some(Self::Generic);
-		}
-
 		// matches both "PARSE_START" and "PARSE_END"
 		if input.starts_with("PARSE") {
 			return Some(Self::Custom);
@@ -376,6 +371,11 @@ impl LineType {
 
 		if input.starts_with("MOVE") {
 			return Some(Self::Custom);
+		}
+
+		// check for Generic lines that dont have a prefix
+		if GENERIC_TYPE_REGEX.is_match(input) {
+			return Some(Self::Generic);
 		}
 
 		if ERROR_TYPE_REGEX.is_match(input) {
