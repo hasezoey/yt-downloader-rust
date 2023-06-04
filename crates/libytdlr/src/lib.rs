@@ -8,7 +8,7 @@
 extern crate log;
 
 pub mod data;
-mod error;
+pub mod error;
 pub mod main;
 pub mod spawn;
 pub mod traits;
