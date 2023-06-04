@@ -440,7 +440,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 
 	// already create the vec for finished media, so that the finished ones can be stored in case of error
 	let mut finished_media = MediaInfoArr::new();
-	let mut recovery = Recovery::new(download_state.get_download_path().join(format!(
+	let mut recovery = Recovery::new(download_state.download_path().join(format!(
 		"{}{}",
 		Recovery::RECOVERY_PREFIX,
 		std::process::id()
@@ -449,16 +449,15 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	// recover files that are not in a recovery but are still considered editable
 	// only do this in "only_recovery" mode (no urls) to not accidentally use from other processes
 	if only_recovery {
-		for media in utils::find_editable_files(download_state.get_download_path())? {
+		for media in utils::find_editable_files(download_state.download_path())? {
 			finished_media.insert_with_comment(media, "Found Editable File");
 		}
 	}
 
-	find_and_remove_tmp_archive_files(download_state.get_download_path())?;
+	find_and_remove_tmp_archive_files(download_state.download_path())?;
 
 	// run AFTER finding all files, so that the correct filename is already set for files, and only information gets updated
-	let found_recovery_files =
-		try_find_and_read_recovery_files(&mut finished_media, download_state.get_download_path())?;
+	let found_recovery_files = try_find_and_read_recovery_files(&mut finished_media, download_state.download_path())?;
 
 	// TODO: consider cross-checking archive if the files from recovery are already in the archive and get a proper title
 
@@ -519,7 +518,7 @@ fn download_wrapper(
 		info!("Skipping download because of \"only_recovery\"");
 	}
 
-	let download_path = download_state.get_download_path();
+	let download_path = download_state.download_path();
 	// determines wheter the "reverse" argument for "edit_media" is set
 	let mut looped_once = false;
 

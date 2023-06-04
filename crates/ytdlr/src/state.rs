@@ -2,10 +2,7 @@
 
 use std::{
 	cell::Cell,
-	path::{
-		Path,
-		PathBuf,
-	},
+	path::PathBuf,
 };
 
 use libytdlr::{
@@ -78,11 +75,6 @@ impl<'a> DownloadState<'a> {
 		} else {
 			self.count_estimate.replace(count);
 		}
-	}
-
-	/// Get the "download_path" stored in the instance as reference
-	pub fn get_download_path(&self) -> &Path {
-		return &self.download_path;
 	}
 }
 
