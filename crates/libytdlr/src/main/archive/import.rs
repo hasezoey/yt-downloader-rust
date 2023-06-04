@@ -174,20 +174,16 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	pgcb(ImportProgress::SizeHint(input_archive.get_videos().len()));
 
-	let mut bulk_values: Vec<InsMedia> = Vec::with_capacity(input_archive.get_videos().len());
+	let mut affected_rows = 0usize;
 
 	for (index, video) in input_archive.get_videos().iter().enumerate() {
 		pgcb(ImportProgress::Increase(1, index));
 
 		let filename = REMOVE_KNOWN_FILEEXTENSION.replace_all(video.file_name(), "");
 
-		bulk_values.push(InsMedia::new(video.id(), String::from(video.provider()), filename));
-	}
+		let insmedia = InsMedia::new(video.id(), String::from(video.provider()), filename);
 
-	let mut affected_rows = 0usize;
-
-	for val in bulk_values.iter() {
-		let affected = insert_insmedia(val, merge_to)?;
+		let affected = insert_insmedia(&insmedia, merge_to)?;
 
 		affected_rows += affected;
 	}
