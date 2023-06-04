@@ -8,7 +8,12 @@ use std::{
 	path::Path,
 };
 
-use super::archive::import::ImportProgress;
+use super::archive::import::{
+	detect_archive_type,
+	import_ytdlr_json_archive,
+	ArchiveType,
+	ImportProgress,
+};
 
 /// All migrations from "libytdlr/migrations" embedded into the binary
 pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
@@ -16,6 +21,7 @@ pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations:
 /// Open a SQLite Connection for `sqlite_path` and apply sqlite migrations
 /// does not migrate archive formats, use [migrate_and_connect] instead
 pub fn sqlite_connect<P: AsRef<Path>>(sqlite_path: P) -> Result<SqliteConnection, crate::Error> {
+	// having to convert the path to "str" because diesel (and underlying sqlite library) only accept strings
 	return match sqlite_path.as_ref().to_str() {
 		Some(path) => {
 			let mut connection = SqliteConnection::establish(path)?;
@@ -42,7 +48,7 @@ fn apply_sqlite_migrations(connection: &mut SqliteConnection) -> Result<(), crat
 /// Check if the input path is a sql database, if not migrate to sql and return new path and open connection
 /// Parameter `pgcb` will be used when migration will be applied
 ///
-/// This function is intendet to be used over [`sqlite_connect`] in all non-test cases
+/// This function is intended to be used over [`sqlite_connect`] in all non-test cases
 pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	archive_path: &Path,
 	pgcb: S,
@@ -70,10 +76,10 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 
 		let mut sqlite_path_reader = BufReader::new(File::open(&migrate_to_path)?);
 		return Ok(
-			match crate::main::archive::import::detect_archive_type(&mut sqlite_path_reader)? {
-				super::archive::import::ArchiveType::Unknown => return Err(crate::Error::other(format!("Migrate-To Path already exists, but is of unknown type! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
-				super::archive::import::ArchiveType::JSON => return Err(crate::Error::other(format!("Migrate-To Path already exists and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
-				super::archive::import::ArchiveType::SQLite => {
+			match detect_archive_type(&mut sqlite_path_reader)? {
+				ArchiveType::Unknown => return Err(crate::Error::other(format!("Migrate-To Path already exists, but is of unknown type! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
+				ArchiveType::JSON => return Err(crate::Error::other(format!("Migrate-To Path already exists and is a JSON archive, please rename it and retry the migration! (Path: \"{}\")", migrate_to_path.to_string_lossy()))),
+				ArchiveType::SQLite => {
 					// this has to be done before, because the following ".into" call will move the value
 					let connection = sqlite_connect(&migrate_to_path)?;
 
@@ -85,38 +91,32 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 
 	let mut input_archive_reader = BufReader::new(File::open(archive_path)?);
 
-	return Ok(
-		match crate::main::archive::import::detect_archive_type(&mut input_archive_reader)? {
-			super::archive::import::ArchiveType::Unknown => {
-				return Err(crate::Error::other(
-					"Unknown Archive type to migrate, maybe try importing",
-				))
-			},
-			super::archive::import::ArchiveType::JSON => {
-				debug!("Applying Migration from JSON to SQLite");
-
-				// handle case where the input path matches the changed path
-				if migrate_to_path == archive_path {
-					return Err(crate::Error::other(
-						"Migration cannot be done: Input path matches output path (setting extension to \".db\")",
-					));
-				}
-
-				let mut connection = sqlite_connect(&migrate_to_path)?;
-
-				crate::main::archive::import::import_ytdlr_json_archive(
-					&mut input_archive_reader,
-					&mut connection,
-					pgcb,
-				)?;
-
-				debug!("Migration from JSON to SQLite done");
-
-				(migrate_to_path.into(), connection)
-			},
-			super::archive::import::ArchiveType::SQLite => (archive_path.into(), sqlite_connect(archive_path)?),
+	return Ok(match detect_archive_type(&mut input_archive_reader)? {
+		ArchiveType::Unknown => {
+			return Err(crate::Error::other(
+				"Unknown Archive type to migrate, maybe try importing",
+			))
 		},
-	);
+		ArchiveType::JSON => {
+			debug!("Applying Migration from JSON to SQLite");
+
+			// handle case where the input path matches the changed path
+			if migrate_to_path == archive_path {
+				return Err(crate::Error::other(
+					"Migration cannot be done: Input path matches output path (setting extension to \".db\")",
+				));
+			}
+
+			let mut connection = sqlite_connect(&migrate_to_path)?;
+
+			import_ytdlr_json_archive(&mut input_archive_reader, &mut connection, pgcb)?;
+
+			debug!("Migration from JSON to SQLite done");
+
+			(migrate_to_path.into(), connection)
+		},
+		ArchiveType::SQLite => (archive_path.into(), sqlite_connect(archive_path)?),
+	});
 }
 
 #[cfg(test)]

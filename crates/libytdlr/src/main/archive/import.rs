@@ -82,9 +82,8 @@ pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, cr
 }
 
 /// Detect what archive is given and call the right function
-/// Calls [`import_ytdl_archive`] when its a ytdl archive and [`import_ytdlr_json_archive`] when its a ytdl-r archive
 ///
-/// This function modifies the input `archive`, and so will return `()`
+/// This function modifies the input `merge_to` archive, and so will return `()`
 pub fn import_any_archive<S: FnMut(ImportProgress)>(
 	input_path: &Path,
 	merge_to: &mut SqliteConnection,
@@ -104,7 +103,7 @@ pub fn import_any_archive<S: FnMut(ImportProgress)>(
 
 /// Import a YTDL-Rust (sqlite) Archive
 ///
-/// This function modifies the input `archive`, and so will return `()`
+/// This function modifies the input `merge_to` archive, and so will return `()`
 pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 	input_path: &Path,
 	merge_to: &mut SqliteConnection,
@@ -162,7 +161,7 @@ static REMOVE_KNOWN_FILEEXTENSION: Lazy<Regex> = Lazy::new(|| {
 
 /// Import a YTDL-Rust (json) Archive
 ///
-/// This function modifies the input `archive`, and so will return `()`
+/// This function modifies the input `merge_to` archive, and so will return `()`
 pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
 	merge_to: &mut SqliteConnection,
@@ -211,13 +210,13 @@ static YTDL_ARCHIVE_LINE_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 /// Import a youtube-dl Archive
 ///
-/// This function modifies the input `archive`, and so will return `()`
+/// This function modifies the input `merge_to` archive, and so will return `()`
 pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	reader: &mut T,
 	merge_to: &mut SqliteConnection,
 	mut pgcb: S,
 ) -> Result<(), crate::Error> {
-	log::debug!("import ytdl-rust archive");
+	log::debug!("import youtube-dl archive");
 
 	pgcb(ImportProgress::Starting);
 
@@ -227,7 +226,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 		pgcb(ImportProgress::SizeHint(size_hint));
 	}
 
-	let mut successfull = 0usize;
+	let mut affected_rows = 0usize;
 	let mut failed_captures = false;
 
 	for (index, line) in lines_iter.enumerate() {
@@ -244,7 +243,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 				merge_to,
 			)?;
 
-			successfull += affected;
+			affected_rows += affected;
 			pgcb(ImportProgress::Increase(1, index));
 		} else {
 			failed_captures = true;
@@ -255,13 +254,13 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 	}
 
 	// Error if no valid lines have been found from the reader
-	if successfull == 0 {
+	if affected_rows == 0 {
 		return Err(crate::Error::no_captures(format!(
 			"No valid lines have been found from the reader! Failed Captures: {failed_captures}"
 		)));
 	}
 
-	pgcb(ImportProgress::Finished(successfull));
+	pgcb(ImportProgress::Finished(affected_rows));
 
 	return Ok(());
 }

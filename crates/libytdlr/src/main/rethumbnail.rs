@@ -1,7 +1,10 @@
 //! Module for Re-Applying Thumbnails to media
 
 use std::{
-	ffi::OsString,
+	ffi::{
+		OsStr,
+		OsString,
+	},
 	io::{
 		BufRead,
 		BufReader,
@@ -52,6 +55,7 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 		output_path_tmp.set_file_name(stem);
 	}
 
+	// track if the image was converted and should be removed afterwards
 	let mut is_tmp_image = false;
 	// image path to a jpg image
 	let image_path = {
@@ -81,7 +85,7 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 }
 
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
-/// Will not apply any image convertion
+/// Will not apply any image conversion
 ///
 /// To Automatically handle with a temporary file, use [`re_thumbnail_with_tmp`]
 pub fn re_thumbnail<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
@@ -145,7 +149,7 @@ fn re_thumbnail_build_ffmpeg_cmd(
 
 /// Re-Apply a thumbnail from `image` onto `media` as `output` with base command `cmd`
 ///
-/// This function should not be called directly, use [`re_thumbnail`] instead
+/// This function should not be called directly, use [`re_thumbnail`] or [`re_thumbnail_with_tmp`] instead
 pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 	mut cmd: std::process::Command,
 	media: M,
@@ -284,7 +288,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 
 	// check if the input path is already a jpg, if it is do not apply ffmpeg
 	if let Some(ext) = image_path.extension() {
-		if ext == Path::new("jpg") {
+		if ext == OsStr::new("jpg") {
 			return Ok(image_path.to_owned());
 		}
 	}

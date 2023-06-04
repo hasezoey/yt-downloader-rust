@@ -26,19 +26,24 @@ use crate::{
 pub enum DownloadProgress {
 	/// Variant representing that the download is starting
 	AllStarting,
-	/// Variant representing that a media has started the process (id, title)
+	/// Variant representing that a media has started the process
+	/// values: (id, title)
 	SingleStarting(String, String),
-	/// Variant representing that a started media has increased in progress (id, progress)
+	/// Variant representing that a started media has increased in progress
 	/// "id" may be [`None`] when the previous parsing did not parse a title
+	/// values:  (id, progress)
 	SingleProgress(Option<String>, u8),
-	/// Variant representing that a media has finished the process (id)
+	/// Variant representing that a media has finished the process
 	/// the "id" is not guranteed to be the same as in [`DownloadProgress::SingleStarting`]
+	/// values: (id)
 	SingleFinished(String),
-	/// Variant representing that the download has finished (downloaded media count)
+	/// Variant representing that the download has finished
 	/// The value in this tuple is the size of actually downloaded media, not just found media
+	/// values: (downloaded media count)
 	AllFinished(usize),
 	/// Variant representing that playlist info has been found - may not trigger if not in a playlist
 	/// the first (and currently only) value is the count of media in the playlist
+	/// values: (playlist_count)
 	PlaylistInfo(usize),
 }
 
@@ -119,6 +124,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 }
 
 /// Internal Struct for easily adding various types that resolve to [`OsString`] and output a [`Vec<OsString>`]
+/// exists because [std::process::Command] is too overkill to use for a argument collection for having to use [duct] later
 struct ArgsHelper(Vec<OsString>);
 impl ArgsHelper {
 	/// Create a new instance of ArgsHelper
@@ -202,25 +208,24 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 
 	// apply options to make output audio-only
 	if options.audio_only() {
-		// set the output format
+		// set the format that should be downloaded
 		ytdl_args.arg("-f").arg("bestaudio/best");
 		// set ytdl to always extract the audio, if it is not already audio-only
 		ytdl_args.arg("-x");
 		// set the output audio format
 		ytdl_args.arg("--audio-format").arg("mp3");
 	} else {
+		// set the format that should be downloaded
 		ytdl_args.arg("-f").arg("bestvideo+bestaudio/best");
 		// set final consistent output format
 		ytdl_args.arg("--remux-video").arg("mkv");
 	}
 
-	{
-		// embed the videoo thumbnail if available into the output container
-		ytdl_args.arg("--embed-thumbnail");
+	// embed the videoo thumbnail if available into the output container
+	ytdl_args.arg("--embed-thumbnail");
 
-		// add metadata to the container if the container supports it
-		ytdl_args.arg("--add-metadata");
-	}
+	// add metadata to the container if the container supports it
+	ytdl_args.arg("--add-metadata");
 
 	// the following is mainly because of https://github.com/yt-dlp/yt-dlp/issues/4227
 	ytdl_args.arg("--convert-thumbnails").arg("webp>jpg"); // convert webp thumbnails to jpg
@@ -242,29 +247,31 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 		ytdl_args.arg("--ppa").arg("EmbedSubtitle:-disposition:s:0 default"); // set stream 0 as default
 	}
 
-	// set custom logging for easy parsing
+	// set custom ytdl logging for easy parsing
+	{
+		// print playlist information when available
+		// TODO: replace with "before_playlist" once available, see https://github.com/yt-dlp/yt-dlp/issues/7034
+		ytdl_args
+			.arg("--print")
+			// print the playlist count to get a sizehint
+			.arg("before_dl:PLAYLIST '%(playlist_count)s'");
 
-	// print playlist information when available
-	// TODO: replace with "before_playlist" once available, see https://github.com/yt-dlp/yt-dlp/issues/7034
-	ytdl_args
-		.arg("--print")
-		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
-		.arg("before_dl:PLAYLIST '%(playlist_count)s'");
+		// print once before the video starts to download to get all information and to get a consistent start point
+		ytdl_args
+			.arg("--print")
+			.arg("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s");
+		// print once after the video got fully processed to get a consistent end point
+		ytdl_args
+			.arg("--print")
+			// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
+			.arg("after_video:PARSE_END '%(extractor)s' '%(id)s'");
 
-	// print once before the video starts to download to get all information and to get a consistent start point
-	ytdl_args
-		.arg("--print")
-		.arg("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s");
-	// print once after the video got fully processed to get a consistent end point
-	ytdl_args
-		.arg("--print")
-		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
-		.arg("after_video:PARSE_END '%(extractor)s' '%(id)s'");
-	// print once after the video got fully processed to get a consistent end point
-	ytdl_args
-		.arg("--print")
-		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
-		.arg("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s");
+		// print after move to get the filepath of the final output file
+		ytdl_args
+			.arg("--print")
+			// includes "extractor" and "id" for identifying which media the filepath is for
+			.arg("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s");
+	}
 
 	// ensure ytdl is printing progress reports
 	ytdl_args.arg("--progress");
@@ -288,7 +295,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	return Ok(ytdl_args.into());
 }
 
-/// Helper Enum for differentiating [`LineType::Custom`] from "START" and "END"
+/// Helper Enum for differentiating [`LineType::Custom`] types like "PARSE_START" and "PARSE_END"
 #[derive(Debug, PartialEq, Clone)]
 enum CustomParseType {
 	Start(MediaInfo),
@@ -402,23 +409,22 @@ impl LineType {
 		if let Some(cap) = DOWNLOAD_PERCENTAGE_REGEX.captures(input) {
 			let percent_str = &cap[1];
 
-			// directly use the "Result"returned by "from_str_radix" and convert it to a "Option"
+			// directly use the "Result" returned by "from_str_radix" and convert it to a "Option"
 			return percent_str.parse::<u8>().ok();
 		}
 
 		return None;
 	}
 
-	/// Try to get the Custom Set Parse helper from input
-	/// Retrun [`None`] if not being of variant [`LineType::Custom`] or if not parse helper can be found
-	/// Tuple fields: (mediaprovider, id, title)
+	/// Try to parse the custom parse-helpers like "PARSE_START"
+	/// Retruns [`None`] if not being of variant [`LineType::Custom`] or if no parse helper can be found
 	pub fn try_get_parse_helper<I: AsRef<str>>(&self, input: I) -> Option<CustomParseType> {
 		// this function only works with Custom lines
 		if self != &Self::Custom {
 			return None;
 		}
 
-		/// Regex to get all information from the Parsing helper "START" and "END"
+		/// Regex to get all information from the Parsing helper "PARSE_START" and "PARSE_END"
 		static PARSE_START_END_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?mi)^PARSE_(START|END) '([^']+)' '([^']+)'(?: (.+))?$").unwrap();
 		});
@@ -493,7 +499,6 @@ impl LineType {
 /// Returns all processed (not skipped) Medias as [`Vec<MediaInfo>`]
 #[inline]
 fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
-	// connection: Option<&mut SqliteConnection>,
 	options: &A,
 	mut pgcb: C,
 	reader: R,
@@ -522,6 +527,10 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 			match linetype {
 				// currently there is nothing that needs to be done with "Ffmpeg" lines
 				LineType::Ffmpeg => (),
+				// currently there is nothing that needs to be done with "ProviderSpecific" Lines, thanks to "--print"
+				LineType::ProviderSpecific => (),
+				// currently there is nothing that needs to be done with "Generic" Lines
+				LineType::Generic => (),
 				LineType::Download => {
 					had_download = true;
 					if let Some(percent) = linetype.try_get_download_percent(line) {
@@ -530,27 +539,21 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 						pgcb(DownloadProgress::SingleProgress(id, percent));
 					}
 				},
-				// currently there is nothing that needs to be done with "ProviderSpecific" Lines, thanks to "--print"
-				LineType::ProviderSpecific => (),
-				// currently there is nothing that needs to be done with "Generic" Lines
-				LineType::Generic => (),
 				LineType::Custom => {
 					if let Some(parsed_type) = linetype.try_get_parse_helper(line) {
 						match parsed_type {
 							CustomParseType::Start(mi) => {
 								debug!(
-									"Found PARSE_START: \"{}\" \"{:?}\" \"{:?}\"",
+									"Found PARSE_START: \"{}\" \"{}\" \"{:?}\"",
 									mi.id, mi.provider, mi.title
 								);
 								if current_mediainfo.is_some() {
 									warn!("Found PARSE_START, but \"current_mediainfo\" is still \"Some\"");
 								}
 								current_mediainfo = Some(mi);
-								// the following uses "expect", because the option has been set by the previous line
-								let c_mi = current_mediainfo
-									.as_ref()
-									.expect("current_mediainfo should have been set");
-								// the following also uses "expect", because "try_get_parse_helper" is guranteed to return with id, title, provider
+								// the following uses "unwrap", because the option has been set by the previous line
+								let c_mi = current_mediainfo.as_ref().unwrap();
+								// the following also uses "expect", because "try_get_parse_helper" is guranteed to return with id, title, provider for "PARSE_START"
 								let title = c_mi
 									.title
 									.as_ref()
@@ -558,13 +561,15 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 								pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()))
 							},
 							CustomParseType::End(mi) => {
-								debug!("Found PARSE_END: \"{}\" \"{:?}\"", mi.id, mi.provider);
+								debug!("Found PARSE_END: \"{}\" \"{}\"", mi.id, mi.provider);
 								pgcb(DownloadProgress::SingleFinished(mi.id.clone()));
 
 								if let Some(last_mediainfo) = current_mediainfo.take() {
 									if mi.id != last_mediainfo.id {
 										// warn in the weird case where the "current_mediainfo" and result from PARSE_END dont match
-										warn!("Found PARSE_END, but the ID's dont match with \"current_mediainfo\"!");
+										warn!(
+											"Found PARSE_END, but the ID does dont match with \"current_mediainfo\"!"
+										);
 									}
 
 									// do not add videos to "mediainfo_vec", unless the media had actually been downloaded
@@ -584,7 +589,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 								pgcb(DownloadProgress::PlaylistInfo(count));
 							},
 							CustomParseType::Move(mi) => {
-								debug!("Found MOVE: \"{}\" \"{:?}\" \"{:?}\"", mi.id, mi.provider, mi.filename);
+								debug!("Found MOVE: \"{}\" \"{}\" \"{:?}\"", mi.id, mi.provider, mi.filename);
 
 								if let Some(last_mediainfo) = current_mediainfo.as_mut() {
 									last_mediainfo.set_filename(
@@ -593,7 +598,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 										),
 									);
 								} else {
-									debug!("Found MOVE, but did not have a current_mediainfo");
+									warn!("Found MOVE, but did not have a current_mediainfo");
 								}
 							},
 						}

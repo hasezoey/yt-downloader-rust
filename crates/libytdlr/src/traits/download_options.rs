@@ -21,7 +21,7 @@ pub trait DownloadOptions {
 		-> Option<Box<dyn Iterator<Item = String> + '_>>;
 	/// Get the URL to download
 	fn get_url(&self) -> &str;
-	/// Get wheter or not to print out Command STDOUT (in this case ytdl)
+	/// Get whether or not to print out Command STDOUT (in this case ytdl)
 	/// STDERR is always printed (using [`log::trace`])
 	/// With this returning `true`, the STDOUT output is also printed with [`log::trace`]
 	fn print_command_stdout(&self) -> bool;
