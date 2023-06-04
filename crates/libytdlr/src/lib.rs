@@ -1,6 +1,7 @@
 //! Library of "YTDL-Rust", contains all the logic needed for the binary
 
 #![allow(clippy::needless_return)]
+#![allow(special_module_name)] // because of module "main", dont have a better name for that
 #![warn(clippy::implicit_return)]
 // #![deny(missing_docs)]
 
