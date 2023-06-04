@@ -125,6 +125,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 
 /// Internal Struct for easily adding various types that resolve to [`OsString`] and output a [`Vec<OsString>`]
 /// exists because [std::process::Command] is too overkill to use for a argument collection for having to use [duct] later
+#[derive(Debug)]
 struct ArgsHelper(Vec<OsString>);
 impl ArgsHelper {
 	/// Create a new instance of ArgsHelper
