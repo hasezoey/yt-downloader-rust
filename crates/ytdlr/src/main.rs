@@ -76,7 +76,7 @@ fn main() -> Result<(), crate::Error> {
 
 	let cli_matches = CliDerive::custom_parse()?;
 
-	if cli_matches.debug_enabled() {
+	if cli_matches.debugger_enabled() {
 		warn!("Requesting Debugger");
 
 		#[cfg(debug_assertions)]
