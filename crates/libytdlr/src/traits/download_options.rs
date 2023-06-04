@@ -17,8 +17,6 @@ pub trait DownloadOptions {
 	fn download_path(&self) -> &Path;
 	/// Get a iterator over all the lines for a ytdl archive
 	/// All required videos should be made available with this function
-	/// For example if [`crate::main::count::count`] was used, it should be those matched against the SQL Archive, and those existing in both should be output
-	/// Otherwise, the whole SQL Archive could also be output, but may result in very large ytdl files
 	fn gen_archive<'a>(&'a self, connection: &'a mut SqliteConnection)
 		-> Option<Box<dyn Iterator<Item = String> + '_>>;
 	/// Get the URL to download
@@ -30,7 +28,6 @@ pub trait DownloadOptions {
 	/// Get a estimate of how many media elements will be downloaded in this run
 	/// This could commonly be the playlist count that youtube-dl outputs
 	/// if no count is available, a minimal count of 1 should be returned
-	/// This commonly should be the length of the vec containing [`crate::main::count::CountVideo`] returned from [`crate::main::count::count`]
 	fn get_count_estimate(&self) -> usize;
 	/// Get which subtitle languages to download
 	/// see <https://github.com/yt-dlp/yt-dlp#subtitle-options> for what is available

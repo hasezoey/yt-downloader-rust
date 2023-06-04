@@ -251,7 +251,7 @@ where
 #[value(rename_all = "camelCase")]
 #[allow(clippy::upper_case_acronyms)]
 pub enum SearchResultFormat {
-	/// Output as: "[provider:media_id] [inserted_at] title"
+	/// Output as: `[provider:media_id] [inserted_at] title`
 	Normal,
 	/// Output as CSV, Command delimited
 	CSVC,
