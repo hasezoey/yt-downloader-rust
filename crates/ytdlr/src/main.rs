@@ -72,7 +72,7 @@ static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
 
 /// Main
 fn main() -> Result<(), crate::Error> {
-	let logger_handle = logger::setup_logger()?;
+	let logger_handle = logger::setup_logger();
 
 	let cli_matches = CliDerive::custom_parse()?;
 
