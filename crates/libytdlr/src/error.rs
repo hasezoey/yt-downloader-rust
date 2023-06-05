@@ -3,6 +3,7 @@
 use std::{
 	backtrace::Backtrace,
 	io::Error as ioError,
+	thread::JoinHandle,
 };
 
 /// Macro to not repeat having to do multiple implementations of a [ErrorInner] variant with the same string type
@@ -59,6 +60,21 @@ impl Error {
 	fn_string!(command_unsuccessful, ErrorInner::CommandNotSuccesful);
 	fn_string!(not_a_directory, ErrorInner::NotADirectory);
 	fn_string!(not_a_file, ErrorInner::NotAFile);
+
+	/// Map a [std::thread::JoinHandle::join] error to a [Error] with a thread name
+	fn map_thread_join<N: AsRef<str>>(name: N) -> impl Fn(Box<dyn std::any::Any + Send + 'static>) -> Self {
+		return move |from| {
+			let name = name.as_ref().to_owned();
+			if let Some(v) = from.downcast_ref::<String>() {
+				return Self::new(ErrorInner::ThreadJoinError(v.clone(), name));
+			}
+			if let Some(v) = from.downcast_ref::<&str>() {
+				return Self::new(ErrorInner::ThreadJoinError(v.to_string(), name));
+			}
+
+			return Self::new(ErrorInner::ThreadJoinError("unknown error".into(), name));
+		};
+	}
 }
 
 impl PartialEq for Error {
@@ -125,6 +141,9 @@ pub enum ErrorInner {
 	/// Variant for when a file path was expected but did not exist yet or was not a file
 	#[error("NotAFile: {0}")]
 	NotAFile(String),
+	/// Variant for thread join errors
+	#[error("ThreadJoinError: name: \"{1}\" original error: {0}")]
+	ThreadJoinError(String, String),
 	/// Variant for Other messages
 	#[error("Other: {0}")]
 	Other(String),
@@ -148,5 +167,18 @@ impl PartialEq for ErrorInner {
 
 			(_, _) => return false,
 		}
+	}
+}
+
+/// Custom [std::thread::JoinHandle::join] implementation to return a [Error] with thread name
+pub trait CustomThreadJoin<T> {
+	/// Custom thread join method for libytdlr so that errors are automatically mapped to the current error type and have the named from the thread
+	fn join_err(self) -> Result<T, crate::Error>;
+}
+
+impl<T> CustomThreadJoin<T> for JoinHandle<T> {
+	fn join_err(self) -> Result<T, crate::Error> {
+		let name = self.thread().name().unwrap_or("<unnamed>").to_owned();
+		return self.join().map_err(crate::Error::map_thread_join(name));
 	}
 }

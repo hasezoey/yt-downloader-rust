@@ -17,6 +17,8 @@ use std::{
 	process::Stdio,
 };
 
+use crate::error::CustomThreadJoin;
+
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
 /// Where the output is added with a "tmp" to the `output` until finished
 /// Will convert input images to jpg
@@ -188,7 +190,7 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 				.for_each(|line| log::info!("ffmpeg STDERR: {}", line));
 		})?;
 
-	stderrreader_thread.join().expect("STDERR Reader Thread Join Failed");
+	stderrreader_thread.join_err()?;
 
 	let exit_status = child.wait()?;
 
@@ -337,9 +339,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	let ffmpeg_child_exit_status = ffmpeg_child.wait()?;
 
 	// wait until the stderr thread has exited
-	ffmpeg_child_stderr_thread.join().map_err(|err| {
-		return crate::Error::other(format!("Joining the ffmpeg_stderr STDERR handle failed: {err:?}"));
-	})?;
+	ffmpeg_child_stderr_thread.join_err()?;
 
 	if !ffmpeg_child_exit_status.success() {
 		return Err(match ffmpeg_child_exit_status.code() {

@@ -11,6 +11,7 @@ use indicatif::{
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
 	diesel::SqliteConnection,
+	error::CustomThreadJoin,
 	main::archive::import::ImportProgress,
 	spawn::{
 		ffmpeg::ffmpeg_version,
@@ -238,7 +239,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 		{
 			let (tx, rx) = mpsc::channel::<Result<String, ioError>>();
 			let read_thread = std::thread::Builder::new()
-				.name("ffmpeg stderr handler".to_owned())
+				.name("input reader".to_owned())
 				.spawn(move || {
 					// input buffer for "read_line", 1 capacity, because of only expecting 1 character
 					let mut input = String::with_capacity(1);
@@ -269,9 +270,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 				std::thread::sleep(std::time::Duration::from_millis(50)); // sleep 50ms to not immediately try again, but still be responding
 			}
 
-			read_thread
-				.join()
-				.map_err(|_| return crate::Error::other("Failed to join stdin reading thread"))?;
+			read_thread.join_err()?;
 		}
 
 		let input = input.trim().to_lowercase();
