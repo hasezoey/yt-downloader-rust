@@ -11,6 +11,8 @@ use std::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use crate::error::IOErrorToError;
+
 /// Create a Command with basic ffmpeg options
 #[inline]
 pub fn base_ffmpeg(overwrite: bool) -> Command {
@@ -64,8 +66,10 @@ pub fn ffmpeg_version() -> Result<String, crate::Error> {
 		.stderr(Stdio::null())
 		.stdout(Stdio::piped())
 		.stdin(Stdio::null())
-		.spawn()?
-		.wait_with_output()?;
+		.spawn()
+		.attach_location_err("ffmpeg spawn")?
+		.wait_with_output()
+		.attach_location_err("ffmpeg wait_with_output")?;
 
 	let as_string = String::from_utf8(command_output.stdout)?;
 
@@ -101,8 +105,10 @@ where
 		.stderr(Stdio::piped()) // using stderr, because ffmpeg outputs this data on stderr
 		.stdout(Stdio::null())
 		.stdin(Stdio::null())
-		.spawn()?
-		.wait_with_output()?;
+		.spawn()
+		.attach_location_err("ffmpeg spawn")?
+		.wait_with_output()
+		.attach_location_err("ffmpeg wait_with_output")?;
 
 	let mut was_success = true;
 

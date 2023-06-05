@@ -11,11 +11,17 @@ use indicatif::{
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
 	diesel::SqliteConnection,
-	error::CustomThreadJoin,
+	error::{
+		CustomThreadJoin,
+		IOErrorToError,
+	},
 	main::archive::import::ImportProgress,
 	spawn::{
 		ffmpeg::ffmpeg_version,
-		ytdl::ytdl_version,
+		ytdl::{
+			ytdl_version,
+			YTDL_BIN_NAME,
+		},
 	},
 };
 use std::{
@@ -50,15 +56,16 @@ pub fn set_progressbar(bar: &ProgressBar, main_args: &CliDerive) {
 }
 
 /// Test if ytdl is installed and reachable, including required dependencies like ffmpeg
-pub fn require_ytdl_installed() -> Result<(), ioError> {
+pub fn require_ytdl_installed() -> Result<(), crate::Error> {
 	require_ffmpeg_installed()?;
 
 	if let Err(err) = ytdl_version() {
 		log::error!("Could not start or find youtube-dl! Error: {}", err);
 
-		return Err(ioError::new(
+		return Err(crate::Error::custom_ioerror_location(
 			std::io::ErrorKind::NotFound,
 			"Youtube-DL(p) Version could not be determined, is it installed and reachable?",
+			format!("{} in PATH", YTDL_BIN_NAME),
 		));
 	}
 
@@ -66,13 +73,14 @@ pub fn require_ytdl_installed() -> Result<(), ioError> {
 }
 
 /// Test if FFMPEG is installed and reachable
-pub fn require_ffmpeg_installed() -> Result<(), ioError> {
+pub fn require_ffmpeg_installed() -> Result<(), crate::Error> {
 	if let Err(err) = ffmpeg_version() {
 		log::error!("Could not start or find ffmpeg! Error: {}", err);
 
-		return Err(ioError::new(
+		return Err(crate::Error::custom_ioerror_location(
 			std::io::ErrorKind::NotFound,
 			"FFmpeg Version could not be determined, is it installed and reachable?",
+			"ffmpeg in PATH",
 		));
 	}
 
@@ -138,7 +146,7 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 	let mut mediainfo_vec: Vec<MediaInfo> = Vec::default();
 
 	// do a loop over each element in the directory, and filter out paths that are not valid / accessable
-	for entry in (std::fs::read_dir(path)?).flatten() {
+	for entry in (std::fs::read_dir(path).attach_path_err(path)?).flatten() {
 		if let Some(mediainfo) = process_path_for_editable_files(entry.path()) {
 			mediainfo_vec.push(mediainfo);
 		}
@@ -232,7 +240,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 	loop {
 		print!("{msg} [{possible_converted_string}]: ");
 		// ensure the message is printed before reading
-		std::io::stdout().flush()?;
+		std::io::stdout().flush().attach_location_err("stdout flush")?;
 		let input: String;
 
 		// the following has to be done because "read_line" is blocking, but the ctrlc handler should still be able to work
@@ -244,7 +252,8 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 					// input buffer for "read_line", 1 capacity, because of only expecting 1 character
 					let mut input = String::with_capacity(1);
 					let _ = tx.send(std::io::stdin().read_line(&mut input).map(|_| return input));
-				})?;
+				})
+				.attach_location_err("input reader thread spawn")?;
 
 			loop {
 				// handle terminate
@@ -258,7 +267,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 
 				match rx.try_recv() {
 					Ok(v) => {
-						input = v?;
+						input = v.attach_location_err("input reader line")?;
 						break;
 					},
 					Err(mpsc::TryRecvError::Empty) => (),
@@ -298,9 +307,10 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 /// `path` input is not checked to be a file or directory, so it should be checked beforehand
 pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), crate::Error> {
 	if !path.exists() {
-		return Err(crate::Error::custom_ioerror(
+		return Err(crate::Error::custom_ioerror_path(
 			std::io::ErrorKind::NotFound,
-			format!("File to Edit does not exist! Path: \"{}\"", path.to_string_lossy()),
+			"File to Edit does not exist!",
+			path,
 		));
 	}
 
@@ -319,11 +329,11 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), cra
 			.expect("Expected TERMINATE handler to not be poisoned")
 			.disable();
 
-		cmd.spawn()
-	}?;
+		cmd.spawn().attach_location_err("editor spawn")?
+	};
 
 	// wait until the editor_child has exited and get the status
-	let editor_child_exit_status = editor_child.wait()?;
+	let editor_child_exit_status = editor_child.wait().attach_location_err("editor wait")?;
 
 	TERMINATE
 		.write()
@@ -362,10 +372,12 @@ fn get_editor_base(maybe_editor: &Option<PathBuf>) -> Result<PathBuf, crate::Err
 	'ask_for_editor: loop {
 		print!("Enter new Editor base: ");
 		// ensure the message is printed before reading
-		std::io::stdout().flush()?;
+		std::io::stdout().flush().attach_location_err("stdout flush")?;
 		// input buffer for "read_line", 1 capacity, because of only expecting 1 character
 		let mut input = String::new();
-		std::io::stdin().read_line(&mut input)?;
+		std::io::stdin()
+			.read_line(&mut input)
+			.attach_location_err("stdin read")?;
 
 		let input = input.trim();
 
@@ -409,9 +421,10 @@ fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 fn test_editor_base_valid(path: &Path) -> Result<(), crate::Error> {
 	// this function currently does not much, but is here for future additions
 	if path.as_os_str().is_empty() {
-		return Err(crate::Error::custom_ioerror(
+		return Err(crate::Error::custom_ioerror_path(
 			std::io::ErrorKind::NotFound,
 			"Editor base is empty!",
+			path,
 		));
 	}
 

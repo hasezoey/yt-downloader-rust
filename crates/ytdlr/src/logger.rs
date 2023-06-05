@@ -11,12 +11,11 @@ use flexi_logger::{
 	LoggerHandle,
 	Record,
 };
-use std::io::Error as ioError;
 
 /// Function for setting up the logger
 /// This function is mainly to keep the code structured and sorted
 #[inline]
-pub fn setup_logger() -> Result<LoggerHandle, ioError> {
+pub fn setup_logger() -> Result<LoggerHandle, crate::Error> {
 	let handle = Logger::try_with_env_or_str("warn")
 		.expect("Expected flexi_logger to be able to parse env or string")
 		.adaptive_format_for_stderr(flexi_logger::AdaptiveFormat::Custom(log_format, color_log_format))

@@ -61,12 +61,28 @@ impl Error {
 		return &self.backtrace;
 	}
 
-	/// Create a custom [ioError] with this [Error] wrapped around
-	pub fn custom_ioerror<M>(kind: std::io::ErrorKind, msg: M) -> Self
+	/// Create a custom [ioError] with this [Error] wrapped around with a [Path] attached
+	pub fn custom_ioerror_path<M, P>(kind: std::io::ErrorKind, msg: M, path: P) -> Self
 	where
 		M: Into<String>,
+		P: AsRef<Path>,
 	{
-		return Self::new(ErrorInner::IoError(ioError::new(kind, msg.into())));
+		return Self::new(ErrorInner::IoError(
+			ioError::new(kind, msg.into()),
+			format_path(path.as_ref().to_string_lossy().to_string()),
+		));
+	}
+
+	/// Create a custom [ioError] with this [Error] wrapped around with a location attached
+	pub fn custom_ioerror_location<M, L>(kind: std::io::ErrorKind, msg: M, location: L) -> Self
+	where
+		M: Into<String>,
+		L: AsRef<str>,
+	{
+		return Self::new(ErrorInner::IoError(
+			ioError::new(kind, msg.into()),
+			format_location(location.as_ref()),
+		));
 	}
 
 	fn_string!(other, ErrorInner::Other);
@@ -124,8 +140,9 @@ where
 #[derive(thiserror::Error, Debug)]
 pub enum ErrorInner {
 	/// Wrapper Variant for [`std::io::Error`]
-	#[error("IoError: {0}")]
-	IoError(#[from] std::io::Error),
+	/// Argument 1 (String) is up to the implementation to set, commonly the path
+	#[error("IoError: {0}; {1}")]
+	IoError(std::io::Error, String),
 	/// Wrapper Variant for [`std::string::FromUtf8Error`]
 	#[error("FromStringUTF8Error: {0}")]
 	FromStringUTF8Error(#[from] std::string::FromUtf8Error),
@@ -168,7 +185,7 @@ pub enum ErrorInner {
 impl PartialEq for ErrorInner {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
-			(Self::IoError(l0), Self::IoError(r0)) => return l0.kind() == r0.kind(),
+			(Self::IoError(l0, l1), Self::IoError(r0, r1)) => return l0.kind() == r0.kind() && l1 == r1,
 			(Self::FromStringUTF8Error(l0), Self::FromStringUTF8Error(r0)) => return l0 == r0,
 			(Self::SQLConnectionError(l0), Self::SQLConnectionError(r0)) => return l0 == r0,
 			(Self::SQLOperationError(l0), Self::SQLOperationError(r0)) => return l0 == r0,
@@ -195,5 +212,46 @@ impl<T> CustomThreadJoin<T> for JoinHandle<T> {
 	fn join_err(self) -> Result<T, crate::Error> {
 		let name = self.thread().name().unwrap_or("<unnamed>").to_owned();
 		return self.join().map_err(crate::Error::map_thread_join(name));
+	}
+}
+
+/// Helper function to keep consistent formatting
+#[inline]
+fn format_path(msg: String) -> String {
+	return format!("Path \"{}\"", msg);
+}
+/// Helper function to keep consistent formatting
+#[inline]
+fn format_location(msg: &str) -> String {
+	return format!("Location \"{}\"", msg);
+}
+
+/// Trait to map [std::io::Error] into [Error]
+pub trait IOErrorToError<T> {
+	/// Map a [std::io::Error] to [Error] with a [std::path::Path] attached
+	fn attach_path_err<P: AsRef<Path>>(self, path: P) -> Result<T, crate::Error>;
+	/// Map a [std::io::Error] to [Error] with a location attached (for when [attach_path_err] is not applicable)
+	fn attach_location_err<P: AsRef<str>>(self, pipe_msg: P) -> Result<T, crate::Error>;
+}
+
+impl<T> IOErrorToError<T> for Result<T, std::io::Error> {
+	fn attach_path_err<P: AsRef<Path>>(self, path: P) -> Result<T, crate::Error> {
+		return match self {
+			Ok(v) => Ok(v),
+			Err(e) => Err(crate::Error::new(ErrorInner::IoError(
+				e,
+				format_path(path.as_ref().to_string_lossy().to_string()),
+			))),
+		};
+	}
+
+	fn attach_location_err<L: AsRef<str>>(self, location: L) -> Result<T, crate::Error> {
+		return match self {
+			Ok(v) => Ok(v),
+			Err(e) => Err(crate::Error::new(ErrorInner::IoError(
+				e,
+				format_location(location.as_ref()),
+			))),
+		};
 	}
 }

@@ -17,7 +17,10 @@ use std::{
 	process::Stdio,
 };
 
-use crate::error::CustomThreadJoin;
+use crate::error::{
+	CustomThreadJoin,
+	IOErrorToError,
+};
 
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
 /// Where the output is added with a "tmp" to the `output` until finished
@@ -75,11 +78,11 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 
 	re_thumbnail(media, &image_path, &output_path_tmp)?;
 
-	std::fs::rename(output_path_tmp, output.as_ref())?;
+	std::fs::rename(&output_path_tmp, output.as_ref()).attach_path_err(output_path_tmp)?;
 
 	// remove temporary converted image file
 	if is_tmp_image {
-		std::fs::remove_file(image_path)?;
+		std::fs::remove_file(&image_path).attach_path_err(image_path)?;
 	}
 
 	return Ok(());
@@ -173,11 +176,15 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	let mut child = {
 		re_thumbnail_build_ffmpeg_cmd(&mut cmd, media, image, output, formats);
 
-		cmd.spawn()?
+		cmd.spawn().attach_location_err("ffmpeg spawn")?
 	};
 
 	let stderr_reader = BufReader::new(child.stderr.take().ok_or_else(|| {
-		return crate::Error::custom_ioerror(std::io::ErrorKind::BrokenPipe, "Failed to get Child STDERR");
+		return crate::Error::custom_ioerror_location(
+			std::io::ErrorKind::BrokenPipe,
+			"Failed to get Child STDERR",
+			"ffmpeg stderr take",
+		);
 	})?);
 
 	// offload the stderr reader to a different thread to not block main
@@ -188,11 +195,12 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 				.lines()
 				.filter_map(|v| return v.ok())
 				.for_each(|line| log::info!("ffmpeg STDERR: {}", line));
-		})?;
+		})
+		.attach_location_err("ffmpeg stderr thread spawn")?;
 
 	stderrreader_thread.join_err()?;
 
-	let exit_status = child.wait()?;
+	let exit_status = child.wait().attach_path_err("ffmpeg wait")?;
 
 	if !exit_status.success() {
 		return Err(crate::spawn::ffmpeg::unsuccessfull_command_exit(
@@ -214,9 +222,10 @@ pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, cr
 	let media_path = media_path.as_ref();
 
 	if !media_path.exists() {
-		return Err(crate::Error::custom_ioerror(
+		return Err(crate::Error::custom_ioerror_path(
 			std::io::ErrorKind::NotFound,
-			format!("media_path does not exist! Path: \"{}\"", media_path.to_string_lossy()),
+			"media_path does not exist!",
+			media_path,
 		));
 	}
 
@@ -266,11 +275,11 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	let output_dir = output_dir.as_ref();
 
 	if !image_path.exists() {
-		return Err(std::io::Error::new(
+		return Err(crate::Error::custom_ioerror_path(
 			std::io::ErrorKind::NotFound,
-			format!("image_path does not exist! Path: \"{}\"", image_path.to_string_lossy()),
-		)
-		.into());
+			"image_path does not exist!",
+			image_path,
+		));
 	}
 
 	if !image_path.is_file() {
@@ -291,7 +300,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 		));
 	}
 
-	std::fs::create_dir_all(output_dir)?;
+	std::fs::create_dir_all(output_dir).attach_path_err(output_dir)?;
 
 	let output_path = {
 		let filename = image_path
@@ -314,10 +323,14 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	// this is because ffmpeg only logs to stderr, where stdout is used for data piping
 	cmd.stdout(Stdio::null()).stderr(Stdio::piped()).stdin(Stdio::null());
 
-	let mut ffmpeg_child = cmd.spawn()?;
+	let mut ffmpeg_child = cmd.spawn().attach_location_err("ffmpeg spawn")?;
 
 	let stderr_reader = BufReader::new(ffmpeg_child.stderr.take().ok_or_else(|| {
-		return crate::Error::custom_ioerror(std::io::ErrorKind::BrokenPipe, "Failed to get Child STDERR");
+		return crate::Error::custom_ioerror_location(
+			std::io::ErrorKind::BrokenPipe,
+			"Failed to get Child STDERR",
+			"ffmpeg stderr take",
+		);
 	})?);
 
 	// offload the stderr reader to a different thread to not block main
@@ -328,9 +341,10 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 				.lines()
 				.filter_map(|v| return v.ok())
 				.for_each(|line| log::info!("ffmpeg STDERR: {}", line))
-		})?;
+		})
+		.attach_location_err("ffmpeg stderr thread spawn")?;
 
-	let ffmpeg_child_exit_status = ffmpeg_child.wait()?;
+	let ffmpeg_child_exit_status = ffmpeg_child.wait().attach_path_err("ffmpeg wait")?;
 
 	// wait until the stderr thread has exited
 	ffmpeg_child_stderr_thread.join_err()?;

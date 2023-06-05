@@ -17,6 +17,7 @@ use std::{
 
 use crate::{
 	data::cache::media_info::MediaInfo,
+	error::IOErrorToError,
 	spawn::ytdl::YTDL_BIN_NAME,
 	traits::download_options::DownloadOptions,
 };
@@ -59,7 +60,10 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 		let args = assemble_ytdl_command(connection, options)?;
 
 		// merge stderr into stdout
-		duct::cmd(YTDL_BIN_NAME, args).stderr_to_stdout().reader()?
+		duct::cmd(YTDL_BIN_NAME, args)
+			.stderr_to_stdout()
+			.reader()
+			.attach_location_err("duct ytdl reader")?
 	};
 
 	let stdout_reader = BufReader::new(&ytdl_child);
@@ -68,7 +72,11 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 
 	loop {
 		// wait loop, because somehow a "ReaderHandle" does not implement "wait", only "try_wait", but have to wait for it to exit here
-		if ytdl_child.try_wait()?.is_some() {
+		if ytdl_child
+			.try_wait()
+			.attach_location_err("ytdl_child try_wait")?
+			.is_some()
+		{
 			break;
 		}
 		std::thread::sleep(Duration::from_millis(100)); // sleep to same some time between the next wait (to not cause constant cpu spike)
@@ -132,13 +140,13 @@ pub fn get_archive_name(output_dir: &std::path::Path) -> std::path::PathBuf {
 fn assemble_ytdl_command<A: DownloadOptions>(
 	connection: Option<&mut SqliteConnection>,
 	options: &A,
-) -> std::io::Result<Vec<OsString>> {
+) -> Result<Vec<OsString>, crate::Error> {
 	let mut ytdl_args = ArgsHelper::new();
 
 	let output_dir = options.download_path();
 	debug!("YTDL Output dir is \"{}\"", output_dir.to_string_lossy());
 
-	std::fs::create_dir_all(output_dir)?;
+	std::fs::create_dir_all(output_dir).attach_path_err(output_dir)?;
 
 	// set a custom format the videos will be in for consistent parsing
 	let output_format = output_dir.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s");
@@ -150,10 +158,13 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 
 			// write all lines to the file and drop the handle before giving the argument
 			{
-				let mut archive_write_handle = BufWriter::new(File::create(&archive_file_path)?);
+				let mut archive_write_handle =
+					BufWriter::new(File::create(&archive_file_path).attach_path_err(&archive_file_path)?);
 
 				for archive_line in archive_lines {
-					archive_write_handle.write_all(archive_line.as_bytes())?;
+					archive_write_handle
+						.write_all(archive_line.as_bytes())
+						.attach_path_err(&archive_file_path)?;
 				}
 			}
 

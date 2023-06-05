@@ -5,6 +5,7 @@ use std::io::{
 
 use clap::CommandFactory;
 use clap_complete::generate;
+use libytdlr::error::IOErrorToError;
 
 use crate::clap_conf::{
 	CliDerive,
@@ -20,8 +21,9 @@ pub fn command_completions(_main_args: &CliDerive, sub_args: &CommandCompletions
 			if v.exists() {
 				return Err(crate::Error::other("Output file already exists"));
 			}
-			std::fs::create_dir_all(v.parent().expect("Expected input filename to have a parent"))?;
-			BufWriter::new(Box::from(std::fs::File::create(v)?))
+			let v_parent = v.parent().expect("Expected input filename to have a parent");
+			std::fs::create_dir_all(v_parent).attach_path_err(v_parent)?;
+			BufWriter::new(Box::from(std::fs::File::create(v).attach_path_err(v)?))
 		},
 		None => BufWriter::new(Box::from(std::io::stdout())),
 	};

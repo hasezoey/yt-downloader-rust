@@ -8,6 +8,8 @@ use std::{
 	path::Path,
 };
 
+use crate::error::IOErrorToError;
+
 use super::archive::import::{
 	detect_archive_type,
 	import_ytdlr_json_archive,
@@ -74,7 +76,7 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 			));
 		}
 
-		let mut sqlite_path_reader = BufReader::new(File::open(&migrate_to_path)?);
+		let mut sqlite_path_reader = BufReader::new(File::open(&migrate_to_path).attach_path_err(&migrate_to_path)?);
 		return Ok(
 			match detect_archive_type(&mut sqlite_path_reader)? {
 				ArchiveType::Unknown => return Err(crate::Error::other(format!("Migrate-To Path already exists, but is of unknown type! Path: \"{}\"", migrate_to_path.to_string_lossy()))),
@@ -89,7 +91,7 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 		);
 	}
 
-	let mut input_archive_reader = BufReader::new(File::open(archive_path)?);
+	let mut input_archive_reader = BufReader::new(File::open(archive_path).attach_path_err(archive_path)?);
 
 	return Ok(match detect_archive_type(&mut input_archive_reader)? {
 		ArchiveType::Unknown => {

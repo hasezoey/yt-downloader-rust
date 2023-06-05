@@ -8,6 +8,8 @@ use std::process::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use crate::error::IOErrorToError;
+
 /// Binary name to spawn for the youtube-dl process
 pub const YTDL_BIN_NAME: &str = "yt-dlp";
 
@@ -33,8 +35,10 @@ pub fn ytdl_version() -> Result<String, crate::Error> {
 		.stderr(Stdio::null())
 		.stdout(Stdio::piped())
 		.stdin(Stdio::null())
-		.spawn()?
-		.wait_with_output()?;
+		.spawn()
+		.attach_location_err("ytdl spawn")?
+		.wait_with_output()
+		.attach_location_err("ytdl wait_with_output")?;
 
 	if !command_output.status.success() {
 		return Err(crate::Error::command_unsuccessful("FFMPEG did not successfully exit!"));

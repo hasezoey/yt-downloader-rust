@@ -16,6 +16,7 @@ use indicatif::{
 };
 use libytdlr::{
 	data::cache::media_info::MediaInfo,
+	error::IOErrorToError,
 	main::download::YTDL_ARCHIVE_PREFIX,
 	traits::download_options::DownloadOptions,
 	*,
@@ -70,46 +71,46 @@ impl Recovery {
 	const RECOVERY_PREFIX: &str = "recovery_";
 
 	/// Create a new instance, without opening a file
-	pub fn new<P>(path: P) -> std::io::Result<Self>
+	pub fn new<P>(path: P) -> Result<Self, crate::Error>
 	where
 		P: AsRef<Path>,
 	{
-		let path: PathBuf = libytdlr::utils::to_absolute(path)?; // absolutize the path so that "parent" does not return empty
+		let path: PathBuf = libytdlr::utils::to_absolute(&path).attach_path_err(path)?; // absolutize the path so that "parent" does not return empty
 		Self::check_path(&path)?; // check that the path is valid, and not only when trying to open it (when it would already be too late)
 		return Ok(Self { path, writer: None });
 	}
 
 	/// Check a given path if it is valid to be wrote in
-	fn check_path(path: &Path) -> std::io::Result<()> {
+	fn check_path(path: &Path) -> Result<(), crate::Error> {
 		// check that the given path does not already exist, as to not overwrite it
 		if path.exists() {
-			return Err(std::io::Error::new(
+			return Err(crate::Error::custom_ioerror_path(
 				std::io::ErrorKind::AlreadyExists,
 				"Recovery File Path already exists!",
+				path,
 			));
 		}
 		// check that the given path has a parent
 		let parent = path.parent().ok_or_else(|| {
-			return std::io::Error::new(
-				std::io::ErrorKind::NotFound,
-				"Failed to get the parent for the Recovery File!",
-			);
+			return crate::Error::other("Failed to get the parent for the Recovery File!");
 		})?;
 		// check that the parent already exists
 		if !parent.exists() {
-			return Err(std::io::Error::new(
+			return Err(crate::Error::custom_ioerror_path(
 				std::io::ErrorKind::NotFound,
 				"Recovery File directory does not exist!",
+				path,
 			));
 		}
 
 		// check that the parent is writeable
-		let meta = std::fs::metadata(parent)?;
+		let meta = std::fs::metadata(parent).attach_path_err(parent)?;
 
 		if meta.permissions().readonly() {
-			return Err(std::io::Error::new(
+			return Err(crate::Error::custom_ioerror_path(
 				std::io::ErrorKind::PermissionDenied,
 				"Recovery File directory is not writeable!",
+				parent,
 			));
 		}
 
@@ -180,19 +181,21 @@ impl Recovery {
 	/// Try to read the recovery from the given path
 	pub fn read_recovery(path: &Path) -> Result<impl Iterator<Item = MediaInfo>, crate::Error> {
 		if !path.exists() {
-			return Err(crate::Error::custom_ioerror(
+			return Err(crate::Error::custom_ioerror_path(
 				std::io::ErrorKind::NotFound,
 				"Recovery File Path does not exist",
+				path,
 			));
 		}
 		// error in case of not being a file, maybe consider changeing this to a function and ignoring if not existing
 		if !path.is_file() {
-			return Err(crate::Error::custom_ioerror(
+			return Err(crate::Error::custom_ioerror_path(
 				std::io::ErrorKind::Other,
 				"Recovery File Path is not a file",
+				path,
 			));
 		}
-		let file_handle = BufReader::new(std::fs::File::open(path)?);
+		let file_handle = BufReader::new(std::fs::File::open(path).attach_path_err(path)?);
 
 		let iter = file_handle
 			.lines()
@@ -343,7 +346,7 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 	let mut s = sysinfo::System::new();
 	s.refresh_processes();
 
-	for file in path.read_dir()?.filter_map(|res| {
+	for file in path.read_dir().attach_path_err(path)?.filter_map(|res| {
 		let entry = res.ok()?;
 
 		let path = entry.path();
@@ -427,7 +430,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		.map_or_else(|| return std::env::temp_dir(), |v| return v.clone())
 		.join("ytdl_rust_tmp");
 
-	std::fs::create_dir_all(&tmp_path)?;
+	std::fs::create_dir_all(&tmp_path).attach_path_err(&tmp_path)?;
 
 	let pgbar: ProgressBar = ProgressBar::new(PG_PERCENT_100).with_style(DOWNLOAD_STYLE.clone());
 	utils::set_progressbar(&pgbar, main_args);
@@ -968,7 +971,7 @@ mod quirks {
 
 		debug!("Spawning ffmpeg to save metadata");
 
-		let output = ffmpeg_cmd.output()?;
+		let output = ffmpeg_cmd.output().attach_location_err("ffmpeg output")?;
 
 		let exit_status = output.status;
 
@@ -1109,7 +1112,7 @@ mod quirks {
 
 		debug!("Spawning ffmpeg to apply metadata");
 
-		let output = ffmpeg_cmd.output()?;
+		let output = ffmpeg_cmd.output().attach_location_err("ffmpeg output")?;
 
 		let exit_status = output.status;
 
@@ -1128,7 +1131,7 @@ mod quirks {
 		}
 
 		// rename can be used here, because both files exist in the same directory
-		std::fs::rename(&media_file_tmp, media_file)?;
+		std::fs::rename(&media_file_tmp, media_file).attach_path_err(media_file_tmp)?;
 
 		return Ok(());
 	}
@@ -1205,7 +1208,7 @@ fn finish_with_move(
 		},
 		|v| return v.clone(),
 	);
-	std::fs::create_dir_all(&final_dir_path)?;
+	std::fs::create_dir_all(&final_dir_path).attach_path_err(&final_dir_path)?;
 
 	let mut moved_count = 0usize;
 	pgbar.set_draw_target(ProgressDrawTarget::stderr());
@@ -1240,7 +1243,7 @@ fn finish_with_move(
 
 		trace!("Removing file \"{}\"", from_path.to_string_lossy());
 		// remove the original file, because copy was used
-		std::fs::remove_file(from_path)?;
+		std::fs::remove_file(&from_path).attach_path_err(from_path)?;
 
 		moved_count += 1;
 	}
@@ -1266,7 +1269,7 @@ fn finish_with_tagger(
 	debug!("Renaming files for Tagger");
 
 	let final_dir_path = download_path.join("final");
-	std::fs::create_dir_all(&final_dir_path)?;
+	std::fs::create_dir_all(&final_dir_path).attach_path_err(&final_dir_path)?;
 	pgbar.set_draw_target(ProgressDrawTarget::stderr());
 
 	for media_helper in final_media.mediainfo_map.values() {
@@ -1281,7 +1284,9 @@ fn finish_with_tagger(
 			},
 		};
 		// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same filesystem
-		std::fs::rename(download_path.join(media_filename), final_dir_path.join(final_filename))?;
+		let from_path = download_path.join(media_filename);
+		let to_path = final_dir_path.join(final_filename);
+		std::fs::rename(&from_path, to_path).attach_path_err(from_path)?;
 	}
 
 	pgbar.finish_and_clear();
@@ -1310,7 +1315,7 @@ fn try_find_and_read_recovery_files(
 	let mut s = sysinfo::System::new();
 	s.refresh_processes();
 
-	for file in path.read_dir()?.filter_map(|res| {
+	for file in path.read_dir().attach_path_err(path)?.filter_map(|res| {
 		let entry = res.ok()?;
 
 		let path = entry.path();

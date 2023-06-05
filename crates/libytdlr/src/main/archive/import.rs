@@ -15,13 +15,16 @@ use std::{
 	path::Path,
 };
 
-use crate::data::{
-	old_archive::{
-		JSONArchive,
-		Provider,
+use crate::{
+	data::{
+		old_archive::{
+			JSONArchive,
+			Provider,
+		},
+		sql_models::*,
+		sql_schema::*,
 	},
-	sql_models::*,
-	sql_schema::*,
+	error::IOErrorToError,
 };
 
 /// Enum to represent why the callback was called plus extra arguments
@@ -56,7 +59,7 @@ pub enum ArchiveType {
 
 /// Detect what archive type the input reader's file is
 pub fn detect_archive_type<T: BufRead>(reader: &mut T) -> Result<ArchiveType, crate::Error> {
-	let buffer = reader.fill_buf()?; // read a bit of the reader, but dont consume the reader's contents
+	let buffer = reader.fill_buf().attach_location_err("detect_archive_type fill_buf")?; // read a bit of the reader, but dont consume the reader's contents
 
 	if buffer.is_empty() {
 		return Err(crate::Error::unexpected_eof(
@@ -90,7 +93,7 @@ pub fn import_any_archive<S: FnMut(ImportProgress)>(
 ) -> Result<(), crate::Error> {
 	log::debug!("import any archive");
 
-	let mut reader = BufReader::new(File::open(input_path)?);
+	let mut reader = BufReader::new(File::open(input_path).attach_path_err(input_path)?);
 
 	return match detect_archive_type(&mut reader)? {
 		ArchiveType::JSON => import_ytdlr_json_archive(&mut reader, merge_to, pgcb),
@@ -226,14 +229,14 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	for (index, line) in lines_iter.enumerate() {
 		// evaluate result, then redefine variable as without result
-		let _line = line?;
+		let _line = line.attach_location_err("import line iter")?;
 		let line = _line.trim();
 
 		if line.is_empty() {
 			continue;
 		}
 
-		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(&line) {
+		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(line) {
 			let affected = insert_insmedia(
 				&InsMedia::new(
 					&cap[2],
