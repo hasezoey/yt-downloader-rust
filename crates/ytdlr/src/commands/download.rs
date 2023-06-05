@@ -187,9 +187,10 @@ impl Recovery {
 		}
 		// error in case of not being a file, maybe consider changeing this to a function and ignoring if not existing
 		if !path.is_file() {
-			return Err(
-				crate::Error::custom_ioerror(std::io::ErrorKind::Other, "Recovery File Path is not a file"),
-			);
+			return Err(crate::Error::custom_ioerror(
+				std::io::ErrorKind::Other,
+				"Recovery File Path is not a file",
+			));
 		}
 		let file_handle = BufReader::new(std::fs::File::open(path)?);
 
@@ -333,6 +334,7 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 	if !path.is_dir() {
 		return Err(crate::Error::not_a_directory(
 			"Path to find recovery files is not existing or a directory!",
+			path,
 		));
 	}
 
@@ -1296,10 +1298,10 @@ fn try_find_and_read_recovery_files(
 	path: &Path,
 ) -> Result<Vec<PathBuf>, crate::Error> {
 	if !path.is_dir() {
-		return Err(crate::Error::not_a_directory(format!(
-			"Path for recovery files was not a directory! Path: \"{}\"",
-			path.to_string_lossy()
-		)));
+		return Err(crate::Error::not_a_directory(
+			"Path for recovery files was not a directory!",
+			path,
+		));
 	}
 
 	let mut read_files: Vec<PathBuf> = Vec::new();

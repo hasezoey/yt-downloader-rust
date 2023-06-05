@@ -221,10 +221,7 @@ pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, cr
 	}
 
 	if !media_path.is_file() {
-		return Err(crate::Error::not_a_file(format!(
-			"media_path is not a file! Path: \"{}\"",
-			media_path.to_string_lossy()
-		)));
+		return Err(crate::Error::not_a_file("media_path is not a file!", media_path));
 	}
 
 	// test for all extensions in IMAGE_EXTENSIONS
@@ -277,10 +274,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	}
 
 	if !image_path.is_file() {
-		return Err(crate::Error::not_a_file(format!(
-			"image_path is not a file! Path: \"{}\"",
-			image_path.to_string_lossy()
-		)));
+		return Err(crate::Error::not_a_file("image_path is not a file!", image_path));
 	}
 
 	// check if the input path is already a jpg, if it is do not apply ffmpeg
@@ -291,10 +285,10 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	}
 
 	if output_dir.exists() && !output_dir.is_dir() {
-		return Err(crate::Error::not_a_directory(format!(
-			"output_dir exists but is not a directory! Path: \"{}\"",
-			output_dir.to_string_lossy()
-		)));
+		return Err(crate::Error::not_a_directory(
+			"output_dir exists but is not a directory!",
+			output_dir,
+		));
 	}
 
 	std::fs::create_dir_all(output_dir)?;

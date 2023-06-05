@@ -3,6 +3,7 @@
 use std::{
 	backtrace::Backtrace,
 	io::Error as ioError,
+	path::Path,
 	thread::JoinHandle,
 };
 
@@ -15,6 +16,20 @@ macro_rules! fn_string {
 			M: Into<String>,
 		{
 			return Self::new($fortype(msg.into()));
+		}
+	};
+}
+
+/// Macro to not repeat having to do multiple implementations of a [ErrorInner] variant with the same path type
+macro_rules! fn_path {
+	($fn_name:ident, $fortype:expr) => {
+		#[doc = concat!("Create a new [Self] as [", stringify!($fortype), "]")]
+		pub fn $fn_name<M, P>(msg: M, path: P) -> Self
+		where
+			M: Into<String>,
+			P: AsRef<Path>,
+		{
+			return Self::new($fortype(msg.into(), path.as_ref().to_string_lossy().to_string()));
 		}
 	};
 }
@@ -58,8 +73,8 @@ impl Error {
 	fn_string!(no_captures, ErrorInner::NoCapturesFound);
 	fn_string!(unexpected_eof, ErrorInner::UnexpectedEOF);
 	fn_string!(command_unsuccessful, ErrorInner::CommandNotSuccesful);
-	fn_string!(not_a_directory, ErrorInner::NotADirectory);
-	fn_string!(not_a_file, ErrorInner::NotAFile);
+	fn_path!(not_a_directory, ErrorInner::NotADirectory);
+	fn_path!(not_a_file, ErrorInner::NotAFile);
 
 	/// Map a [std::thread::JoinHandle::join] error to a [Error] with a thread name
 	fn map_thread_join<N: AsRef<str>>(name: N) -> impl Fn(Box<dyn std::any::Any + Send + 'static>) -> Self {
@@ -136,11 +151,11 @@ pub enum ErrorInner {
 	UnexpectedEOF(String),
 	/// Variant for when a directory path was expected but did not exist yet or was not a directory
 	/// TODO: replace with io::ErrorKind::NotADirectory once stable <https://github.com/rust-lang/rust/issues/86442>
-	#[error("NotADirectory: {0}")]
-	NotADirectory(String),
+	#[error("NotADirectory: {0}; Path: \"{1}\"")]
+	NotADirectory(String, String),
 	/// Variant for when a file path was expected but did not exist yet or was not a file
-	#[error("NotAFile: {0}")]
-	NotAFile(String),
+	#[error("NotAFile: {0}; Path: \"{1}\"")]
+	NotAFile(String, String),
 	/// Variant for thread join errors
 	#[error("ThreadJoinError: name: \"{1}\" original error: {0}")]
 	ThreadJoinError(String, String),
@@ -162,8 +177,8 @@ impl PartialEq for ErrorInner {
 			(Self::NoCapturesFound(l0), Self::NoCapturesFound(r0)) => return l0 == r0,
 			(Self::Other(l0), Self::Other(r0)) => return l0 == r0,
 			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
-			(Self::NotADirectory(l0), Self::NotADirectory(r0)) => return l0 == r0,
-			(Self::NotAFile(l0), Self::NotAFile(r0)) => return l0 == r0,
+			(Self::NotADirectory(l0, l1), Self::NotADirectory(r0, r1)) => return l0 == r0 && l1 == r1,
+			(Self::NotAFile(l0, l1), Self::NotAFile(r0, r1)) => return l0 == r0 && l1 == r1,
 
 			(_, _) => return false,
 		}

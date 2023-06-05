@@ -129,10 +129,10 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 	}
 
 	if !path.is_dir() {
-		return Err(crate::Error::not_a_directory(format!(
-			"Path for finding editable files is not a directory! Path: \"{}\"",
-			path.to_string_lossy()
-		)));
+		return Err(crate::Error::not_a_directory(
+			"Path for finding editable files is not a directory!",
+			path,
+		));
 	}
 
 	let mut mediainfo_vec: Vec<MediaInfo> = Vec::default();
