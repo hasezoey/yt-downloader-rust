@@ -71,7 +71,27 @@ static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
 });
 
 /// Main
-fn main() -> Result<(), crate::Error> {
+fn main() -> Result<(), ()> {
+	let res = actual_main();
+
+	if let Err(err) = res {
+		eprintln!("A Error occured:\n{err}");
+		let backtrace = err.get_backtrace();
+		match backtrace.status() {
+			std::backtrace::BacktraceStatus::Captured => eprintln!("Backtrace:\n{}", backtrace),
+			std::backtrace::BacktraceStatus::Disabled => {
+				eprintln!("Backtrace is disabled, enable with RUST_BACKTRACE=true")
+			},
+			_ => eprintln!("Backtrace is unsupported"),
+		}
+		std::process::exit(1);
+	}
+
+	return Ok(());
+}
+
+/// Actually the main function, to be wrapped in a custom error handler
+fn actual_main() -> Result<(), crate::Error> {
 	let logger_handle = logger::setup_logger();
 
 	let cli_matches = CliDerive::custom_parse()?;
@@ -153,27 +173,12 @@ fn main() -> Result<(), crate::Error> {
 		);
 	}
 
-	let res = match &cli_matches.subcommands {
+	return match &cli_matches.subcommands {
 		SubCommands::Download(v) => commands::download::command_download(&cli_matches, v),
 		SubCommands::Archive(v) => sub_archive(&cli_matches, v),
 		SubCommands::ReThumbnail(v) => commands::rethumbnail::command_rethumbnail(&cli_matches, v),
 		SubCommands::Completions(v) => commands::completions::command_completions(&cli_matches, v),
 	};
-
-	if let Err(err) = res {
-		eprintln!("A Error occured:\n{err}");
-		let backtrace = err.get_backtrace();
-		match backtrace.status() {
-			std::backtrace::BacktraceStatus::Captured => eprintln!("Backtrace:\n{}", backtrace),
-			std::backtrace::BacktraceStatus::Disabled => {
-				eprintln!("Backtrace is disabled, enable with RUST_BACKTRACE=true")
-			},
-			_ => eprintln!("Backtrace is unsupported"),
-		}
-		std::process::exit(1);
-	}
-
-	return Ok(());
 }
 
 /// Handler function for the "archive" subcommand
