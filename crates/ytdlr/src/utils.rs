@@ -122,7 +122,7 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 	// some basic checks that the path is actually valid
 	if !path.exists() {
 		return Err(crate::Error::other(format!(
-			"Path for finding editable files does not exist! (Path: \"{}\")",
+			"Path for finding editable files does not exist! Path: \"{}\"",
 			path.to_string_lossy()
 		)));
 	}
@@ -301,7 +301,7 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), cra
 	if !path.exists() {
 		return Err(crate::Error::custom_ioerror(
 			std::io::ErrorKind::NotFound,
-			format!("File to Edit does not exist! (Path: \"{}\")", path.to_string_lossy()),
+			format!("File to Edit does not exist! Path: \"{}\"", path.to_string_lossy()),
 		));
 	}
 

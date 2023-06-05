@@ -214,10 +214,7 @@ pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, cr
 	if !media_path.exists() {
 		return Err(crate::Error::custom_ioerror(
 			std::io::ErrorKind::NotFound,
-			format!(
-				"media_path does not exist! (Path: \"{}\")",
-				media_path.to_string_lossy()
-			),
+			format!("media_path does not exist! Path: \"{}\"", media_path.to_string_lossy()),
 		));
 	}
 
@@ -272,10 +269,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	if !image_path.exists() {
 		return Err(std::io::Error::new(
 			std::io::ErrorKind::NotFound,
-			format!(
-				"image_path does not exist! (Path: \"{}\")",
-				image_path.to_string_lossy()
-			),
+			format!("image_path does not exist! Path: \"{}\"", image_path.to_string_lossy()),
 		)
 		.into());
 	}
