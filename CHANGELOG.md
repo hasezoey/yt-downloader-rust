@@ -8,6 +8,7 @@ This is a manually written changelog, and only tracks front-facing changes since
 - `download`: add ability to play the current element in the edit stage
 - `download`: add ability to go back elements in the edit stage
 - `download`: change to use command `yt-dlp` instead of `youtube-dl`
+- `download`: try to add entries from the recovery to the archive after move
 - ffmpeg: fix error on invalid utf8 sequence
 - add backtraces to errors that do not panic (only when `RUST_BACKTRACE=true` is set)
 - change Termination requests to not be based on time anymore

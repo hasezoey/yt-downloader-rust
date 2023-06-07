@@ -246,16 +246,19 @@ impl MediaHelper {
 /// Custom HashMap for [`MediaInfo`] to keep usage easy
 #[derive(Debug, PartialEq)]
 struct MediaInfoArr {
-	mediainfo_map: HashMap<String, MediaHelper>,
-	next_order:    usize,
+	mediainfo_map:        HashMap<String, MediaHelper>,
+	next_order:           usize,
+	/// Store if the hashmap has maybe entries that are not in the archive
+	has_maybe_uninserted: bool,
 }
 
 impl MediaInfoArr {
 	/// Create a new empty instance
 	pub fn new() -> Self {
 		return Self {
-			mediainfo_map: HashMap::default(),
-			next_order:    0,
+			mediainfo_map:        HashMap::default(),
+			next_order:           0,
+			has_maybe_uninserted: false,
 		};
 	}
 
@@ -274,6 +277,7 @@ impl MediaInfoArr {
 	where
 		C: Into<String>,
 	{
+		self.has_maybe_uninserted = true;
 		return self._insert(mediainfo, Some(comment.into()));
 	}
 
@@ -300,6 +304,11 @@ impl MediaInfoArr {
 	/// Directly pass through `additional` to [`HashMap::reserve`]
 	pub fn reserve(&mut self, additional: usize) {
 		self.mediainfo_map.reserve(additional);
+	}
+
+	/// Get if the internal hasmap has maybe entries that are not inserted to the archive
+	pub fn has_maybe_uninserted(&self) -> bool {
+		return self.has_maybe_uninserted;
 	}
 
 	/// Get a sorted [`Vec`] from the current HashMap
@@ -1179,6 +1188,33 @@ fn finish_media(
 			finish_with_tagger(sub_args, download_path, pgbar, final_media)?;
 		} else {
 			finish_with_move(sub_args, download_path, pgbar, final_media)?;
+		}
+	}
+
+	// try to insert media into the archive, if media has maybe not been inserted yet
+	if final_media.has_maybe_uninserted() {
+		let mut maybe_connection: Option<SqliteConnection> = if let Some(ap) = main_args.archive_path.as_ref() {
+			Some(utils::handle_connect(ap, pgbar, main_args)?.1)
+		} else {
+			None
+		};
+
+		if let Some(ref mut connection) = maybe_connection {
+			pgbar.reset();
+			pgbar.set_length(
+				final_media
+					.mediainfo_map
+					.len()
+					.try_into()
+					.expect("Failed to convert usize to u64"),
+			);
+			pgbar.set_message("Inserting missing Entries to Archive");
+			for media in final_media.mediainfo_map.values() {
+				let media = &media.data;
+				pgbar.inc(1);
+				libytdlr::main::archive::import::insert_insmedia_noupdate(&media.into(), connection)?;
+			}
+			pgbar.finish_and_clear();
 		}
 	}
 

@@ -282,6 +282,18 @@ pub fn insert_insmedia(input: &InsMedia, connection: &mut SqliteConnection) -> R
 		.map_err(|err| return crate::Error::from(err));
 }
 
+/// Helper function to have a unified insertion command for all imports or functions that like to use this method
+/// This function does NOT update on conflict and ignores such values
+#[inline]
+pub fn insert_insmedia_noupdate(input: &InsMedia, connection: &mut SqliteConnection) -> Result<usize, crate::Error> {
+	return diesel::insert_into(media_archive::table)
+		.values(input)
+		.on_conflict((media_archive::media_id, media_archive::provider))
+		.do_nothing()
+		.execute(connection)
+		.map_err(|err| return crate::Error::from(err));
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
