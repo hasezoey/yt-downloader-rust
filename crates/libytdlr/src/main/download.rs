@@ -483,7 +483,16 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	// value to determine if a media has actually been downloaded, or just found
 	let mut had_download = false;
 
-	for line in reader.lines().filter_map(|line| return line.ok()) {
+	// HACK: .lines() iter never exits on non-0 exit codes in duct, see https://github.com/oconnor663/duct.rs/issues/112
+	for line in reader.lines() {
+		let line = match line {
+			Ok(v) => v,
+			Err(err) => {
+				debug!("duct lines reader errored: {}", err);
+				break; // handle it as a non-breaking case, because in 99% of cases it is just a error of "command ... exited with code ?"
+			},
+		};
+
 		// only print STDOUT to output when requested
 		if print_stdout {
 			trace!("ytdl [STDOUT]: \"{}\"", line);
