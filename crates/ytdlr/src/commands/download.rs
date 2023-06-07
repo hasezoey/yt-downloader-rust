@@ -450,6 +450,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		tmp_path,
 		sub_args.archive_mode,
 		sub_args.sub_langs.as_ref(),
+		&sub_args.extra_ytdl_args,
 	);
 
 	// already create the vec for finished media, so that the finished ones can be stored in case of error

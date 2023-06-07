@@ -371,6 +371,10 @@ pub struct CommandDownload {
 	/// see <https://github.com/yt-dlp/yt-dlp#subtitle-options>
 	#[arg(long = "sub-langs", env = "YTDL_SUB_LANGS")]
 	pub sub_langs:                 Option<String>,
+	/// Add extra arguments to the ytdl command, requires usage of "="
+	/// Example: --extra-ytdl-args="--max-downloads 10"
+	#[arg(long = "extra-ytdl-args")]
+	pub extra_ytdl_args:           Vec<String>,
 
 	pub urls: Vec<String>,
 }
@@ -408,6 +412,7 @@ impl Default for CommandDownload {
 			open_tagger: false,
 			sub_langs: None,
 			player_editor: None,
+			extra_ytdl_args: Vec::new(),
 		};
 	}
 }

@@ -2,6 +2,7 @@
 
 use std::{
 	cell::Cell,
+	ffi::OsString,
 	path::PathBuf,
 };
 
@@ -46,11 +47,22 @@ impl<'a> DownloadState<'a> {
 		download_path: PathBuf,
 		archive_mode: ArchiveMode,
 		sub_langs: Option<&'a String>,
+		extra_ytdl_args: &[String],
 	) -> Self {
+		// process extra arguments into separated arguments of key and value (split once)
+		let extra_cmd_args = extra_ytdl_args
+			.iter()
+			.flat_map(|v| {
+				if let Some((split1, split2)) = v.split_once(' ') {
+					return Vec::from([OsString::from(split1), OsString::from(split2)]);
+				}
+				return Vec::from([OsString::from(v)]);
+			})
+			.collect();
+
 		return Self {
 			audio_only_enable,
-			// for now, there are no extra arguments supported
-			extra_command_arguments: Vec::default(),
+			extra_command_arguments: extra_cmd_args,
 			print_stdout_debug,
 			count_estimate: Cell::new(DEFAULT_COUNT_ESTIMATE),
 			download_path,
