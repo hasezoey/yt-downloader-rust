@@ -803,8 +803,12 @@ fn edit_media(
 		let media = &media_helper.data;
 		let media_filename = match &media.filename {
 			Some(v) => v,
+			// skip asking edit for media's without a filename
 			None => {
-				println!("\"{}\" did not have a filename!", media.id);
+				println!(
+					"\"{}\" did not have a filename, which is required beyond this point, skipping",
+					media.id
+				);
 				println!("debug: {media:#?}");
 
 				// try to go back to the next element
@@ -815,8 +819,25 @@ fn edit_media(
 				continue 'media_loop;
 			},
 		};
-		go_back = false;
+
 		let media_path = download_path.join(media_filename);
+
+		// skip asking edit for media's that dont exist anymore
+		if !media_path.exists() {
+			println!(
+				"\"{}\" did not exist anymore (moved via another invocation or editor rename?), skipping edit",
+				media.id
+			);
+
+			// try to go back to the next element
+			if go_back {
+				next_index = next_index.saturating_sub(2);
+			}
+
+			continue 'media_loop;
+		}
+
+		go_back = false;
 		// extra loop is required for printing the help and asking again
 		'ask_do_loop: loop {
 			let input = utils::get_input(
