@@ -694,10 +694,15 @@ fn do_download(
 
 		download_state_cell.borrow_mut().set_current_url(url);
 
-		let new_media = libytdlr::main::download::download_single(
+		// the array where finished "current_mediainfo" gets appended to
+		// for performance / allocation efficiency, a count is requested from options
+		let mut new_media: Vec<MediaInfo> = Vec::with_capacity(download_state_cell.borrow().get_count_estimate());
+
+		libytdlr::main::download::download_single(
 			maybe_connection.as_mut(),
 			*download_state_cell.borrow(),
 			download_pgcb,
+			&mut new_media,
 		)?;
 
 		if let Some(ref mut connection) = maybe_connection {

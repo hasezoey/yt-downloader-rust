@@ -50,12 +50,13 @@ pub enum DownloadProgress {
 
 /// Download a single URL
 /// Assumes ytdl and ffmpeg have already been checked to exist and work (like using [`crate::spawn::ytdl::ytdl_version`])
-/// Returned [`Vec<MediaInfo>`] will not be added to the archive in this function, it has to be done afterwards
+/// Adds all non-skipped Media to the input [`Vec<MediaInfo>`]
 pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 	connection: Option<&mut SqliteConnection>,
 	options: &A,
 	pgcb: C,
-) -> Result<Vec<MediaInfo>, crate::Error> {
+	mediainfo_vec: &mut Vec<MediaInfo>,
+) -> Result<(), crate::Error> {
 	let ytdl_child = {
 		let args = assemble_ytdl_command(connection, options)?;
 
@@ -68,7 +69,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 
 	let stdout_reader = BufReader::new(&ytdl_child);
 
-	let media_vec = handle_stdout(options, pgcb, stdout_reader)?;
+	handle_stdout(options, pgcb, stdout_reader, mediainfo_vec)?;
 
 	loop {
 		// wait loop, because somehow a "ReaderHandle" does not implement "wait", only "try_wait", but have to wait for it to exit here
@@ -82,7 +83,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 		std::thread::sleep(Duration::from_millis(100)); // sleep to same some time between the next wait (to not cause constant cpu spike)
 	}
 
-	return Ok(media_vec);
+	return Ok(());
 }
 
 /// Internal Struct for easily adding various types that resolve to [`OsString`] and output a [`Vec<OsString>`]
@@ -462,13 +463,14 @@ impl LineType {
 }
 
 /// Helper function to handle the output from a spawned ytdl command
-/// Returns all processed (not skipped) Medias as [`Vec<MediaInfo>`]
+/// Adds all non-skipped Media to the input [`Vec<MediaInfo>`]
 #[inline]
 fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	options: &A,
 	mut pgcb: C,
 	reader: R,
-) -> Result<Vec<MediaInfo>, crate::Error> {
+	mediainfo_vec: &mut Vec<MediaInfo>,
+) -> Result<(), crate::Error> {
 	// report that the downloading is now starting
 	pgcb(DownloadProgress::AllStarting);
 
@@ -477,7 +479,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 
 	// the array where finished "current_mediainfo" gets appended to
 	// for performance / allocation efficiency, a count is requested from options
-	let mut mediainfo_vec: Vec<MediaInfo> = Vec::with_capacity(options.get_count_estimate());
+	// let mut mediainfo_vec: Vec<MediaInfo> = Vec::with_capacity(options.get_count_estimate());
 	// "current_mediainfo" may not be defined because it cannot be guranteed that a parsed output was emitted
 	let mut current_mediainfo: Option<MediaInfo> = None;
 	// value to determine if a media has actually been downloaded, or just found
@@ -591,7 +593,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	// report that downloading is now finished
 	pgcb(DownloadProgress::AllFinished(mediainfo_vec.len()));
 
-	return Ok(mediainfo_vec);
+	return Ok(());
 }
 
 #[cfg(test)]
@@ -1175,20 +1177,22 @@ PARSE_START 'youtube' '-----------' Some Title Here
 PARSE_END 'youtube' '-----------'
 			"#;
 
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
 			let res = handle_stdout(
 				&options,
 				callback_counter(&expect_index, expected_pg),
 				BufReader::new(input.as_bytes()),
+				&mut media_vec,
 			);
 
 			assert!(res.is_ok());
-			let res = res.expect("Expected assert to fail before this");
 
-			assert_eq!(1, res.len());
+			assert_eq!(1, media_vec.len());
 
 			assert_eq!(
 				vec![MediaInfo::new("-----------", "youtube").with_title("Some Title Here")],
-				res
+				media_vec
 			);
 		}
 
@@ -1245,23 +1249,25 @@ PARSE_START 'soundcloud' '----------1' Some Title Here 1
 PARSE_END 'soundcloud' '----------1'
 			"#;
 
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
 			let res = handle_stdout(
 				&options,
 				callback_counter(&expect_index, expected_pg),
 				BufReader::new(input.as_bytes()),
+				&mut media_vec,
 			);
 
 			assert!(res.is_ok());
-			let res = res.expect("Expected assert to fail before this");
 
-			assert_eq!(2, res.len());
+			assert_eq!(2, media_vec.len());
 
 			assert_eq!(
 				vec![
 					MediaInfo::new("----------0", "youtube").with_title("Some Title Here 0"),
 					MediaInfo::new("----------1", "soundcloud").with_title("Some Title Here 1")
 				],
-				res
+				media_vec
 			);
 		}
 	}
