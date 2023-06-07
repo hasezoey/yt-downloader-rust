@@ -73,13 +73,20 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 
 	loop {
 		// wait loop, because somehow a "ReaderHandle" does not implement "wait", only "try_wait", but have to wait for it to exit here
-		if ytdl_child
-			.try_wait()
-			.attach_location_err("ytdl_child try_wait")?
-			.is_some()
-		{
-			break;
+		match ytdl_child.try_wait() {
+			Ok(v) => {
+				// only in the "Some" case is the wait actually finished
+				if let Some(_) = v {
+					break;
+				}
+			},
+			Err(err) => {
+				// ignore duct errors as non-"Err" worthy
+				warn!("youtube-dl exited with a non-0 code: {err}");
+				break;
+			},
 		}
+
 		std::thread::sleep(Duration::from_millis(100)); // sleep to same some time between the next wait (to not cause constant cpu spike)
 	}
 
