@@ -698,19 +698,23 @@ fn do_download(
 		// for performance / allocation efficiency, a count is requested from options
 		let mut new_media: Vec<MediaInfo> = Vec::with_capacity(download_state_cell.borrow().get_count_estimate());
 
-		libytdlr::main::download::download_single(
+		// dont error immediately on error
+		let res = libytdlr::main::download::download_single(
 			maybe_connection.as_mut(),
 			*download_state_cell.borrow(),
 			download_pgcb,
 			&mut new_media,
-		)?;
+		);
 
+		// still add all finished media to the archive
 		if let Some(ref mut connection) = maybe_connection {
 			pgbar.reset();
 			pgbar.set_length(new_media.len().try_into().expect("Failed to convert usize to u64"));
 			for media in new_media.iter() {
 				pgbar.inc(1);
-				libytdlr::main::archive::import::insert_insmedia(&media.into(), connection)?;
+				if let Err(err) = libytdlr::main::archive::import::insert_insmedia(&media.into(), connection) {
+					warn!("Inserting media errored: {}", err);
+				}
 			}
 			pgbar.finish_and_clear();
 		}
@@ -722,6 +726,9 @@ fn do_download(
 		for media in new_media {
 			finished_media.insert(media);
 		}
+
+		// now error if there was a error
+		res?;
 	}
 
 	// remove ytdl_archive_pid.txt file again, because otherwise over many usages it can become bloated
