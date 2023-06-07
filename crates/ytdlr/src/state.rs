@@ -16,6 +16,18 @@ use crate::clap_conf::ArchiveMode;
 /// Set the default count estimate
 const DEFAULT_COUNT_ESTIMATE: usize = 1;
 
+/// NewType to store a count and a bool together
+/// Where the count is the playlist size estimate and the bool for whether it has already been set to a non-default
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CountStore(usize, bool);
+
+impl CountStore {
+	/// Get wheter a count set (non-default) has occured
+	pub fn has_been_set(&self) -> bool {
+		return self.1;
+	}
+}
+
 /// Struct to keep configuration data for the [`DownloadOptions`] trait
 #[derive(Debug, PartialEq, Clone)]
 pub struct DownloadState<'a> {
@@ -28,7 +40,7 @@ pub struct DownloadState<'a> {
 	/// The Path to download to
 	download_path:           PathBuf,
 	/// Contains the value for the current playlist count estimate
-	count_estimate:          Cell<usize>,
+	count_estimate:          Cell<CountStore>,
 
 	/// Set which / how many entries of the archive are output to the youtube-dl archive
 	archive_mode: ArchiveMode,
@@ -64,7 +76,7 @@ impl<'a> DownloadState<'a> {
 			audio_only_enable,
 			extra_command_arguments: extra_cmd_args,
 			print_stdout_debug,
-			count_estimate: Cell::new(DEFAULT_COUNT_ESTIMATE),
+			count_estimate: Cell::new(CountStore(DEFAULT_COUNT_ESTIMATE, false)),
 			download_path,
 			sub_langs,
 
@@ -83,10 +95,15 @@ impl<'a> DownloadState<'a> {
 	/// Set "count_result" for generating the archive and for "get_count_estimate"
 	pub fn set_count_estimate(&self, count: usize) {
 		if count < DEFAULT_COUNT_ESTIMATE {
-			self.count_estimate.replace(DEFAULT_COUNT_ESTIMATE);
+			self.count_estimate.replace(CountStore(DEFAULT_COUNT_ESTIMATE, true));
 		} else {
-			self.count_estimate.replace(count);
+			self.count_estimate.replace(CountStore(count, true));
 		}
+	}
+
+	/// Get the a copy of the current [CountStore]
+	pub fn get_count_store(&self) -> CountStore {
+		return self.count_estimate.get();
 	}
 }
 
@@ -172,7 +189,7 @@ impl DownloadOptions for DownloadState<'_> {
 	}
 
 	fn get_count_estimate(&self) -> usize {
-		return self.count_estimate.get();
+		return self.count_estimate.get().0;
 	}
 
 	fn sub_langs(&self) -> Option<&String> {

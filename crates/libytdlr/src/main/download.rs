@@ -27,6 +27,9 @@ use crate::{
 pub enum DownloadProgress {
 	/// Variant representing that the download is starting
 	AllStarting,
+	/// Variant representing a skipped element, may or may not come because of it already being in the archive
+	/// values (skipped_count)
+	Skipped(usize),
 	/// Variant representing that a media has started the process
 	/// values: (id, title)
 	SingleStarting(String, String),
@@ -76,7 +79,7 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 		match ytdl_child.try_wait() {
 			Ok(v) => {
 				// only in the "Some" case is the wait actually finished
-				if let Some(_) = v {
+				if v.is_some() {
 					break;
 				}
 			},
@@ -179,6 +182,8 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 			ytdl_args.arg("--download-archive").arg(&archive_file_path);
 		}
 	}
+
+	ytdl_args.arg("--no-quiet");
 
 	// apply options to make output audio-only
 	if options.audio_only() {
@@ -293,6 +298,8 @@ enum LineType {
 	Custom,
 	/// Variant for lines that start with "ERROR:"
 	Error,
+	/// Variant for archive skip lines
+	Skip,
 }
 
 impl LineType {
@@ -315,6 +322,10 @@ impl LineType {
 		static YTDL_ERROR_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?m)^youtube-dl: error:").unwrap();
 		});
+		/// regex to check for "youtube-dl: error:" lines
+		static YTDL_ARCHIVE_SKIP_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?m)^\[\w+\] [^:]+: has already been recorded in the archive$").unwrap();
+		});
 
 		let input = input.as_ref();
 
@@ -328,6 +339,10 @@ impl LineType {
 
 			if name == "ffmpeg" {
 				return Some(Self::Ffmpeg);
+			}
+
+			if YTDL_ARCHIVE_SKIP_REGEX.is_match(input) {
+				return Some(Self::Skip);
 			}
 
 			// everything that is not specially handled before, will get treated as being a provider
@@ -594,9 +609,13 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 						}
 					}
 				},
+				LineType::Skip => {
+					pgcb(DownloadProgress::Skipped(1));
+				},
 				LineType::Error => {
 					warn!("Encountered youtube-dl error: {}", line);
 					last_error = Some(crate::Error::other(line));
+					pgcb(DownloadProgress::Skipped(1));
 				},
 			}
 		} else if !line.is_empty() {
@@ -812,6 +831,7 @@ mod test {
 			assert_eq!(
 				ret,
 				vec![
+					OsString::from("--no-quiet"),
 					OsString::from("-f"),
 					OsString::from("bestvideo+bestaudio/best"),
 					OsString::from("--remux-video"),
@@ -858,6 +878,7 @@ mod test {
 			assert_eq!(
 				ret,
 				vec![
+					OsString::from("--no-quiet"),
 					OsString::from("-f"),
 					OsString::from("bestaudio/best"),
 					OsString::from("-x"),
@@ -905,6 +926,7 @@ mod test {
 			assert_eq!(
 				ret,
 				vec![
+					OsString::from("--no-quiet"),
 					OsString::from("-f"),
 					OsString::from("bestvideo+bestaudio/best"),
 					OsString::from("--remux-video"),
@@ -956,6 +978,7 @@ mod test {
 				vec![
 					OsString::from("--download-archive"),
 					test_dir.join(format!("ytdl_archive_{pid}.txt")).as_os_str().to_owned(),
+					OsString::from("--no-quiet"),
 					OsString::from("-f"),
 					OsString::from("bestvideo+bestaudio/best"),
 					OsString::from("--remux-video"),
@@ -1014,6 +1037,7 @@ mod test {
 				vec![
 					OsString::from("--download-archive"),
 					test_dir.join(format!("ytdl_archive_{pid}.txt")).as_os_str().to_owned(),
+					OsString::from("--no-quiet"),
 					OsString::from("-f"),
 					OsString::from("bestaudio/best"),
 					OsString::from("-x"),
@@ -1285,6 +1309,60 @@ PARSE_END 'soundcloud' '----------1'
 					MediaInfo::new("----------0", "youtube").with_title("Some Title Here 0"),
 					MediaInfo::new("----------1", "soundcloud").with_title("Some Title Here 1")
 				],
+				media_vec
+			);
+		}
+
+		#[test]
+		fn test_skipped() {
+			let expected_pg = &vec![
+				DownloadProgress::AllStarting,
+				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 50),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 57),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleFinished("-----------".to_owned()),
+				DownloadProgress::Skipped(1),
+				DownloadProgress::AllFinished(1),
+			];
+			let expect_index = Arc::new(AtomicUsize::new(0));
+
+			let options = TestOptions::new_handle_stdout(false, 1);
+
+			let input = r#"
+PARSE_START 'youtube' '-----------' Some Title Here
+[download]   0.0% of 78.44MiB at 207.76KiB/s ETA 06:27
+[download]  50.0% of 78.44MiB at 526.19KiB/s ETA 01:16
+[download] 100% of 78.44MiB at  5.89MiB/s ETA 00:00
+[download] 100% of 78.44MiB in 00:07
+[download]   0.0% of 3.47MiB at 196.76KiB/s ETA 00:18
+[download]  57.6% of 3.47MiB at  9.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB at 10.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB in 00:00
+PARSE_END 'youtube' '-----------'
+[youtube] someId: has already been recorded in the archive
+			"#;
+
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
+			let res = handle_stdout(
+				&options,
+				callback_counter(&expect_index, expected_pg),
+				BufReader::new(input.as_bytes()),
+				&mut media_vec,
+			);
+
+			assert!(res.is_ok());
+
+			assert_eq!(1, media_vec.len());
+
+			assert_eq!(
+				vec![MediaInfo::new("-----------", "youtube").with_title("Some Title Here")],
 				media_vec
 			);
 		}

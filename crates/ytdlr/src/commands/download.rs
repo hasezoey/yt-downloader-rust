@@ -677,7 +677,18 @@ fn do_download(
 			));
 		},
 		main::download::DownloadProgress::PlaylistInfo(new_count) => {
-			download_state_cell.borrow().set_count_estimate(new_count);
+			let borrow = download_state_cell.borrow();
+			// only assign a playlist estimate count once for the current URL
+			if !borrow.get_count_store().has_been_set() {
+				borrow.set_count_estimate(new_count)
+			}
+		},
+		// remove skipped medias from the count estimate (for the progress-bar)
+		main::download::DownloadProgress::Skipped(skipped_count) => {
+			let old_count = download_state_cell.borrow().get_count_estimate();
+			download_state_cell
+				.borrow()
+				.set_count_estimate(old_count - skipped_count);
 		},
 	};
 
