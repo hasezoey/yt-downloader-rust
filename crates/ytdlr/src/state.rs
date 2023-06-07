@@ -18,8 +18,9 @@ const DEFAULT_COUNT_ESTIMATE: usize = 1;
 
 /// NewType to store a count and a bool together
 /// Where the count is the playlist size estimate and the bool for whether it has already been set to a non-default
+/// values: (count_estimate, has_been_set, decrease_by)
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CountStore(usize, bool);
+pub struct CountStore(usize, bool, usize);
 
 impl CountStore {
 	/// Get wheter a count set (non-default) has occured
@@ -76,7 +77,7 @@ impl<'a> DownloadState<'a> {
 			audio_only_enable,
 			extra_command_arguments: extra_cmd_args,
 			print_stdout_debug,
-			count_estimate: Cell::new(CountStore(DEFAULT_COUNT_ESTIMATE, false)),
+			count_estimate: Cell::new(CountStore(DEFAULT_COUNT_ESTIMATE, false, 0)),
 			download_path,
 			sub_langs,
 
@@ -93,11 +94,37 @@ impl<'a> DownloadState<'a> {
 	}
 
 	/// Set "count_result" for generating the archive and for "get_count_estimate"
+	/// this function will automatically decrease the count by "decrease_by" (`CountStore.2`)
 	pub fn set_count_estimate(&self, count: usize) {
-		if count < DEFAULT_COUNT_ESTIMATE {
-			self.count_estimate.replace(CountStore(DEFAULT_COUNT_ESTIMATE, true));
+		let old_count = self.count_estimate.get();
+
+		let new_count = count.saturating_sub(old_count.2);
+		if new_count < DEFAULT_COUNT_ESTIMATE {
+			self.count_estimate.replace(CountStore(DEFAULT_COUNT_ESTIMATE, true, 0));
 		} else {
-			self.count_estimate.replace(CountStore(count, true));
+			self.count_estimate.replace(CountStore(new_count, true, 0));
+		}
+	}
+
+	/// Reset the count estimate to default
+	pub fn reset_count_estimate(&self) {
+		self.count_estimate
+			.replace(CountStore(DEFAULT_COUNT_ESTIMATE, false, 0));
+	}
+
+	/// Dedicated function to decrease the count estimate, even if no estimate has been given yet
+	pub fn decrease_count_estimate(&self, decrease_by: usize) {
+		let old_count = self.count_estimate.get();
+
+		if old_count.has_been_set() {
+			let mut new_count = old_count.0.saturating_sub(decrease_by).saturating_sub(old_count.2);
+			if new_count < DEFAULT_COUNT_ESTIMATE {
+				new_count = DEFAULT_COUNT_ESTIMATE;
+			}
+			self.count_estimate.replace(CountStore(new_count, old_count.1, 0));
+		} else {
+			self.count_estimate
+				.replace(CountStore(old_count.0, old_count.1, old_count.2 + decrease_by));
 		}
 	}
 

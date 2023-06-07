@@ -640,6 +640,7 @@ fn do_download(
 			pgbar.set_message(""); // ensure it is not still present across finish and reset
 			let url_index = download_info.borrow().url_index;
 			download_info.replace(DownloadInfo::new_with_url_index(url_index));
+			download_state_cell.borrow().reset_count_estimate(); // reset count estimate so that it does not carry over to different URLs
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
 			let new_count = download_info.borrow().playlist_count + 1;
@@ -685,10 +686,7 @@ fn do_download(
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
 		main::download::DownloadProgress::Skipped(skipped_count) => {
-			let old_count = download_state_cell.borrow().get_count_estimate();
-			download_state_cell
-				.borrow()
-				.set_count_estimate(old_count - skipped_count);
+			download_state_cell.borrow().decrease_count_estimate(skipped_count);
 		},
 	};
 
