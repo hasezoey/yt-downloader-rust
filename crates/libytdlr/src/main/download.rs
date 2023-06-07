@@ -484,6 +484,8 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	let mut current_mediainfo: Option<MediaInfo> = None;
 	// value to determine if a media has actually been downloaded, or just found
 	let mut had_download = false;
+	// store the last error line encountered
+	let mut last_error = None;
 
 	// HACK: .lines() iter never exits on non-0 exit codes in duct, see https://github.com/oconnor663/duct.rs/issues/112
 	for line in reader.lines() {
@@ -501,6 +503,10 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 		}
 
 		if let Some(linetype) = LineType::try_from_line(&line) {
+			// clear last_error line once the linetype is not error anymore (like in playlist to not fail if the playlist is not just skipped / private media)
+			if linetype != LineType::Error {
+				last_error = None;
+			}
 			match linetype {
 				// currently there is nothing that needs to be done with "Ffmpeg" lines
 				LineType::Ffmpeg => (),
@@ -582,7 +588,8 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					}
 				},
 				LineType::Error => {
-					return Err(crate::Error::other(line));
+					warn!("Encountered youtube-dl error: {}", line);
+					last_error = Some(crate::Error::other(line));
 				},
 			}
 		} else if !line.is_empty() {
@@ -592,6 +599,10 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 
 	// report that downloading is now finished
 	pgcb(DownloadProgress::AllFinished(mediainfo_vec.len()));
+
+	if let Some(last_error) = last_error {
+		return Err(last_error);
+	}
 
 	return Ok(());
 }
