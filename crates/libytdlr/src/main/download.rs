@@ -23,11 +23,14 @@ use crate::{
 };
 
 /// Enum for hooks to know what is currently happening
+/// All Variants will have a certian order in which they are called (like AllStarting is always before a SingleStarting)
+/// but not all may be called, like there may be "SingleStarting -> SingleProgress -> Skipped" instead of "SingleStarting -> SingleProgress -> SingleFinished"
 #[derive(Debug, Clone, PartialEq)]
 pub enum DownloadProgress {
 	/// Variant representing that the download is starting
 	AllStarting,
 	/// Variant representing a skipped element, may or may not come because of it already being in the archive
+	/// may be called after "SingleStarting" and / or "SingleProcess" instead of "SingleFinished"
 	/// values (skipped_count)
 	Skipped(usize),
 	/// Variant representing that a media has started the process
@@ -39,6 +42,7 @@ pub enum DownloadProgress {
 	SingleProgress(Option<String>, u8),
 	/// Variant representing that a media has finished the process
 	/// the "id" is not guranteed to be the same as in [`DownloadProgress::SingleStarting`]
+	/// will only be called if there was a download AND no error happened
 	/// values: (id)
 	SingleFinished(String),
 	/// Variant representing that the download has finished
@@ -567,9 +571,9 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 							},
 							CustomParseType::End(mi) => {
 								debug!("Found PARSE_END: \"{}\" \"{}\"", mi.id, mi.provider);
-								pgcb(DownloadProgress::SingleFinished(mi.id.clone()));
 
 								if let Some(last_mediainfo) = current_mediainfo.take() {
+									pgcb(DownloadProgress::SingleFinished(mi.id.clone())); // callback inside here, because it should only be triggered if there was a media_info to take
 									if mi.id != last_mediainfo.id {
 										// warn in the weird case where the "current_mediainfo" and result from PARSE_END dont match
 										warn!(
@@ -582,8 +586,8 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 										mediainfo_vec.push(last_mediainfo);
 									}
 								} else {
-									// warn in the weird case of "current_mediainfo" being "None"
-									warn!("Found a PARSE_END, but \"current_mediainfo\" was \"None\"!");
+									// write a log that PARSE_END was present but was None (like in the case of a Error happening)
+									debug!("Found a PARSE_END, but \"current_mediainfo\" was \"None\"!");
 								}
 
 								// reset the value for the next download
@@ -616,6 +620,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					warn!("Encountered youtube-dl error: {}", line);
 					last_error = Some(crate::Error::other(line));
 					pgcb(DownloadProgress::Skipped(1));
+					current_mediainfo.take(); // replace with none, because this media should not be added
 				},
 			}
 		} else if !line.is_empty() {
@@ -1426,6 +1431,105 @@ PARSE_END 'aprovider' 'someid4'
 
 			assert_eq!(
 				vec![MediaInfo::new("someid4", "aprovider")
+					.with_title("Some Title Here")
+					.with_filename("somewhere")],
+				media_vec
+			);
+		}
+
+		/// Test that when a error happens while downloading that the media is not added as a final media
+		#[test]
+		fn test_error_while_downloading() {
+			let expected_pg = &vec![
+				DownloadProgress::AllStarting,
+				DownloadProgress::SingleStarting("someid1".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("someid1".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("someid1".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("someid1".to_owned()), 100),
+				DownloadProgress::SingleFinished("someid1".to_owned()),
+				DownloadProgress::SingleStarting("someid2".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("someid2".to_owned()), 2),
+				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::SingleStarting("someid3".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("someid3".to_owned()), 0),
+				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
+				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::AllFinished(1),
+			];
+			let expect_index = Arc::new(AtomicUsize::new(0));
+
+			let options = TestOptions::new_handle_stdout(false, 1);
+
+			let input = r#"
+[aprovider] Extracting URL: https://someurl.com/hello
+[download] Downloading playlist: someplaylist
+[aprovider] someplaylist: Downloading page 0
+[aprovider] Playlist someplaylist: Downloading 4 items of 4
+
+[download] Downloading item 1 of 4
+[aprovider] Extracting URL: https://aprovider.com/video/someid2
+[aprovider] someid1: Downloading JSON metadata
+[info] someid1: Downloading 1 format(s): Source
+PARSE_START 'aprovider' 'someid1' Some Title Here
+[download] Destination: Some Title Here [someid1].mp4
+[download]   0.1% of  3.47MiB at  10.57MiB/s ETA 09:37
+[download] 100% of 3.47MiB at 10.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB in 00:00
+MOVE 'aprovider' 'someid1' /path/to/somewhere
+PARSE_END 'aprovider' 'someid1'
+
+[download] Downloading item 2 of 4
+[aprovider] Extracting URL: https://aprovider.com/video/someid2
+[aprovider] someid2: Downloading JSON metadata
+[info] someid2: Downloading 1 format(s): Source
+PARSE_START 'aprovider' 'someid2' Some Title Here
+[download] Destination: Happy Halloween Mona [someid2].mp4
+[download]   2.7% of  5.00MiB at    4.18MiB/s ETA 01:09
+
+ERROR: unable to write data: [Errno 28] No space left on device
+
+PARSE_END 'aprovider' 'someid2'
+[download] Downloading item 3 of 4
+[aprovider] Extracting URL: https://aprovider.com/video/someid3
+[aprovider] someid3: Downloading JSON metadata
+[info] someid3: Downloading 1 format(s): Source
+PARSE_START 'aprovider' 'someid3' Some Title Here
+[download] Destination: Pjanoo Mona [someid3].mp4
+[download]   0.0% of  6.00MiB at  Unknown B/s ETA Unknown
+
+ERROR: unable to write data: [Errno 28] No space left on device
+
+PARSE_END 'aprovider' 'someid3'
+[download] Downloading item 4 of 4
+[aprovider] Extracting URL: https://aprovider.com/video/someid4
+[aprovider] someid4: Downloading JSON metadata
+[info] someid4: Downloading 1 format(s): Source
+PARSE_START 'aprovider' 'someid4' Some Title Here
+[download] Destination: Girls Mona [someid4].mp4
+[download]   0.0% of  7.00MiB at  Unknown B/s ETA Unknown
+
+ERROR: unable to write data: [Errno 28] No space left on device
+
+PARSE_END 'aprovider' 'someid4'
+			"#;
+
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
+			let res = handle_stdout(
+				&options,
+				callback_counter(&expect_index, expected_pg),
+				BufReader::new(input.as_bytes()),
+				&mut media_vec,
+			);
+
+			assert!(res.is_ok());
+
+			assert_eq!(1, media_vec.len());
+
+			assert_eq!(
+				vec![MediaInfo::new("someid1", "aprovider")
 					.with_title("Some Title Here")
 					.with_filename("somewhere")],
 				media_vec
