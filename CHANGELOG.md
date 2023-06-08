@@ -12,6 +12,7 @@ This is a manually written changelog, and only tracks front-facing changes since
 - `download`: add option `--extra-ytdl-args` to provide extra youtube-dl arguments
 - `download`: does not immediately error anymore when a "ERROR:" line in encountered (like a private video in a playlist)
 - `download`: reflect skipped and errored media in the count
+- `download`: add warning when used yt-dlp version is below the minimal recommended one
 - ffmpeg: fix error on invalid utf8 sequence
 - add backtraces to errors that do not panic (only when `RUST_BACKTRACE=true` is set)
 - change Termination requests to not be based on time anymore

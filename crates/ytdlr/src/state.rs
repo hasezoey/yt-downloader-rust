@@ -9,6 +9,7 @@ use std::{
 use libytdlr::{
 	chrono,
 	diesel,
+	spawn::ytdl::YTDL_BIN_NAME,
 	traits::download_options::DownloadOptions,
 };
 use once_cell::sync::Lazy;
@@ -61,6 +62,10 @@ pub struct DownloadState<'a> {
 static DEFAULT_YTDL_VERSION: Lazy<chrono::NaiveDate> =
 	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 03, 04).unwrap());
 
+/// The minimal youtube-dl that is recommended to be used
+static MINIMAL_YTDL_VERSION: Lazy<chrono::NaiveDate> =
+	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 03, 03).unwrap());
+
 impl<'a> DownloadState<'a> {
 	/// Create a new instance of [`DownloadState`] with the required options
 	pub fn new(
@@ -88,6 +93,15 @@ impl<'a> DownloadState<'a> {
 
 			return *DEFAULT_YTDL_VERSION;
 		});
+
+		if ytdl_version < *MINIMAL_YTDL_VERSION {
+			warn!(
+				"Used {} version ({}) is lower than the recommended {}",
+				YTDL_BIN_NAME,
+				ytdl_version.format("%Y.%m.%d"),
+				MINIMAL_YTDL_VERSION.format("%Y.%m.%d"),
+			);
+		}
 
 		return Self {
 			audio_only_enable,
@@ -242,5 +256,21 @@ impl DownloadOptions for DownloadState<'_> {
 
 	fn ytdl_version(&self) -> chrono::NaiveDate {
 		return self.ytdl_version;
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	// test that all static dates compile without problem
+	#[test]
+	fn static_dates_should_be_ok() {
+		// simple test to test that the versions compile without panic
+		let _ = DEFAULT_YTDL_VERSION.clone();
+		let _ = MINIMAL_YTDL_VERSION.clone();
+
+		// compare dates so that DEFAULT is always higher than MINIMAL
+		assert!(*DEFAULT_YTDL_VERSION >= *MINIMAL_YTDL_VERSION);
 	}
 }
