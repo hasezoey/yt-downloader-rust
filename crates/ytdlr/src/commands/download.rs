@@ -664,8 +664,16 @@ fn do_download(
 			pgbar.set_position(percent.into());
 		},
 		main::download::DownloadProgress::SingleFinished(_id) => {
-			pgbar.finish_and_clear();
+			// dont hide the progressbar so that the cli does not appear to do nothing
+			pgbar.reset();
 			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().title));
+			set_progressbar_prefix(
+				pgbar,
+				download_info.borrow(),
+				*download_state_cell.borrow(),
+				false,
+				false,
+			);
 		},
 		main::download::DownloadProgress::AllFinished(new_count) => {
 			pgbar.finish_and_clear();
@@ -681,12 +689,21 @@ fn do_download(
 			let borrow = download_state_cell.borrow();
 			// only assign a playlist estimate count once for the current URL
 			if !borrow.get_count_store().has_been_set() {
-				borrow.set_count_estimate(new_count)
+				borrow.set_count_estimate(new_count);
 			}
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
 		main::download::DownloadProgress::Skipped(skipped_count) => {
 			download_state_cell.borrow().decrease_count_estimate(skipped_count);
+			pgbar.reset(); // reset so that it can work both with "SingleStarting" happening or not
+			   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
+			set_progressbar_prefix(
+				pgbar,
+				download_info.borrow(),
+				*download_state_cell.borrow(),
+				!download_state_cell.borrow().get_count_store().has_been_set(),
+				false,
+			);
 		},
 	};
 
