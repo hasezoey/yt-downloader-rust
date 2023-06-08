@@ -187,7 +187,8 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 		}
 	}
 
-	ytdl_args.arg("--no-quiet");
+	// required to get messages about when a element is skipped because of the archive
+	ytdl_args.arg("--no-quiet"); // requires a yet unreleased version of yt-dlp (higher than 2023.03.04)
 
 	// apply options to make output audio-only
 	if options.audio_only() {
@@ -733,6 +734,10 @@ mod test {
 
 		fn sub_langs(&self) -> Option<&String> {
 			return self.sub_langs.as_ref();
+		}
+
+		fn ytdl_version(&self) -> chrono::NaiveDate {
+			return chrono::NaiveDate::parse_from_str("2023.03.04", "%Y.%m.%d").expect("Expected to parse correctly");
 		}
 	}
 
