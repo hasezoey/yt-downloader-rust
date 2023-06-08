@@ -56,20 +56,22 @@ pub fn set_progressbar(bar: &ProgressBar, main_args: &CliDerive) {
 }
 
 /// Test if ytdl is installed and reachable, including required dependencies like ffmpeg
-pub fn require_ytdl_installed() -> Result<(), crate::Error> {
+/// Returns the version used
+pub fn require_ytdl_installed() -> Result<String, crate::Error> {
 	require_ffmpeg_installed()?;
 
-	if let Err(err) = ytdl_version() {
-		log::error!("Could not start or find youtube-dl! Error: {}", err);
+	return match ytdl_version() {
+		Ok(v) => Ok(v),
+		Err(err) => {
+			log::error!("Could not start or find youtube-dl! Error: {}", err);
 
-		return Err(crate::Error::custom_ioerror_location(
-			std::io::ErrorKind::NotFound,
-			"Youtube-DL(p) Version could not be determined, is it installed and reachable?",
-			format!("{} in PATH", YTDL_BIN_NAME),
-		));
-	}
-
-	return Ok(());
+			return Err(crate::Error::custom_ioerror_location(
+				std::io::ErrorKind::NotFound,
+				"Youtube-DL(p) Version could not be determined, is it installed and reachable?",
+				format!("{} in PATH", YTDL_BIN_NAME),
+			));
+		},
+	};
 }
 
 /// Test if FFMPEG is installed and reachable
