@@ -7,9 +7,11 @@ use std::{
 };
 
 use libytdlr::{
+	chrono,
 	diesel,
 	traits::download_options::DownloadOptions,
 };
+use once_cell::sync::Lazy;
 
 use crate::clap_conf::ArchiveMode;
 
@@ -50,7 +52,14 @@ pub struct DownloadState<'a> {
 	current_url: String,
 	/// Set which subtitle languages to download
 	sub_langs:   Option<&'a String>,
+
+	// Stores the youtube-dl version in use
+	ytdl_version: libytdlr::chrono::NaiveDate,
 }
+
+/// The default youtube-dl version to use
+static DEFAULT_YTDL_VERSION: Lazy<chrono::NaiveDate> =
+	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 03, 04).unwrap());
 
 impl<'a> DownloadState<'a> {
 	/// Create a new instance of [`DownloadState`] with the required options
@@ -61,6 +70,7 @@ impl<'a> DownloadState<'a> {
 		archive_mode: ArchiveMode,
 		sub_langs: Option<&'a String>,
 		extra_ytdl_args: &[String],
+		ytdl_version: &str,
 	) -> Self {
 		// process extra arguments into separated arguments of key and value (split once)
 		let extra_cmd_args = extra_ytdl_args
@@ -73,6 +83,12 @@ impl<'a> DownloadState<'a> {
 			})
 			.collect();
 
+		let ytdl_version = chrono::NaiveDate::parse_from_str(ytdl_version, "%Y.%m.%d").unwrap_or_else(|_| {
+			warn!("Could not determine youtube-dl version properly, using default");
+
+			return *DEFAULT_YTDL_VERSION;
+		});
+
 		return Self {
 			audio_only_enable,
 			extra_command_arguments: extra_cmd_args,
@@ -84,6 +100,7 @@ impl<'a> DownloadState<'a> {
 			archive_mode,
 
 			current_url: String::default(),
+			ytdl_version,
 		};
 	}
 
@@ -221,5 +238,9 @@ impl DownloadOptions for DownloadState<'_> {
 
 	fn sub_langs(&self) -> Option<&String> {
 		return self.sub_langs;
+	}
+
+	fn ytdl_version(&self) -> chrono::NaiveDate {
+		return self.ytdl_version;
 	}
 }
