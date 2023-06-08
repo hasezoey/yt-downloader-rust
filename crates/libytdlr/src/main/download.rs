@@ -1366,5 +1366,70 @@ PARSE_END 'youtube' '-----------'
 				media_vec
 			);
 		}
+
+		/// Test to test skipping, erroring and normal download together
+		#[test]
+		fn test_skip_error_and_normal() {
+			let expected_pg = &vec![
+				DownloadProgress::AllStarting,
+				DownloadProgress::Skipped(1), // one archive skip
+				DownloadProgress::Skipped(1), // one archive skip
+				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
+				DownloadProgress::SingleFinished("someid4".to_owned()),
+				DownloadProgress::AllFinished(1),
+			];
+			let expect_index = Arc::new(AtomicUsize::new(0));
+
+			let options = TestOptions::new_handle_stdout(false, 1);
+
+			let input = r#"
+[aprovider] Extracting URL: https://someurl.com/hello
+[download] Downloading playlist: someplaylist
+[aprovider] someplaylist: Downloading page 0
+[aprovider] Playlist someplaylist: Downloading 4 items of 4
+[download] Downloading item 1 of 4
+[aprovider] someid1: has already been recorded in the archive
+[download] Downloading item 2 of 4
+[aprovider] someid2: has already been recorded in the archive
+[download] Downloading item 3 of 4
+[aprovider] Extracting URL: https://someurl.com/video/someid3
+[aprovider] someid3: Downloading JSON metadata
+ERROR: [aprovider] someid3: somekinda error
+[download] Downloading item 4 of 4
+[aprovider] someid4: Downloading JSON metadata
+[info] someid4: Downloading 1 format(s): Source
+PARSE_START 'aprovider' 'someid4' Some Title Here
+[download] Destination: Some Title Here [someid4].mp4
+[download]   0.1% of  3.47MiB at  10.57MiB/s ETA 09:37
+[download] 100% of 3.47MiB at 10.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB in 00:00
+MOVE 'aprovider' 'someid4' /path/to/somewhere
+PARSE_END 'aprovider' 'someid4'
+			"#;
+
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
+			let res = handle_stdout(
+				&options,
+				callback_counter(&expect_index, expected_pg),
+				BufReader::new(input.as_bytes()),
+				&mut media_vec,
+			);
+
+			assert!(res.is_ok());
+
+			assert_eq!(1, media_vec.len());
+
+			assert_eq!(
+				vec![MediaInfo::new("someid4", "aprovider")
+					.with_title("Some Title Here")
+					.with_filename("somewhere")],
+				media_vec
+			);
+		}
 	}
 }
