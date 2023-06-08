@@ -187,8 +187,12 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 		}
 	}
 
-	// required to get messages about when a element is skipped because of the archive
-	ytdl_args.arg("--no-quiet"); // requires a yet unreleased version of yt-dlp (higher than 2023.03.04)
+	// using unwrap, because it is checked via tests that this statement compiles and is meant to be static
+	// 2023.03.24 is the date of the commit that added "--no-quiet"
+	if options.ytdl_version() >= chrono::NaiveDate::from_ymd_opt(2023, 03, 24).unwrap() {
+		// required to get messages about when a element is skipped because of the archive
+		ytdl_args.arg("--no-quiet"); // requires a yet unreleased version of yt-dlp (higher than 2023.03.04)
+	}
 
 	// apply options to make output audio-only
 	if options.audio_only() {
@@ -661,6 +665,7 @@ mod test {
 		print_command_stdout: bool,
 		count_estimate:       usize,
 		sub_langs:            Option<String>,
+		ytdl_version:         chrono::NaiveDate,
 	}
 
 	impl TestOptions {
@@ -678,24 +683,50 @@ mod test {
 				download_path,
 				url,
 				archive_lines,
-				print_command_stdout: false,
-				count_estimate: 0,
-				sub_langs: None,
+				..Default::default()
 			};
 		}
 
 		/// Helper Function for easily creating a new instance of [`TestOptions`] for [`handle_stdout`] testing
 		pub fn new_handle_stdout(print_command_stdout: bool, count_estimate: usize) -> Self {
 			return Self {
-				audio_only: false,
-				extra_arguments: Vec::default(),
-				download_path: PathBuf::default(),
-				url: String::default(),
-				archive_lines: Vec::default(),
 				print_command_stdout,
 				count_estimate,
-				sub_langs: None,
+				..Default::default()
 			};
+		}
+
+		/// Test with a custom ytdl_version
+		pub fn with_version(mut self, ytdl_version: chrono::NaiveDate) -> Self {
+			self.ytdl_version = ytdl_version;
+
+			return self;
+		}
+
+		/// Get the test default version
+		pub fn default_version() -> chrono::NaiveDate {
+			// return current date plus 1 year to activate all features for now
+			return chrono::offset::Utc::now()
+				.naive_utc()
+				.checked_add_months(chrono::Months::new(12))
+				.unwrap()
+				.into();
+		}
+	}
+
+	impl Default for TestOptions {
+		fn default() -> Self {
+			Self {
+				audio_only:           false,
+				extra_arguments:      Default::default(),
+				download_path:        Default::default(),
+				url:                  Default::default(),
+				archive_lines:        Default::default(),
+				print_command_stdout: false,
+				count_estimate:       0,
+				sub_langs:            None,
+				ytdl_version:         Self::default_version(),
+			}
 		}
 	}
 
@@ -737,7 +768,7 @@ mod test {
 		}
 
 		fn ytdl_version(&self) -> chrono::NaiveDate {
-			return chrono::NaiveDate::parse_from_str("2023.03.04", "%Y.%m.%d").expect("Expected to parse correctly");
+			return self.ytdl_version;
 		}
 	}
 
@@ -1084,6 +1115,49 @@ mod test {
 					OsString::from("someURL"),
 				]
 			);
+		}
+
+		#[test]
+		fn test_quiet_version_gate() {
+			let (dl_dir, _tempdir) = create_dl_dir();
+
+			// test version before
+			{
+				let options = TestOptions::new_assemble(
+					true,
+					Vec::default(),
+					dl_dir.clone(),
+					"someURL".to_owned(),
+					Vec::default(),
+				)
+				.with_version(chrono::NaiveDate::from_ymd_opt(2023, 03, 04).unwrap());
+
+				let ret = assemble_ytdl_command(None, &options);
+
+				assert!(ret.is_ok());
+				let ret = ret.expect("Expected is_ok check to pass");
+
+				assert!(!ret.contains(&OsString::from("--no-quiet")));
+			}
+
+			// test version after
+			{
+				let options = TestOptions::new_assemble(
+					true,
+					Vec::default(),
+					dl_dir.clone(),
+					"someURL".to_owned(),
+					Vec::default(),
+				)
+				.with_version(chrono::NaiveDate::from_ymd_opt(2023, 03, 25).unwrap());
+
+				let ret = assemble_ytdl_command(None, &options);
+
+				assert!(ret.is_ok());
+				let ret = ret.expect("Expected is_ok check to pass");
+
+				assert!(ret.contains(&OsString::from("--no-quiet")));
+			}
 		}
 	}
 
