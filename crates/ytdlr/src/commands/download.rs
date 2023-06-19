@@ -226,7 +226,7 @@ impl Recovery {
 	}
 }
 
-/// Helper struct to keep the order of download / addition and the data, with names
+/// Helper struct to preserve the order of download / addition and the data, with names
 #[derive(Debug, PartialEq)]
 struct MediaHelper {
 	/// The actual [`MediaInfo`] that is stored
@@ -246,7 +246,9 @@ impl MediaHelper {
 /// Custom HashMap for [`MediaInfo`] to keep usage easy
 #[derive(Debug, PartialEq)]
 struct MediaInfoArr {
+	/// Stores all [MediaHelper] and the keys are "provider-id"
 	mediainfo_map:        HashMap<String, MediaHelper>,
+	/// Stores the next "order" to be used for a new [MediaHelper]
 	next_order:           usize,
 	/// Store if the hashmap has maybe entries that are not in the archive
 	has_maybe_uninserted: bool,
@@ -306,7 +308,7 @@ impl MediaInfoArr {
 		self.mediainfo_map.reserve(additional);
 	}
 
-	/// Get if the internal hasmap has maybe entries that are not inserted to the archive
+	/// Get if the internal hashmap maybe has entries that are not inserted to the archive
 	pub fn has_maybe_uninserted(&self) -> bool {
 		return self.has_maybe_uninserted;
 	}
@@ -324,7 +326,7 @@ impl MediaInfoArr {
 
 /// Truncate the given message to a lower size so that the progressbar does not do new-lines
 /// truncation is required because indicatif would do new-lines, and adding truncation would only work with a (static) maximum size
-/// NOTE: this currently only gets run once for each "SingleStarting" instead of every tick, so resizing the truncate will not be done (until next media)
+/// NOTE: this currently only gets run once for each "SingleStarting" instead of every tick, so truncation on resize will only happen at the next media
 fn truncate_message_term_width<M>(msg: &M) -> String
 where
 	M: AsRef<str>,
