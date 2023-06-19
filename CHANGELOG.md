@@ -2,7 +2,7 @@
 
 This is a manually written changelog, and only tracks front-facing changes since version [`v0.5.0`](#v050)
 
-## next
+## v0.8.0
 
 - `download`: change editors to run with inherited STDIO
 - `download`: add ability to play the current element in the edit stage
