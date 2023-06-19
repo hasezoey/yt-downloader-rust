@@ -188,8 +188,8 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	}
 
 	// using unwrap, because it is checked via tests that this statement compiles and is meant to be static
-	// 2023.03.24 is the date of the commit that added "--no-quiet"
-	if options.ytdl_version() >= chrono::NaiveDate::from_ymd_opt(2023, 03, 24).unwrap() {
+	// 2023.3.24 is the date of the commit that added "--no-quiet"
+	if options.ytdl_version() >= chrono::NaiveDate::from_ymd_opt(2023, 3, 24).unwrap() {
 		// required to get messages about when a element is skipped because of the archive
 		ytdl_args.arg("--no-quiet"); // requires a yet unreleased version of yt-dlp (higher than 2023.03.04)
 	}
@@ -1130,7 +1130,7 @@ mod test {
 					"someURL".to_owned(),
 					Vec::default(),
 				)
-				.with_version(chrono::NaiveDate::from_ymd_opt(2023, 03, 04).unwrap());
+				.with_version(chrono::NaiveDate::from_ymd_opt(2023, 3, 04).unwrap());
 
 				let ret = assemble_ytdl_command(None, &options);
 
@@ -1149,7 +1149,7 @@ mod test {
 					"someURL".to_owned(),
 					Vec::default(),
 				)
-				.with_version(chrono::NaiveDate::from_ymd_opt(2023, 03, 25).unwrap());
+				.with_version(chrono::NaiveDate::from_ymd_opt(2023, 3, 25).unwrap());
 
 				let ret = assemble_ytdl_command(None, &options);
 

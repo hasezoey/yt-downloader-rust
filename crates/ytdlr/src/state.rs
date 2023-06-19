@@ -60,11 +60,11 @@ pub struct DownloadState<'a> {
 
 /// The default youtube-dl version to use
 static DEFAULT_YTDL_VERSION: Lazy<chrono::NaiveDate> =
-	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 03, 04).unwrap());
+	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 3, 4).unwrap());
 
 /// The minimal youtube-dl that is recommended to be used
 static MINIMAL_YTDL_VERSION: Lazy<chrono::NaiveDate> =
-	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 03, 03).unwrap());
+	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 3, 3).unwrap());
 
 impl<'a> DownloadState<'a> {
 	/// Create a new instance of [`DownloadState`] with the required options
