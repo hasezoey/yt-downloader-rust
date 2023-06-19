@@ -230,7 +230,7 @@ fn format_location(msg: &str) -> String {
 pub trait IOErrorToError<T> {
 	/// Map a [std::io::Error] to [Error] with a [std::path::Path] attached
 	fn attach_path_err<P: AsRef<Path>>(self, path: P) -> Result<T, crate::Error>;
-	/// Map a [std::io::Error] to [Error] with a location attached (for when [attach_path_err] is not applicable)
+	/// Map a [std::io::Error] to [Error] with a location attached (for when [IOErrorToError::attach_path_err] is not applicable)
 	fn attach_location_err<P: AsRef<str>>(self, pipe_msg: P) -> Result<T, crate::Error>;
 }
 
