@@ -1289,6 +1289,62 @@ fn finish_media(
 	return Ok(EditCtrl::Finished);
 }
 
+/// Check output path of the combined "dir_path" and "filename"
+/// if it exists, append up to "30" to it
+/// if the output path still exists after "30", returns [None]
+fn try_gen_final_path(dir_path: &Path, filename: &Path) -> Option<PathBuf> {
+	let mut to_path = dir_path.join(filename);
+
+	if to_path.exists() {
+		warn!(
+			"Initial \"to\" path already exists, trying to find a solution, file: \"{}\"",
+			filename.display()
+		);
+		// ensure it does not run infinitely
+		let mut i = 0;
+
+		let file_base = match filename.file_stem() {
+			Some(v) => v,
+			None => {
+				error!("File did not have a file_stem!");
+				return None;
+			},
+		};
+		let ext = filename.extension();
+
+		while to_path.exists() && i < 30 {
+			i += 1;
+
+			let name = {
+				let mut name = file_base.to_owned();
+
+				name.push(format!(" {}", i));
+
+				if let Some(ext) = ext {
+					// having to manually push "." because not "set_extension" exists for "OsString"
+					name.push(".");
+					name.push(ext);
+				}
+
+				name
+			};
+
+			to_path = dir_path.join(name);
+		}
+
+		if !to_path.exists() && i >= 30 {
+			error!(
+				"Not moving file, because it already exists, and also 30 more combinations! File: \"{}\"",
+				filename.display()
+			);
+
+			return None;
+		}
+	}
+
+	return Some(to_path);
+}
+
 /// Move all media in `final_media` to it final resting place in `download_path`
 /// Helper to separate out the possible paths
 fn finish_with_move(
@@ -1324,7 +1380,10 @@ fn finish_with_move(
 			},
 		};
 		let from_path = download_path.join(media_filename);
-		let to_path = final_dir_path.join(final_filename);
+		let to_path = match try_gen_final_path(&final_dir_path, &final_filename) {
+			Some(v) => v,
+			None => continue, // file will be found again in the next run via recovery
+		};
 		trace!(
 			"Copying file \"{}\" to \"{}\"",
 			from_path.to_string_lossy(),
@@ -1384,7 +1443,10 @@ fn finish_with_tagger(
 		};
 		// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same filesystem
 		let from_path = download_path.join(media_filename);
-		let to_path = final_dir_path.join(final_filename);
+		let to_path = match try_gen_final_path(&final_dir_path, &final_filename) {
+			Some(v) => v,
+			None => continue, // file will be found again in the next run via recovery
+		};
 		std::fs::rename(&from_path, to_path).attach_path_err(from_path)?;
 	}
 
@@ -1489,6 +1551,144 @@ mod test {
 			assert_eq!(
 				Some(MediaInfo::new("id", "provider").with_title("Some Title ver.2")),
 				Recovery::try_from_line(input)
+			);
+		}
+	}
+
+	mod try_gen_final_path {
+		use super::*;
+		use std::fs::{
+			rename,
+			File,
+		};
+		use tempfile::{
+			Builder as TempBuilder,
+			TempDir,
+		};
+
+		fn create_tmp_dir() -> (PathBuf, TempDir) {
+			let testdir = TempBuilder::new()
+				.prefix("ytdl-test-try_gen_final_path-")
+				.tempdir()
+				.expect("Expected a temp dir to be created");
+
+			return (testdir.as_ref().to_owned(), testdir);
+		}
+
+		#[test]
+		fn test_no_rename() {
+			let (dir, _tempdir) = create_tmp_dir();
+
+			let input_dir = dir.join("input");
+			std::fs::create_dir_all(&input_dir).unwrap();
+
+			let testfile1 = input_dir.join("hello.mkv");
+			let testfile2 = input_dir.join("another.mkv");
+
+			File::create(&testfile1).unwrap();
+			File::create(&testfile2).unwrap();
+
+			let output_dir = dir.join("output");
+			std::fs::create_dir_all(&output_dir).unwrap();
+
+			{
+				let gen = try_gen_final_path(&output_dir, &Path::new(testfile1.file_name().unwrap())).unwrap();
+				assert_eq!(output_dir.join(testfile1.file_name().unwrap()), gen);
+				rename(testfile1, gen).unwrap();
+			}
+			{
+				let gen = try_gen_final_path(&output_dir, &Path::new(testfile2.file_name().unwrap())).unwrap();
+				assert_eq!(output_dir.join(testfile2.file_name().unwrap()), gen);
+				rename(testfile2, gen).unwrap();
+			}
+		}
+
+		#[test]
+		fn test_rename_simple() {
+			let (dir, _tempdir) = create_tmp_dir();
+
+			let input_dir = dir.join("input");
+			std::fs::create_dir_all(&input_dir).unwrap();
+
+			let testfile1 = input_dir.join("1-hello.mkv");
+
+			File::create(&testfile1).unwrap();
+
+			let output_dir = dir.join("output");
+			std::fs::create_dir_all(&output_dir).unwrap();
+
+			{
+				let gen = try_gen_final_path(&output_dir, &Path::new("hello.mkv")).unwrap();
+				assert_eq!(output_dir.join("hello.mkv"), gen);
+				rename(&testfile1, gen).unwrap();
+			}
+
+			{
+				let gen = try_gen_final_path(&output_dir, &Path::new("hello.mkv")).unwrap();
+				assert_eq!(output_dir.join("hello 1.mkv"), gen);
+			}
+		}
+
+		#[test]
+		fn test_30_times() {
+			let (dir, _tempdir) = create_tmp_dir();
+
+			let input_dir = dir.join("input");
+			std::fs::create_dir_all(&input_dir).unwrap();
+			let output_dir = dir.join("output");
+			std::fs::create_dir_all(&output_dir).unwrap();
+
+			let mut vals = Vec::new();
+
+			for i in 0..31 {
+				let testfile = input_dir.join(format!("{}-hello.mkv", i));
+				File::create(&testfile).unwrap();
+
+				let res = try_gen_final_path(&output_dir, &Path::new("hello.mkv"));
+
+				vals.push(res.is_some());
+
+				// rename so that the files actually exist
+				if let Some(v) = &res {
+					rename(testfile, v).unwrap();
+				}
+
+				// the 0th time it will not have numbers appended
+				if i == 0 {
+					assert_eq!(Some(output_dir.join(format!("hello.mkv"))), res);
+				}
+
+				// should loop 30 times to find a suitable name
+				if (1..30).contains(&i) {
+					assert_eq!(Some(output_dir.join(format!("hello {i}.mkv"))), res);
+				}
+
+				// the 31th time it should return "None" because it only checks 30 times
+				if i >= 31 {
+					assert!(res.is_none());
+				}
+			}
+
+			assert_eq!(vals.len(), 31);
+			assert_eq!(
+				vals.iter().fold(0, |acc, v| {
+					if *v {
+						return acc + 1;
+					}
+
+					return acc;
+				}),
+				30
+			);
+			assert_eq!(
+				vals.iter().fold(0, |acc, v| {
+					if !*v {
+						return acc + 1;
+					}
+
+					return acc;
+				}),
+				1
 			);
 		}
 	}
