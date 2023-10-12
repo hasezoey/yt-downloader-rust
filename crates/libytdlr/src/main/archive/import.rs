@@ -125,9 +125,9 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 	if let Some(num) = max_id_result {
 		// sqlite only support signed integers, but the rowid will always be positive (at least should be) and conversion should be possible
 		let num = usize::try_from(num).map_err(|_| {
-			return crate::Error::other(format!(
-				"Failed to convert column _id i64 to usize, expected the number to be positive"
-			));
+			return crate::Error::other(
+				"Failed to convert column _id i64 to usize, expected the number to be positive",
+			);
 		})?;
 		pgcb(ImportProgress::SizeHint(num));
 	} else {

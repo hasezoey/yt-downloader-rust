@@ -68,7 +68,7 @@ fn check_termination() -> Result<(), crate::Error> {
 
 impl Recovery {
 	/// Recovery file prefix
-	const RECOVERY_PREFIX: &str = "recovery_";
+	const RECOVERY_PREFIX: &'static str = "recovery_";
 
 	/// Create a new instance, without opening a file
 	pub fn new<P>(path: P) -> Result<Self, crate::Error>
