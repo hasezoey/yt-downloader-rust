@@ -11,22 +11,22 @@ clap = { version = "4.3", features = ["derive", "wrap_help", "env"] }
 clap_complete = "4.3"
 indicatif = "0.17.3"
 colored = "2.0.0"
-log = "0.4"
+log.workspace = true
 flexi_logger = "0.25" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
 is-terminal = "0.4"
 libytdlr = { path = "../libytdlr" }
-dirs-next = "2.0.0"
+dirs-next.workspace = true
 term_size = "0.3"
-regex = "1.7"
+regex.workspace = true
 sysinfo = "0.28"
 ctrlc = { version = "3", features = ["termination"] }
-once_cell = "1.17"
+once_cell.workspace = true
 # the following 2 are required to get the correct boundaries to truncate at
 unicode-segmentation = "1.10" # cluster all characters into display-able characters
 unicode-width = "0.1" # get display width of a given string
 
 [dev-dependencies]
-tempfile = "3.5"
+tempfile.workspace = true
 
 [[bin]]
 name = "ytdlr"

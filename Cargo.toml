@@ -2,6 +2,13 @@
 members = ["crates/*"]
 resolver = "2"
 
+[workspace.dependencies]
+once_cell = "1.17"
+log = "0.4"
+regex = "1.7"
+dirs-next = "2.0"
+tempfile = "3.5"
+
 [workspace.lints.clippy]
 correctness = "deny"
 style = "warn"
