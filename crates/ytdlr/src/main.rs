@@ -79,7 +79,7 @@ static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
 });
 
 /// Main
-fn main() -> Result<(), ()> {
+fn main() {
 	let res = actual_main();
 
 	if let Err(err) = res {
@@ -94,8 +94,6 @@ fn main() -> Result<(), ()> {
 		}
 		std::process::exit(1);
 	}
-
-	return Ok(());
 }
 
 /// Actually the main function, to be wrapped in a custom error handler
