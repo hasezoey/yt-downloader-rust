@@ -191,12 +191,12 @@ impl PartialEq for ErrorInner {
 			(Self::SQLConnectionError(l0), Self::SQLConnectionError(r0)) => return l0 == r0,
 			(Self::SQLOperationError(l0), Self::SQLOperationError(r0)) => return l0 == r0,
 
-			(Self::CommandNotSuccesful(l0), Self::CommandNotSuccesful(r0)) => return l0 == r0,
-			(Self::NoCapturesFound(l0), Self::NoCapturesFound(r0)) => return l0 == r0,
-			(Self::Other(l0), Self::Other(r0)) => return l0 == r0,
-			(Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
-			(Self::NotADirectory(l0, l1), Self::NotADirectory(r0, r1)) => return l0 == r0 && l1 == r1,
-			(Self::NotAFile(l0, l1), Self::NotAFile(r0, r1)) => return l0 == r0 && l1 == r1,
+			(Self::CommandNotSuccesful(l0), Self::CommandNotSuccesful(r0))
+			| (Self::NoCapturesFound(l0), Self::NoCapturesFound(r0))
+			| (Self::Other(l0), Self::Other(r0))
+			| (Self::UnexpectedEOF(l0), Self::UnexpectedEOF(r0)) => return l0 == r0,
+			(Self::NotADirectory(l0, l1), Self::NotADirectory(r0, r1))
+			| (Self::NotAFile(l0, l1), Self::NotAFile(r0, r1)) => return l0 == r0 && l1 == r1,
 
 			(_, _) => return false,
 		}
