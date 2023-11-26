@@ -717,7 +717,7 @@ mod test {
 
 	impl Default for TestOptions {
 		fn default() -> Self {
-			Self {
+			return Self {
 				audio_only:           false,
 				extra_arguments:      Default::default(),
 				download_path:        Default::default(),
@@ -727,7 +727,7 @@ mod test {
 				count_estimate:       0,
 				sub_langs:            None,
 				ytdl_version:         Self::default_version(),
-			}
+			};
 		}
 	}
 

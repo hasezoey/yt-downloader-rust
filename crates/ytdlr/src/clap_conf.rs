@@ -501,7 +501,7 @@ mod test {
 		#[test]
 		fn test_basic_parse_and_check() {
 			// the following is not quite a "clean" state, because "parse_from" still looks at environment variables
-			let original = CommandDownload::parse_from(vec![""].iter());
+			let original = CommandDownload::parse_from([""].iter());
 
 			let mut cloned = original.clone();
 			assert!(cloned.check().is_ok()); // should always be successful, regardless of if "parse_from" looks at the environment variables or not

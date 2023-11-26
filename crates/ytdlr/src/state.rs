@@ -267,8 +267,8 @@ mod test {
 	#[test]
 	fn static_dates_should_be_ok() {
 		// simple test to test that the versions compile without panic
-		let _ = DEFAULT_YTDL_VERSION.clone();
-		let _ = MINIMAL_YTDL_VERSION.clone();
+		let _ = *DEFAULT_YTDL_VERSION;
+		let _ = *MINIMAL_YTDL_VERSION;
 
 		// compare dates so that DEFAULT is always higher than MINIMAL
 		assert!(*DEFAULT_YTDL_VERSION >= *MINIMAL_YTDL_VERSION);

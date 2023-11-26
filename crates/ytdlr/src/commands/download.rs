@@ -1592,12 +1592,12 @@ mod test {
 			std::fs::create_dir_all(&output_dir).unwrap();
 
 			{
-				let gen = try_gen_final_path(&output_dir, &Path::new(testfile1.file_name().unwrap())).unwrap();
+				let gen = try_gen_final_path(&output_dir, Path::new(testfile1.file_name().unwrap())).unwrap();
 				assert_eq!(output_dir.join(testfile1.file_name().unwrap()), gen);
 				rename(testfile1, gen).unwrap();
 			}
 			{
-				let gen = try_gen_final_path(&output_dir, &Path::new(testfile2.file_name().unwrap())).unwrap();
+				let gen = try_gen_final_path(&output_dir, Path::new(testfile2.file_name().unwrap())).unwrap();
 				assert_eq!(output_dir.join(testfile2.file_name().unwrap()), gen);
 				rename(testfile2, gen).unwrap();
 			}
@@ -1618,13 +1618,13 @@ mod test {
 			std::fs::create_dir_all(&output_dir).unwrap();
 
 			{
-				let gen = try_gen_final_path(&output_dir, &Path::new("hello.mkv")).unwrap();
+				let gen = try_gen_final_path(&output_dir, Path::new("hello.mkv")).unwrap();
 				assert_eq!(output_dir.join("hello.mkv"), gen);
 				rename(&testfile1, gen).unwrap();
 			}
 
 			{
-				let gen = try_gen_final_path(&output_dir, &Path::new("hello.mkv")).unwrap();
+				let gen = try_gen_final_path(&output_dir, Path::new("hello.mkv")).unwrap();
 				assert_eq!(output_dir.join("hello 1.mkv"), gen);
 			}
 		}
@@ -1644,7 +1644,7 @@ mod test {
 				let testfile = input_dir.join(format!("{}-hello.mkv", i));
 				File::create(&testfile).unwrap();
 
-				let res = try_gen_final_path(&output_dir, &Path::new("hello.mkv"));
+				let res = try_gen_final_path(&output_dir, Path::new("hello.mkv"));
 
 				vals.push(res.is_some());
 
@@ -1655,7 +1655,7 @@ mod test {
 
 				// the 0th time it will not have numbers appended
 				if i == 0 {
-					assert_eq!(Some(output_dir.join(format!("hello.mkv"))), res);
+					assert_eq!(Some(output_dir.join("hello.mkv")), res);
 				}
 
 				// should loop 30 times to find a suitable name
