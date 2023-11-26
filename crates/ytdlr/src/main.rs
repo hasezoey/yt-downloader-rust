@@ -88,7 +88,7 @@ fn main() -> Result<(), ()> {
 		match backtrace.status() {
 			std::backtrace::BacktraceStatus::Captured => eprintln!("Backtrace:\n{}", backtrace),
 			std::backtrace::BacktraceStatus::Disabled => {
-				eprintln!("Backtrace is disabled, enable with RUST_BACKTRACE=true")
+				eprintln!("Backtrace is disabled, enable with RUST_BACKTRACE=true");
 			},
 			_ => eprintln!("Backtrace is unsupported"),
 		}

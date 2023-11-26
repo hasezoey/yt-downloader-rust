@@ -118,7 +118,7 @@ mod test {
 				provider:  provider::Provider::from("unknown"),
 			},
 			Video::new("helloid", provider::Provider::from("unknown")).with_filename("hello_filename")
-		)
+		);
 	}
 
 	#[test]

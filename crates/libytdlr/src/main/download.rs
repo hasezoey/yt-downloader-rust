@@ -572,7 +572,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 									.title
 									.as_ref()
 									.expect("current_mediainfo.title should have been set");
-								pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()))
+								pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()));
 							},
 							CustomParseType::End(mi) => {
 								debug!("Found PARSE_END: \"{}\" \"{}\"", mi.id, mi.provider);

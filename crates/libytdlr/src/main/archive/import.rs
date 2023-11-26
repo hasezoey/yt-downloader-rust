@@ -428,7 +428,7 @@ mod test {
 			assert_eq!(
 				crate::Error::unexpected_eof("Detected Empty File, Cannot detect format"),
 				ret.unwrap_err()
-			)
+			);
 		}
 
 		#[test]

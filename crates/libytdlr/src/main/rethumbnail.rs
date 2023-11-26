@@ -340,7 +340,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 			stderr_reader
 				.lines()
 				.filter_map(|v| return v.ok())
-				.for_each(|line| log::info!("ffmpeg STDERR: {}", line))
+				.for_each(|line| log::info!("ffmpeg STDERR: {}", line));
 		})
 		.attach_location_err("ffmpeg stderr thread spawn")?;
 

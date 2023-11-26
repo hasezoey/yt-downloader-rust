@@ -429,7 +429,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		println!(
 			"{} No URLs were provided, only checking recovery! To disable allowing 0 URLs, use \"--no-check-recovery\"",
 			"WARN".color(Color::TrueColor { r: 255, g: 135, b: 0 })
-		)
+		);
 	}
 
 	/// ProgressBar Style for download, will look like `[0/0] [00:00:00] [#>-] CustomMsg`
@@ -498,7 +498,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 
 			// log recovery write error, but do not modify original error
 			if let Err(rerr) = res {
-				warn!("Failed to write recovery: {}", rerr)
+				warn!("Failed to write recovery: {}", rerr);
 			}
 
 			return Err(err);
@@ -886,11 +886,11 @@ fn edit_media(
 				"y" => match utils::get_filetype(media_filename) {
 					utils::FileType::Video => {
 						println!("Found filetype to be of video");
-						run_editor_wrap(&sub_args.video_editor, &media_path)?
+						run_editor_wrap(&sub_args.video_editor, &media_path)?;
 					},
 					utils::FileType::Audio => {
 						println!("Found filetype to be of audio");
-						run_editor_wrap(&sub_args.audio_editor, &media_path)?
+						run_editor_wrap(&sub_args.audio_editor, &media_path)?;
 					},
 					utils::FileType::Unknown => {
 						// if not FileType could be found, ask user what to do
