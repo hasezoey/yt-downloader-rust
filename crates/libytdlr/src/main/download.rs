@@ -803,10 +803,11 @@ mod test {
 	) -> impl FnMut(DownloadProgress) + 'a {
 		return |imp| {
 			let index = index_pg.load(std::sync::atomic::Ordering::Relaxed);
-			if index > expected_pg.len() {
-				// panic in case there are more events than expected, with a more useful message than default
-				panic!("index_pg is higher than provided expected_pg values! (more events than expected?)");
-			}
+			// panic in case there are more events than expected, with a more useful message than default
+			assert!(
+				index <= expected_pg.len(),
+				"index_pg is higher than provided expected_pg values! (more events than expected?)"
+			);
 			assert_eq!(expected_pg[index], imp);
 			index_pg.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
 		};

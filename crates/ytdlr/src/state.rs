@@ -235,9 +235,10 @@ impl DownloadOptions for DownloadState<'_> {
 
 	fn get_url(&self) -> &str {
 		// check against "current_url" still being empty
-		if self.current_url.is_empty() {
-			panic!("Expected \"current_url\" to not be empty at this point");
-		}
+		assert!(
+			!self.current_url.is_empty(),
+			"Expected \"current_url\" to not be empty at this point"
+		);
 
 		return &self.current_url;
 	}
