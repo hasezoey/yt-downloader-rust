@@ -8,6 +8,7 @@ use std::{
 /// Spawn a binary cross-system (not-windows version)
 #[cfg(not(target_os = "windows"))]
 #[inline]
+#[must_use]
 pub fn spawn_command<P: AsRef<OsStr>>(binary_name: &P) -> Command {
 	return Command::new(binary_name);
 }
@@ -17,6 +18,7 @@ pub fn spawn_command<P: AsRef<OsStr>>(binary_name: &P) -> Command {
 /// Also, rust automatically searches all the paths, including the ytdl-rust binary path
 #[cfg(target_os = "windows")]
 #[inline]
+#[must_use]
 pub fn spawn_command<P: AsRef<OsStr>>(binary_name: &P) -> Command {
 	return Command::new(binary_name);
 }

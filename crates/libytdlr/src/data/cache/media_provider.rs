@@ -11,6 +11,7 @@ pub struct MediaProvider(String);
 
 impl MediaProvider {
 	/// Get current current [`MediaProvider`] as a str
+	#[must_use]
 	pub fn to_str(&self) -> &str {
 		return &self.0;
 	}

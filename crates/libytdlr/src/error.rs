@@ -49,6 +49,7 @@ pub struct Error {
 
 impl Error {
 	/// Construct a new [Error] instance based on [ErrorInner]
+	#[must_use]
 	pub fn new(source: ErrorInner) -> Self {
 		return Self {
 			source,

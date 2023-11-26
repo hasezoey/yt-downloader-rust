@@ -140,6 +140,7 @@ pub const YTDL_ARCHIVE_PREFIX: &str = "ytdl_archive_";
 pub const YTDL_ARCHIVE_EXT: &str = ".txt";
 
 /// Consistent way of getting the archive name
+#[must_use]
 pub fn get_archive_name(output_dir: &std::path::Path) -> std::path::PathBuf {
 	return output_dir.join(format!(
 		"{}{}{}",

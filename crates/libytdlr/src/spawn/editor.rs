@@ -6,6 +6,7 @@ use std::{
 
 /// Create a new editor instance with the given filepath as a argument
 #[inline]
+#[must_use]
 pub fn base_editor(editor: &Path, filepath: &Path) -> Command {
 	let mut cmd = super::multiplatform::spawn_command(&editor);
 	cmd.arg(filepath);

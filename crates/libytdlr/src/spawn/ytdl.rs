@@ -15,6 +15,7 @@ pub const YTDL_BIN_NAME: &str = "yt-dlp";
 
 /// Create a new [YTDL_BIN_NAME] [Command] instance
 #[inline]
+#[must_use]
 pub fn base_ytdl() -> Command {
 	return super::multiplatform::spawn_command(&YTDL_BIN_NAME);
 }
