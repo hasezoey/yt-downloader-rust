@@ -46,14 +46,16 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 			output_path_tmp
 				.extension()
 				// map extension to a extension with "."
-				.map(|v| {
-					let mut tmp = OsString::from(".");
+				.map_or_else(
+					|| return OsString::from(""),
+					|v| {
+						let mut tmp = OsString::from(".");
 
-					tmp.push(v);
+						tmp.push(v);
 
-					return tmp;
-				})
-				.unwrap_or_else(|| return OsString::from("")),
+						return tmp;
+					},
+				),
 		); // push original extension, because there is currently no function to just modify the file stem
 
 		output_path_tmp.set_file_name(stem);
