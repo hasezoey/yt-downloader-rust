@@ -719,10 +719,10 @@ mod test {
 		fn default() -> Self {
 			return Self {
 				audio_only:           false,
-				extra_arguments:      Default::default(),
-				download_path:        Default::default(),
-				url:                  Default::default(),
-				archive_lines:        Default::default(),
+				extra_arguments:      Vec::default(),
+				download_path:        PathBuf::default(),
+				url:                  String::default(),
+				archive_lines:        Vec::default(),
 				print_command_stdout: false,
 				count_estimate:       0,
 				sub_langs:            None,

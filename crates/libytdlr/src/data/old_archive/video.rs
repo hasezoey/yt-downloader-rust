@@ -25,7 +25,7 @@ impl Video {
 		return Self {
 			id: id.into(),
 			provider,
-			file_name: Default::default(),
+			file_name: String::default(),
 		};
 	}
 

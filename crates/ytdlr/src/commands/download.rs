@@ -611,13 +611,13 @@ impl DownloadInfo {
 
 	/// Create a new default instance of [Self], but with a set "url_index"
 	pub fn new_with_url_index(url_index: usize) -> Self {
-		return Self::new(0, Default::default(), Default::default(), url_index);
+		return Self::new(0, String::default(), String::default(), url_index);
 	}
 }
 
 impl Default for DownloadInfo {
 	fn default() -> Self {
-		return Self::new(0, Default::default(), Default::default(), 0);
+		return Self::new(0, String::default(), String::default(), 0);
 	}
 }
 
