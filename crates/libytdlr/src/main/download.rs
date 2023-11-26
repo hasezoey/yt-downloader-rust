@@ -622,7 +622,8 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					pgcb(DownloadProgress::Skipped(1));
 				},
 				LineType::Error => {
-					warn!("Encountered youtube-dl error: {}", line);
+					// the following is using debug printing, because the line may include escape characters, which would mess-up the printing, but is still good to know when reading
+					warn!("Encountered youtube-dl error: {:#?}", line);
 					last_error = Some(crate::Error::other(line));
 					pgcb(DownloadProgress::Skipped(1));
 					current_mediainfo.take(); // replace with none, because this media should not be added
