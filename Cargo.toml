@@ -13,7 +13,7 @@ once_cell = "1.18"
 log = "0.4"
 regex = "1.7"
 dirs-next = "2.0"
-tempfile = "3.5"
+tempfile = "3.8"
 
 [workspace.lints.clippy]
 correctness = "deny"
