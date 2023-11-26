@@ -2,6 +2,12 @@
 
 This is a manually written changelog, and only tracks front-facing changes since version [`v0.5.0`](#v050)
 
+## next
+
+- `download`: handle files with the same name at the end by automatically adding a `-X` (where `X` is a number up to 30)
+- `download`: print yt-dlp error lines with `Debug` trait instead of `Display` so that escape-sequences from the line are escaped
+- update various dependencies
+
 ## v0.8.0
 
 - `download`: change editors to run with inherited STDIO
