@@ -340,9 +340,8 @@ where
 		return w.saturating_sub(STYLE_STATIC_SIZE);
 	});
 
-	let display_width_available = match display_width_available {
-		Some(v) => v,
-		None => return msg.as_ref().into(),
+	let Some(display_width_available) = display_width_available else {
+		return msg.as_ref().into();
 	};
 
 	return utils::truncate_message_display_pos(msg, display_width_available, true).to_string();
@@ -383,9 +382,7 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 
 			let cap = PID_OF_ARCHIVE.captures(&file_name);
 
-			let cap = if let Some(cap) = cap {
-				cap
-			} else {
+			let Some(cap) = cap else {
 				continue;
 			};
 
@@ -826,29 +823,25 @@ fn edit_media(
 		let opt = media_sorted_vec.get(next_index);
 		next_index += 1;
 
-		let media_helper = match opt {
-			Some(v) => v,
-			None => break,
+		let Some(media_helper) = opt else {
+			break;
 		};
 
 		let media = &media_helper.data;
-		let media_filename = match &media.filename {
-			Some(v) => v,
+		let Some(media_filename) = &media.filename else {
 			// skip asking edit for media's without a filename
-			None => {
-				println!(
-					"\"{}\" did not have a filename, which is required beyond this point, skipping",
-					media.id
-				);
-				println!("debug: {media:#?}");
+			println!(
+				"\"{}\" did not have a filename, which is required beyond this point, skipping",
+				media.id
+			);
+			println!("debug: {media:#?}");
 
-				// try to go back to the next element
-				if go_back {
-					next_index = next_index.saturating_sub(2);
-				}
+			// try to go back to the next element
+			if go_back {
+				next_index = next_index.saturating_sub(2);
+			}
 
-				continue 'media_loop;
-			},
+			continue 'media_loop;
 		};
 
 		let media_path = download_path.join(media_filename);
@@ -1320,12 +1313,9 @@ fn try_gen_final_path(dir_path: &Path, filename: &Path) -> Option<PathBuf> {
 		// ensure it does not run infinitely
 		let mut i = 0;
 
-		let file_base = match filename.file_stem() {
-			Some(v) => v,
-			None => {
-				error!("File did not have a file_stem!");
-				return None;
-			},
+		let Some(file_base) = filename.file_stem() else {
+			error!("File did not have a file_stem!");
+			return None;
 		};
 		let ext = filename.extension();
 
@@ -1388,18 +1378,17 @@ fn finish_with_move(
 	for media_helper in final_media.mediainfo_map.values() {
 		pgbar.inc(1);
 		let media = &media_helper.data;
-		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(media) {
-			Some(v) => v,
-			None => {
-				warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
+		let Some((media_filename, final_filename)) = utils::convert_mediainfo_to_filename(media) else {
+			warn!(
+				"Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")",
+				media.id
+			);
 
-				continue;
-			},
+			continue;
 		};
 		let from_path = download_path.join(media_filename);
-		let to_path = match try_gen_final_path(&final_dir_path, &final_filename) {
-			Some(v) => v,
-			None => continue, // file will be found again in the next run via recovery
+		let Some(to_path) = try_gen_final_path(&final_dir_path, &final_filename) else {
+			continue; // file will be found again in the next run via recovery
 		};
 		trace!(
 			"Copying file \"{}\" to \"{}\"",
@@ -1450,19 +1439,18 @@ fn finish_with_tagger(
 	for media_helper in final_media.mediainfo_map.values() {
 		pgbar.inc(1);
 		let media = &media_helper.data;
-		let (media_filename, final_filename) = match utils::convert_mediainfo_to_filename(media) {
-			Some(v) => v,
-			None => {
-				warn!("Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")", media.id);
+		let Some((media_filename, final_filename)) = utils::convert_mediainfo_to_filename(media) else {
+			warn!(
+				"Found MediaInfo which returned \"None\" from \"convert_mediainfo_to_filename\", skipping (id: \"{}\")",
+				media.id
+			);
 
-				continue;
-			},
+			continue;
 		};
 		// rename can be used, because it is a lower directory of the download_path, which should in 99.99% of cases be the same filesystem
 		let from_path = download_path.join(media_filename);
-		let to_path = match try_gen_final_path(&final_dir_path, &final_filename) {
-			Some(v) => v,
-			None => continue, // file will be found again in the next run via recovery
+		let Some(to_path) = try_gen_final_path(&final_dir_path, &final_filename) else {
+			continue; // file will be found again in the next run via recovery
 		};
 		std::fs::rename(&from_path, to_path).attach_path_err(from_path)?;
 	}

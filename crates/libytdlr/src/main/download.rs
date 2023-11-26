@@ -465,9 +465,7 @@ impl LineType {
 			let id = &cap[2];
 			let file_path = std::path::PathBuf::from(&cap[3]);
 
-			let filename = if let Some(name) = file_path.file_name() {
-				name
-			} else {
+			let Some(filename) = file_path.file_name() else {
 				info!("MOVE path from youtube-dl did not have a file_name!");
 				return None;
 			};

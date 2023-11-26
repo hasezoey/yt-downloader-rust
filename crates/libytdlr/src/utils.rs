@@ -40,14 +40,11 @@ pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 ///
 /// If the start is not absolute, CWD will be used
 pub fn to_absolute<P: AsRef<Path>>(input: P) -> std::io::Result<PathBuf> {
-	let converted = match expand_tidle(input) {
-		Some(v) => v,
-		None => {
-			return Err(std::io::Error::new(
-				std::io::ErrorKind::InvalidInput,
-				"Could not resolve \"~\"",
-			))
-		},
+	let Some(converted) = expand_tidle(input) else {
+		return Err(std::io::Error::new(
+			std::io::ErrorKind::InvalidInput,
+			"Could not resolve \"~\"",
+		));
 	};
 
 	return converted.absolutize().map(|v| return v.to_path_buf());
