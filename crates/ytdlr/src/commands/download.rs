@@ -565,7 +565,7 @@ const PREFIX_UNKNOWN: &str = "??";
 /// Helper function to consistently set the progressbar prefix
 fn set_progressbar_prefix(
 	pgbar: &ProgressBar,
-	download_info: std::cell::Ref<DownloadInfo>,
+	download_info: &DownloadInfo,
 	download_state: &DownloadState,
 	unknown_playlist_count: bool,
 	unknown_current_count: bool,
@@ -639,7 +639,13 @@ fn do_download(
 	let download_state_cell: RefCell<&mut DownloadState> = RefCell::new(download_state);
 	let download_info: RefCell<DownloadInfo> = RefCell::new(DownloadInfo::default());
 	let url_len = sub_args.urls.len();
-	set_progressbar_prefix(pgbar, download_info.borrow(), *download_state_cell.borrow(), true, true);
+	set_progressbar_prefix(
+		pgbar,
+		&download_info.borrow(),
+		*download_state_cell.borrow(),
+		true,
+		true,
+	);
 	// track total count finished (no error)
 	let total_count = std::sync::atomic::AtomicUsize::new(0);
 	let download_pgcb = |dpg| match dpg {
@@ -660,7 +666,7 @@ fn do_download(
 			let download_info_borrowed = download_info.borrow();
 			set_progressbar_prefix(
 				pgbar,
-				download_info.borrow(),
+				&download_info.borrow(),
 				*download_state_cell.borrow(),
 				false,
 				false,
@@ -677,7 +683,7 @@ fn do_download(
 			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().title));
 			set_progressbar_prefix(
 				pgbar,
-				download_info.borrow(),
+				&download_info.borrow(),
 				*download_state_cell.borrow(),
 				false,
 				false,
@@ -707,7 +713,7 @@ fn do_download(
 			   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
 			set_progressbar_prefix(
 				pgbar,
-				download_info.borrow(),
+				&download_info.borrow(),
 				*download_state_cell.borrow(),
 				!download_state_cell.borrow().get_count_store().has_been_set(),
 				false,
