@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
-once_cell = "1.17"
+once_cell = "1.18"
 log = "0.4"
 regex = "1.7"
 dirs-next = "2.0"
