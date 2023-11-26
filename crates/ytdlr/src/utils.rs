@@ -149,7 +149,7 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 
 	// do a loop over each element in the directory, and filter out paths that are not valid / accessable
 	for entry in (std::fs::read_dir(path).attach_path_err(path)?).flatten() {
-		if let Some(mediainfo) = process_path_for_editable_files(entry.path()) {
+		if let Some(mediainfo) = process_path_for_editable_files(&entry.path()) {
 			mediainfo_vec.push(mediainfo);
 		}
 	}
@@ -160,7 +160,7 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 /// Helper function to reduce nesting for [`find_editable_files`]
 /// for example, in a loop "?" cannot be used, but in a helper function
 #[inline]
-fn process_path_for_editable_files(path: PathBuf) -> Option<MediaInfo> {
+fn process_path_for_editable_files(path: &Path) -> Option<MediaInfo> {
 	// make sure that only files are filtered in
 	if !path.is_file() {
 		return None;
