@@ -750,7 +750,7 @@ fn do_download(
 		if let Some(ref mut connection) = maybe_connection {
 			pgbar.reset();
 			pgbar.set_length(new_media.len().try_into().expect("Failed to convert usize to u64"));
-			for media in new_media.iter() {
+			for media in &new_media {
 				pgbar.inc(1);
 				if let Err(err) = libytdlr::main::archive::import::insert_insmedia(&media.into(), connection) {
 					warn!("Inserting media errored: {}", err);

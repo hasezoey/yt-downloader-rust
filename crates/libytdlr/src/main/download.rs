@@ -273,7 +273,7 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 	ytdl_args.arg("-o").arg(output_format);
 
 	// apply all extra arguments
-	for extra_arg in options.extra_ytdl_arguments().iter() {
+	for extra_arg in &options.extra_ytdl_arguments() {
 		ytdl_args.arg(extra_arg);
 	}
 
