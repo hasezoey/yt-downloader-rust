@@ -552,71 +552,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 						pgcb(DownloadProgress::SingleProgress(id, percent));
 					}
 				},
-				LineType::Custom => {
-					if let Some(parsed_type) = linetype.try_get_parse_helper(line) {
-						match parsed_type {
-							CustomParseType::Start(mi) => {
-								debug!(
-									"Found PARSE_START: \"{}\" \"{}\" \"{:?}\"",
-									mi.id, mi.provider, mi.title
-								);
-								if current_mediainfo.is_some() {
-									warn!("Found PARSE_START, but \"current_mediainfo\" is still \"Some\"");
-								}
-								current_mediainfo = Some(mi);
-								// the following uses "unwrap", because the option has been set by the previous line
-								let c_mi = current_mediainfo.as_ref().unwrap();
-								// the following also uses "expect", because "try_get_parse_helper" is guranteed to return with id, title, provider for "PARSE_START"
-								let title = c_mi
-									.title
-									.as_ref()
-									.expect("current_mediainfo.title should have been set");
-								pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()));
-							},
-							CustomParseType::End(mi) => {
-								debug!("Found PARSE_END: \"{}\" \"{}\"", mi.id, mi.provider);
-
-								if let Some(last_mediainfo) = current_mediainfo.take() {
-									pgcb(DownloadProgress::SingleFinished(mi.id.clone())); // callback inside here, because it should only be triggered if there was a media_info to take
-									if mi.id != last_mediainfo.id {
-										// warn in the weird case where the "current_mediainfo" and result from PARSE_END dont match
-										warn!(
-											"Found PARSE_END, but the ID does dont match with \"current_mediainfo\"!"
-										);
-									}
-
-									// do not add videos to "mediainfo_vec", unless the media had actually been downloaded
-									if had_download {
-										mediainfo_vec.push(last_mediainfo);
-									}
-								} else {
-									// write a log that PARSE_END was present but was None (like in the case of a Error happening)
-									debug!("Found a PARSE_END, but \"current_mediainfo\" was \"None\"!");
-								}
-
-								// reset the value for the next download
-								had_download = false;
-							},
-							CustomParseType::Playlist(count) => {
-								debug!("Found PLAYLIST {count}");
-								pgcb(DownloadProgress::PlaylistInfo(count));
-							},
-							CustomParseType::Move(mi) => {
-								debug!("Found MOVE: \"{}\" \"{}\" \"{:?}\"", mi.id, mi.provider, mi.filename);
-
-								if let Some(last_mediainfo) = current_mediainfo.as_mut() {
-									last_mediainfo.set_filename(
-										mi.filename.expect(
-											"Expected try_get_parse_helper to return a mediainfo with filename",
-										),
-									);
-								} else {
-									warn!("Found MOVE, but did not have a current_mediainfo");
-								}
-							},
-						}
-					}
-				},
+				LineType::Custom => handle_linetype_custom(&linetype, &line, &mut current_mediainfo, &mut pgcb, &mut had_download, mediainfo_vec),
 				LineType::Skip => {
 					pgcb(DownloadProgress::Skipped(1));
 				},
@@ -641,6 +577,79 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	}
 
 	return Ok(());
+}
+
+/// Handle [LineType::Custom]
+///
+/// outsourced, because it would otherwise become really nested
+fn handle_linetype_custom<C: FnMut(DownloadProgress)>(
+	linetype: &LineType,
+	line: &str,
+	current_mediainfo: &mut Option<MediaInfo>,
+	mut pgcb: C,
+	had_download: &mut bool,
+	mediainfo_vec: &mut Vec<MediaInfo>,
+) {
+	if let Some(parsed_type) = linetype.try_get_parse_helper(line) {
+		match parsed_type {
+			CustomParseType::Start(mi) => {
+				debug!(
+					"Found PARSE_START: \"{}\" \"{}\" \"{:?}\"",
+					mi.id, mi.provider, mi.title
+				);
+				if current_mediainfo.is_some() {
+					warn!("Found PARSE_START, but \"current_mediainfo\" is still \"Some\"");
+				}
+				current_mediainfo.replace(mi);
+				// the following uses "unwrap", because the option has been set by the previous line
+				let c_mi = current_mediainfo.as_ref().unwrap();
+				// the following also uses "expect", because "try_get_parse_helper" is guranteed to return with id, title, provider for "PARSE_START"
+				let title = c_mi
+					.title
+					.as_ref()
+					.expect("current_mediainfo.title should have been set");
+				pgcb(DownloadProgress::SingleStarting(c_mi.id.clone(), title.to_string()));
+			},
+			CustomParseType::End(mi) => {
+				debug!("Found PARSE_END: \"{}\" \"{}\"", mi.id, mi.provider);
+
+				if let Some(last_mediainfo) = current_mediainfo.take() {
+					pgcb(DownloadProgress::SingleFinished(mi.id.clone())); // callback inside here, because it should only be triggered if there was a media_info to take
+					if mi.id != last_mediainfo.id {
+						// warn in the weird case where the "current_mediainfo" and result from PARSE_END dont match
+						warn!("Found PARSE_END, but the ID does dont match with \"current_mediainfo\"!");
+					}
+
+					// do not add videos to "mediainfo_vec", unless the media had actually been downloaded
+					if *had_download {
+						mediainfo_vec.push(last_mediainfo);
+					}
+				} else {
+					// write a log that PARSE_END was present but was None (like in the case of a Error happening)
+					debug!("Found a PARSE_END, but \"current_mediainfo\" was \"None\"!");
+				}
+
+				// reset the value for the next download
+				*had_download = false;
+			},
+			CustomParseType::Playlist(count) => {
+				debug!("Found PLAYLIST {count}");
+				pgcb(DownloadProgress::PlaylistInfo(count));
+			},
+			CustomParseType::Move(mi) => {
+				debug!("Found MOVE: \"{}\" \"{}\" \"{:?}\"", mi.id, mi.provider, mi.filename);
+
+				if let Some(last_mediainfo) = current_mediainfo.as_mut() {
+					last_mediainfo.set_filename(
+						mi.filename
+							.expect("Expected try_get_parse_helper to return a mediainfo with filename"),
+					);
+				} else {
+					warn!("Found MOVE, but did not have a current_mediainfo");
+				}
+			},
+		}
+	}
 }
 
 #[cfg(test)]
