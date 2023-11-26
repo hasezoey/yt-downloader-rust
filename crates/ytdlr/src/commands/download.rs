@@ -492,7 +492,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 		&mut finished_media,
 		only_recovery,
 	) {
-		Ok(_) => (),
+		Ok(()) => (),
 		Err(err) => {
 			let res = recovery.write_recovery(&finished_media);
 
@@ -993,7 +993,7 @@ fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path) -> Result<(), cr
 		apply_metadata(file, &metadata_file)?;
 
 		match std::fs::remove_file(&metadata_file) {
-			Ok(_) => (),
+			Ok(()) => (),
 			Err(err) => {
 				info!("Removing metadata file failed, error: {}", err);
 			},

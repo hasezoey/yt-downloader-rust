@@ -402,7 +402,7 @@ fn get_editor_base(maybe_editor: &Option<PathBuf>) -> Result<PathBuf, crate::Err
 fn test_editor_base(path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 	'test_editor: loop {
 		let err = match test_editor_base_valid(path) {
-			Ok(_) => return Ok(Some(path.to_owned())),
+			Ok(()) => return Ok(Some(path.to_owned())),
 			Err(err) => err,
 		};
 
