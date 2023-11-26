@@ -103,17 +103,18 @@ pub fn re_thumbnail<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 }
 
 /// Build the actual Command
+/// `formats` is a array, because formats can have various names, example: `matroska,webm`
 fn re_thumbnail_build_ffmpeg_cmd(
 	cmd: &mut std::process::Command,
 	media: &Path,
 	image: &Path,
 	output: &Path,
-	formats: Vec<&str>,
+	container_formats: &[&str],
 ) {
 	cmd.arg("-i").arg(media); // set media file as input "0"
 
 	// mkv needs covers to be a attachment, instead of a video stream
-	if formats.contains(&"matroska") {
+	if container_formats.contains(&"matroska") {
 		cmd.arg("-attach").arg(image);
 		cmd.args([
 			"-metadata:s:t:0",
@@ -174,7 +175,7 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	let formats = crate::spawn::ffmpeg::parse_format(&ffmpeg_output)?;
 
 	let mut child = {
-		re_thumbnail_build_ffmpeg_cmd(&mut cmd, media, image, output, formats);
+		re_thumbnail_build_ffmpeg_cmd(&mut cmd, media, image, output, &formats);
 
 		cmd.spawn().attach_location_err("ffmpeg spawn")?
 	};
@@ -396,7 +397,7 @@ mod test {
 			let image = Path::new("/hello/image.jpg");
 			let output = Path::new("/hello/output.mp3");
 
-			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, vec!["mp4"]);
+			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, &["mp4"]);
 
 			assert_eq!(
 				fake_command.get_args().collect::<Vec<&std::ffi::OsStr>>(),
@@ -432,7 +433,7 @@ mod test {
 			let image = Path::new("/hello/image.jpg");
 			let output = Path::new("/hello/output.mkv");
 
-			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, vec!["matroska"]);
+			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, &["matroska"]);
 
 			assert_eq!(
 				fake_command.get_args().collect::<Vec<&std::ffi::OsStr>>(),
