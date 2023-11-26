@@ -1,5 +1,13 @@
 [workspace]
-members = [
-	"crates/*"
-]
+members = ["crates/*"]
 resolver = "2"
+
+[workspace.lints.clippy]
+correctness = "deny"
+style = "warn"
+complexity = "warn"
+perf = "warn"
+needless_return = "allow"
+implicit_return = "deny"
+needless_doctest_main = "allow"
+tabs_in_doc_comments = "allow"

@@ -27,3 +27,6 @@ tempfile = "3.5"
 [lib]
 name = "libytdlr"
 path = "src/lib.rs"
+
+[lints]
+workspace = true
