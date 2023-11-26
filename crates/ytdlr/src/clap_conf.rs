@@ -221,11 +221,11 @@ impl FromStr for ArchiveSearchColumn {
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		return Ok(match s.to_lowercase().as_str() {
 			"provider" => Self::Provider,
-			"mediaid" => Self::MediaId,
+			"mediaid"
 			// may be confused with the row-id
-			"id" => Self::MediaId,
-			"insertedat" => Self::InsertedAt,
-			"inserted" => Self::InsertedAt,
+			| "id" => Self::MediaId,
+			"insertedat"
+			| "inserted" => Self::InsertedAt,
 			"title" => Self::Title,
 			_ => return Err(crate::Error::other(format!("Unknown column \"{}\"", s))),
 		});
