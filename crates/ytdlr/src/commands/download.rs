@@ -1301,6 +1301,9 @@ fn finish_media(
 	return Ok(EditCtrl::Finished);
 }
 
+/// Options to easily change the max amount of numbered files before giving up
+const MAX_NUMBERED_FILES: usize = 30;
+
 /// Check output path of the combined "dir_path" and "filename"
 /// if it exists, append up to "30" to it
 /// if the output path still exists after "30", returns [None]
@@ -1321,7 +1324,7 @@ fn try_gen_final_path(dir_path: &Path, filename: &Path) -> Option<PathBuf> {
 		};
 		let ext = filename.extension();
 
-		while to_path.exists() && i < 30 {
+		while to_path.exists() && i < MAX_NUMBERED_FILES {
 			i += 1;
 
 			let name = {
@@ -1341,9 +1344,10 @@ fn try_gen_final_path(dir_path: &Path, filename: &Path) -> Option<PathBuf> {
 			to_path = dir_path.join(name);
 		}
 
-		if !to_path.exists() && i >= 30 {
+		if !to_path.exists() && i >= MAX_NUMBERED_FILES {
 			error!(
-				"Not moving file, because it already exists, and also 30 more combinations! File: \"{}\"",
+				"Not moving file, because it already exists, and also {} more combinations! File: \"{}\"",
+				MAX_NUMBERED_FILES,
 				filename.display()
 			);
 
