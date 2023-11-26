@@ -232,8 +232,8 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 	for (index, line) in lines_iter.enumerate() {
 		// evaluate result, then redefine variable as without result
-		let _line = line.attach_location_err("import line iter")?;
-		let line = _line.trim();
+		let line = line.attach_location_err("import line iter")?;
+		let line = line.trim();
 
 		if line.is_empty() {
 			continue;
