@@ -12,7 +12,7 @@ clap_complete = "4.3"
 indicatif = "0.17.3"
 colored = "2.0.4"
 log.workspace = true
-flexi_logger = "0.25" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
+flexi_logger = "0.27" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
 is-terminal = "0.4"
 libytdlr = { path = "../libytdlr" }
 dirs-next.workspace = true
