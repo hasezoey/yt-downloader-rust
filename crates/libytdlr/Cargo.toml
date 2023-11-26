@@ -11,7 +11,7 @@ serde_json = "1.0"
 regex.workspace = true
 once_cell.workspace = true
 log.workspace = true
-dirs-next.workspace = true
+dirs.workspace = true
 path-absolutize = "3.1" # Replace with official implementation, RFC: https://github.com/rust-lang/rfcs/issues/2208
 diesel = { version = "2.1", features = ["sqlite", "chrono"] }
 diesel_migrations = { version = "2.1" }

@@ -8,7 +8,7 @@ use std::path::{
 use path_absolutize::Absolutize;
 
 /// Simple helper to resolve "~" to the Home directory
-/// System agnostic as long as [`dirs_next::home_dir`] support's it
+/// System agnostic as long as [`dirs::home_dir`] support's it
 pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 	let path = input.as_ref();
 
@@ -16,14 +16,14 @@ pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 		return Some(path.to_owned());
 	}
 	if path == Path::new("~") {
-		return dirs_next::home_dir();
+		return dirs::home_dir();
 	}
 	// dont support "~user" syntax
 	if !path.starts_with("~/") {
 		unreachable!("This should never occur, because \"path.starts_with\" should have already returned");
 	}
 
-	return dirs_next::home_dir().map(|mut v| {
+	return dirs::home_dir().map(|mut v| {
 		// handle case where "home_dir" might be set to the root POSIX directory
 		return if v == Path::new("/") {
 			// "unwrap" can be used, because it is already checked that the variable starts with value
@@ -82,17 +82,14 @@ mod test {
 			// should resolve "~" without extra paths
 			let home_no_extensions = PathBuf::from("~");
 			assert_eq!(
-				dirs_next::home_dir().expect("Expected to return a SOME value"),
+				dirs::home_dir().expect("Expected to return a SOME value"),
 				expand_tidle(home_no_extensions).expect("Expected to return a SOME value")
 			);
 
 			// should resolve "~" with extra paths
 			let home_with_extensions = PathBuf::from("~/some/path");
 			assert_eq!(
-				Path::join(
-					&dirs_next::home_dir().expect("Expected to return a SOME value"),
-					"some/path"
-				),
+				Path::join(&dirs::home_dir().expect("Expected to return a SOME value"), "some/path"),
 				expand_tidle(home_with_extensions).expect("Expected to return a SOME value")
 			);
 
@@ -137,7 +134,7 @@ mod test {
 			// should resolve a "~"
 			let relative_home = PathBuf::from("~/inner/path");
 			assert_eq!(
-				Path::join(&dirs_next::home_dir().expect("Expected to have HOME"), "inner/path"),
+				Path::join(&dirs::home_dir().expect("Expected to have HOME"), "inner/path"),
 				to_absolute(relative_home).expect("Expected to return a OK value")
 			);
 		}

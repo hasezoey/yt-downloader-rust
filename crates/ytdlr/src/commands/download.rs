@@ -1368,7 +1368,7 @@ fn finish_with_move(
 
 	let final_dir_path = sub_args.output_path.as_ref().map_or_else(
 		|| {
-			return dirs_next::download_dir()
+			return dirs::download_dir()
 				.unwrap_or_else(|| return PathBuf::from("."))
 				.join("ytdlr-out");
 		},
