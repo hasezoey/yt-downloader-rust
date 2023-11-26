@@ -1,9 +1,9 @@
 [package]
 name = "ytdlr"
-version = "0.8.0"
-authors = ["hasezoey <hasezoey@gmail.com>"]
-edition = "2021"
-license = "MIT"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 build = "build.rs"
 
 [dependencies]

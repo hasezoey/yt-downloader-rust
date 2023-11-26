@@ -2,6 +2,12 @@
 members = ["crates/*"]
 resolver = "2"
 
+[workspace.package]
+version = "0.8.0"
+authors = ["hasezoey <hasezoey@gmail.com>"]
+edition = "2021"
+license = "MIT"
+
 [workspace.dependencies]
 once_cell = "1.18"
 log = "0.4"

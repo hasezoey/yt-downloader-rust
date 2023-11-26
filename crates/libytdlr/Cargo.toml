@@ -1,9 +1,9 @@
 [package]
 name = "libytdlr"
-version = "0.8.0"
-authors = ["hasezoey <hasezoey@gmail.com>"]
-edition = "2021"
-license = "MIT"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
