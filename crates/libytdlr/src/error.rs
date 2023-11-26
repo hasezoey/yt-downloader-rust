@@ -69,7 +69,7 @@ impl Error {
 	{
 		return Self::new(ErrorInner::IoError(
 			ioError::new(kind, msg.into()),
-			format_path(path.as_ref().to_string_lossy().to_string()),
+			format_path(&path.as_ref().to_string_lossy()),
 		));
 	}
 
@@ -217,7 +217,7 @@ impl<T> CustomThreadJoin<T> for JoinHandle<T> {
 
 /// Helper function to keep consistent formatting
 #[inline]
-fn format_path(msg: String) -> String {
+fn format_path(msg: &str) -> String {
 	return format!("Path \"{}\"", msg);
 }
 /// Helper function to keep consistent formatting
@@ -240,7 +240,7 @@ impl<T> IOErrorToError<T> for Result<T, std::io::Error> {
 			Ok(v) => Ok(v),
 			Err(e) => Err(crate::Error::new(ErrorInner::IoError(
 				e,
-				format_path(path.as_ref().to_string_lossy().to_string()),
+				format_path(&path.as_ref().to_string_lossy()),
 			))),
 		};
 	}
