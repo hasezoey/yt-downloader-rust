@@ -91,7 +91,7 @@ mod test {
 		// Test basic, with &str
 		assert_eq!(
 			Video {
-				file_name: String::from(""),
+				file_name: String::new(),
 				id:        String::from("helloid1"),
 				provider:  provider::Provider::from("unknown"),
 			},
@@ -101,7 +101,7 @@ mod test {
 		// Test basic, with String
 		assert_eq!(
 			Video {
-				file_name: String::from(""),
+				file_name: String::new(),
 				id:        String::from("helloid2"),
 				provider:  provider::Provider::from("unknown"),
 			},

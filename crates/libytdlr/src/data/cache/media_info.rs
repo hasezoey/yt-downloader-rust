@@ -108,7 +108,7 @@ mod test {
 	fn test_new() {
 		assert_eq!(
 			MediaInfo {
-				id:       "".to_owned(),
+				id:       String::new(),
 				filename: None,
 				title:    None,
 				provider: "".into(),

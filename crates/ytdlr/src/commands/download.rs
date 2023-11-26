@@ -876,7 +876,7 @@ fn edit_media(
 					media_helper
 						.comment
 						.as_ref()
-						.map_or("".into(), |msg| format!(" ({msg})"))
+						.map_or(String::new(), |msg| format!(" ({msg})"))
 				),
 				&["h", "y", "N", "a", "v", "p", "b"],
 				"n",

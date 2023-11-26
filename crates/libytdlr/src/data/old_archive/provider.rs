@@ -42,7 +42,7 @@ mod test {
 	#[test]
 	fn test_from_strings() {
 		assert_eq!(Provider("unknown".into()), Provider::from(""));
-		assert_eq!(Provider("unknown".into()), Provider::from(String::from("")));
+		assert_eq!(Provider("unknown".into()), Provider::from(String::new()));
 
 		assert_eq!(Provider("unknown".into()), Provider::from("Unknown"));
 		assert_eq!(Provider("unknown".into()), Provider::from(String::from("Unknown")));
