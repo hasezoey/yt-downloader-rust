@@ -39,6 +39,7 @@ impl MediaInfo {
 	}
 
 	/// Builder function to add a filename
+	#[must_use]
 	pub fn with_filename<F: AsRef<Path>>(mut self, filename: F) -> Self {
 		self.filename = Some(filename.as_ref().into());
 
@@ -46,6 +47,7 @@ impl MediaInfo {
 	}
 
 	/// Builder function to add a title
+	#[must_use]
 	pub fn with_title<T: AsRef<str>>(mut self, title: T) -> Self {
 		self.title = Some(title.as_ref().into());
 
