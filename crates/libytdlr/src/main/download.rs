@@ -1124,6 +1124,7 @@ mod test {
 
 			// test version before
 			{
+				#[allow(clippy::zero_prefixed_literal)]
 				let options = TestOptions::new_assemble(
 					true,
 					Vec::default(),
