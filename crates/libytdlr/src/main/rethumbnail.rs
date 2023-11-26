@@ -353,16 +353,15 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	ffmpeg_child_stderr_thread.join_err()?;
 
 	if !ffmpeg_child_exit_status.success() {
-		return Err(match ffmpeg_child_exit_status.code() {
-			Some(code) => crate::Error::command_unsuccessful(format!("ffmpeg_child exited with code: {code}")),
-			None => {
-				let signal = match ffmpeg_child_exit_status.signal() {
-					Some(code) => code.to_string(),
-					None => "None".to_owned(),
-				};
+		return Err(if let Some(code) = ffmpeg_child_exit_status.code() {
+			crate::Error::command_unsuccessful(format!("ffmpeg_child exited with code: {code}"))
+		} else {
+			let signal = match ffmpeg_child_exit_status.signal() {
+				Some(code) => code.to_string(),
+				None => "None".to_owned(),
+			};
 
-				crate::Error::command_unsuccessful(format!("ffmpeg_child exited with signal: {signal}"))
-			},
+			crate::Error::command_unsuccessful(format!("ffmpeg_child exited with signal: {signal}"))
 		});
 	}
 

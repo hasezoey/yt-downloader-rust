@@ -224,9 +224,10 @@ impl Recovery {
 
 	/// Tries to remove the given file, ignoring if the file does not exist and otherwise just logging the error
 	pub fn remove_file(path: &Path) {
-		std::fs::remove_file(path).unwrap_or_else(|err| match err.kind() {
-			std::io::ErrorKind::NotFound => (),
-			_ => info!("Error removing recovery file. Error: {}", err),
+		std::fs::remove_file(path).unwrap_or_else(|err| {
+			if err.kind() != std::io::ErrorKind::NotFound {
+				info!("Error removing recovery file. Error: {}", err);
+			}
 		});
 	}
 }
@@ -401,9 +402,10 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 			info!("Found tmp yt-dl archive file for pid {pid_of_file}, but the process still existed");
 			continue;
 		}
-		std::fs::remove_file(file).unwrap_or_else(|err| match err.kind() {
-			std::io::ErrorKind::NotFound => (),
-			_ => info!("Error removing found tmp yt-dl archvie file. Error: {}", err),
+		std::fs::remove_file(file).unwrap_or_else(|err| {
+			if err.kind() != std::io::ErrorKind::NotFound {
+				info!("Error removing found tmp yt-dl archvie file. Error: {}", err);
+			}
 		});
 	}
 

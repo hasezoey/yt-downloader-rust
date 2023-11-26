@@ -343,18 +343,15 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), cra
 		.enable();
 
 	if !editor_child_exit_status.success() {
-		match editor_child_exit_status.code() {
-			Some(code) => {
-				info!("Command exited with status-code {code}");
-			},
-			None => {
-				let signal = match editor_child_exit_status.signal() {
-					Some(code) => code.to_string(),
-					None => "None".to_owned(),
-				};
+		if let Some(code) = editor_child_exit_status.code() {
+			info!("Command exited with status-code {code}");
+		} else {
+			let signal = match editor_child_exit_status.signal() {
+				Some(code) => code.to_string(),
+				None => "None".to_owned(),
+			};
 
-				info!("Command exited with signal {signal}");
-			},
+			info!("Command exited with signal {signal}");
 		}
 	}
 
