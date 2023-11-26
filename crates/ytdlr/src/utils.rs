@@ -225,6 +225,7 @@ pub fn get_filetype<F: AsRef<Path>>(filename: F) -> FileType {
 ///
 /// Note:
 /// This function will not discard buffered stdin, because in native rust there is no good way to clear a sync-read, and for async-read the whole library would be needed to be converted to async
+// TODO: consider refactoring this to return some kind of struct which implements a trait
 #[allow(clippy::needless_collect)] // this is because of a known false-positive https://github.com/rust-lang/rust-clippy/issues/6164
 pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) -> Result<String, crate::Error> {
 	// TODO: maybe consider replacing this with the crate "dialoguer"
