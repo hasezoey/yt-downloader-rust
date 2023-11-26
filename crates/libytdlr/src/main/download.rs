@@ -539,11 +539,11 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 			}
 			match linetype {
 				// currently there is nothing that needs to be done with "Ffmpeg" lines
-				LineType::Ffmpeg => (),
+				LineType::Ffmpeg
 				// currently there is nothing that needs to be done with "ProviderSpecific" Lines, thanks to "--print"
-				LineType::ProviderSpecific => (),
+				| LineType::ProviderSpecific
 				// currently there is nothing that needs to be done with "Generic" Lines
-				LineType::Generic => (),
+				| LineType::Generic => (),
 				LineType::Download => {
 					had_download = true;
 					if let Some(percent) = linetype.try_get_download_percent(line) {
