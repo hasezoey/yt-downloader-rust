@@ -11,7 +11,7 @@ license = "MIT"
 [workspace.dependencies]
 once_cell = "1.18"
 log = "0.4"
-regex = "1.7"
+regex = "1.10"
 dirs-next = "2.0"
 tempfile = "3.8"
 
