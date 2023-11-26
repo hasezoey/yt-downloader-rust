@@ -534,10 +534,10 @@ fn download_wrapper(
 	finished_media: &mut MediaInfoArr,
 	only_recovery: bool,
 ) -> Result<(), crate::Error> {
-	if !only_recovery {
-		do_download(main_args, sub_args, pgbar, download_state, finished_media)?;
-	} else {
+	if only_recovery {
 		info!("Skipping download because of \"only_recovery\"");
+	} else {
+		do_download(main_args, sub_args, pgbar, download_state, finished_media)?;
 	}
 
 	let download_path = download_state.download_path();

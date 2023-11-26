@@ -288,12 +288,12 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 
 		// return default if empty and default is set
 		if input.is_empty() {
-			if !default.is_empty() {
-				return Ok(default.to_owned());
-			} else {
+			if default.is_empty() {
 				// special case when empty, to more emphasize that its empty
 				println!("... Invalid Input: (Empty)");
 				continue;
+			} else {
+				return Ok(default.to_owned());
 			}
 		}
 
