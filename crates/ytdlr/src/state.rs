@@ -188,8 +188,8 @@ impl DownloadOptions for DownloadState<'_> {
 	) -> Option<Box<dyn Iterator<Item = String> + '_>> {
 		use diesel::prelude::*;
 		use libytdlr::data::{
-			sql_models::*,
-			sql_schema::*,
+			sql_models::Media,
+			sql_schema::media_archive,
 		};
 
 		if self.archive_mode == ArchiveMode::None {

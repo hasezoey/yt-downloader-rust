@@ -1,5 +1,8 @@
 use crate::{
-	clap_conf::*,
+	clap_conf::{
+		CliDerive,
+		CommandDownload,
+	},
 	commands::download::quirks::apply_metadata,
 	state::DownloadState,
 	utils,
@@ -15,11 +18,13 @@ use indicatif::{
 	ProgressStyle,
 };
 use libytdlr::{
+	data,
 	data::cache::media_info::MediaInfo,
+	diesel,
 	error::IOErrorToError,
+	main,
 	main::download::YTDL_ARCHIVE_PREFIX,
 	traits::download_options::DownloadOptions,
-	*,
 };
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -996,7 +1001,13 @@ fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path) -> Result<(), cr
 
 /// Module for keeping all quirk workaround functions and imports
 mod quirks {
-	use super::*;
+	use super::{
+		utils,
+		IOErrorToError,
+		Lazy,
+		Path,
+		PathBuf,
+	};
 	use libytdlr::spawn::ffmpeg::base_ffmpeg_hidebanner;
 	use std::collections::HashSet;
 

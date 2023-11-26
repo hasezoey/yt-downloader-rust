@@ -12,8 +12,8 @@ use diesel::prelude::*;
 use libytdlr::{
 	chrono::Utc,
 	data::{
-		sql_models::*,
-		sql_schema::*,
+		sql_models::Media,
+		sql_schema::media_archive,
 	},
 	diesel,
 };

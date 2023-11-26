@@ -1,6 +1,6 @@
 //! Module for SQL Diesel Models
 
-use crate::data::sql_schema::*;
+use crate::data::sql_schema::media_archive;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 

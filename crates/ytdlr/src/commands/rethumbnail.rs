@@ -7,7 +7,7 @@ use crate::{
 	},
 	utils,
 };
-use libytdlr::main::rethumbnail::*;
+use libytdlr::main::rethumbnail::re_thumbnail_with_tmp;
 
 /// Handler function for the "rethumbnail" subcommand
 /// This function is mainly to keep the code structured and sorted

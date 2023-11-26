@@ -1,7 +1,7 @@
 //! Utils for the `ytdlr` binary
 
 use crate::{
-	clap_conf::*,
+	clap_conf::CliDerive,
 	TERMINATE,
 };
 use indicatif::{

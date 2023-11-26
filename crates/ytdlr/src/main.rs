@@ -5,12 +5,20 @@
 extern crate log;
 
 use flexi_logger::LogSpecification;
-use libytdlr::*;
+use libytdlr::{
+	invoke_vscode_debugger,
+	Error,
+};
 use once_cell::sync::Lazy;
 use std::sync::RwLock;
 
 mod clap_conf;
-use clap_conf::*;
+use clap_conf::{
+	ArchiveDerive,
+	ArchiveSubCommands,
+	CliDerive,
+	SubCommands,
+};
 
 mod commands;
 mod logger;

@@ -1,12 +1,18 @@
 use crate::{
-	clap_conf::*,
+	clap_conf::{
+		ArchiveImport,
+		CliDerive,
+	},
 	utils,
 };
 use indicatif::{
 	ProgressBar,
 	ProgressStyle,
 };
-use libytdlr::main::archive::import::*;
+use libytdlr::main::archive::import::{
+	import_any_archive,
+	ImportProgress,
+};
 use once_cell::sync::Lazy;
 
 /// Handler function for the "archive import" subcommand

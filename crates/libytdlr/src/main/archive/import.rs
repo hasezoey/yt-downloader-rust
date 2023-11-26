@@ -21,8 +21,11 @@ use crate::{
 			JSONArchive,
 			Provider,
 		},
-		sql_models::*,
-		sql_schema::*,
+		sql_models::{
+			InsMedia,
+			Media,
+		},
+		sql_schema::media_archive,
 	},
 	error::IOErrorToError,
 };
