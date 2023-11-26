@@ -101,7 +101,7 @@ impl Error {
 				return Self::new(ErrorInner::ThreadJoinError(v.clone(), name));
 			}
 			if let Some(v) = from.downcast_ref::<&str>() {
-				return Self::new(ErrorInner::ThreadJoinError(v.to_string(), name));
+				return Self::new(ErrorInner::ThreadJoinError((*v).to_string(), name));
 			}
 
 			return Self::new(ErrorInner::ThreadJoinError("unknown error".into(), name));
