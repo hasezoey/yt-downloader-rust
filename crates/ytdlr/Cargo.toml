@@ -18,7 +18,7 @@ libytdlr = { path = "../libytdlr" }
 dirs-next.workspace = true
 term_size = "0.3"
 regex.workspace = true
-sysinfo = "0.28"
+sysinfo = "0.29"
 ctrlc = { version = "3", features = ["termination"] }
 once_cell.workspace = true
 # the following 2 are required to get the correct boundaries to truncate at
