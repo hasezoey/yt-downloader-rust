@@ -14,7 +14,10 @@ use libytdlr::{
 };
 use once_cell::sync::Lazy;
 
-use crate::clap_conf::ArchiveMode;
+use crate::clap_conf::{
+	ArchiveMode,
+	CommandDownload,
+};
 
 /// Set the default count estimate
 const DEFAULT_COUNT_ESTIMATE: usize = 1;
@@ -70,18 +73,10 @@ static MINIMAL_YTDL_VERSION: Lazy<chrono::NaiveDate> =
 
 impl<'a> DownloadState<'a> {
 	/// Create a new instance of [`DownloadState`] with the required options
-	pub fn new(
-		audio_only_enable: bool,
-		print_command_log: bool,
-		save_command_log: bool,
-		download_path: PathBuf,
-		archive_mode: ArchiveMode,
-		sub_langs: Option<&'a String>,
-		extra_ytdl_args: &[String],
-		ytdl_version: &str,
-	) -> Self {
+	pub fn new(sub_args: &'a CommandDownload, download_path: PathBuf, ytdl_version: &str) -> Self {
 		// process extra arguments into separated arguments of key and value (split once)
-		let extra_cmd_args = extra_ytdl_args
+		let extra_cmd_args = sub_args
+			.extra_ytdl_args
 			.iter()
 			.flat_map(|v| {
 				if let Some((split1, split2)) = v.split_once(' ') {
@@ -107,15 +102,15 @@ impl<'a> DownloadState<'a> {
 		}
 
 		return Self {
-			audio_only_enable,
+			audio_only_enable: sub_args.audio_only_enable,
 			extra_command_arguments: extra_cmd_args,
-			print_command_log,
-			save_command_log,
+			print_command_log: sub_args.print_youtubedl_log,
+			save_command_log: sub_args.save_youtubedl_log,
 			count_estimate: Cell::new(CountStore(DEFAULT_COUNT_ESTIMATE, false, 0)),
 			download_path,
-			sub_langs,
+			sub_langs: sub_args.sub_langs.as_ref(),
 
-			archive_mode,
+			archive_mode: sub_args.archive_mode,
 
 			current_url: String::default(),
 			ytdl_version,

@@ -451,16 +451,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	let pgbar: ProgressBar = ProgressBar::new(PG_PERCENT_100).with_style(DOWNLOAD_STYLE.clone());
 	utils::set_progressbar(&pgbar, main_args);
 
-	let mut download_state = DownloadState::new(
-		sub_args.audio_only_enable,
-		sub_args.print_youtubedl_log,
-		sub_args.save_youtubedl_log,
-		tmp_path,
-		sub_args.archive_mode,
-		sub_args.sub_langs.as_ref(),
-		&sub_args.extra_ytdl_args,
-		&ytdl_version,
-	);
+	let mut download_state = DownloadState::new(sub_args, tmp_path, &ytdl_version);
 
 	// already create the vec for finished media, so that the finished ones can be stored in case of error
 	let mut finished_media = MediaInfoArr::new();
