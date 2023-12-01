@@ -41,6 +41,7 @@ use std::{
 		Path,
 		PathBuf,
 	},
+	time::Duration,
 };
 use sysinfo::SystemExt;
 
@@ -670,6 +671,8 @@ fn do_download(
 				false,
 				false,
 			);
+			// steady-ticks have to be re-done after every "pgbar.finish" because the ticker will exit once it notices the state is "finished"
+			pgbar.enable_steady_tick(Duration::from_secs(1));
 			pgbar.set_message(truncate_message_term_width(&download_info_borrowed.title));
 			pgbar.println(format!("Downloading: {}", download_info_borrowed.title));
 		},
