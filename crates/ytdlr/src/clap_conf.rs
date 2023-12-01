@@ -356,10 +356,10 @@ pub struct CommandDownload {
 	/// This does not affect entries being added to the SQLite archive
 	#[arg(long = "archive-mode", value_enum, default_value_t=ArchiveMode::default())]
 	pub archive_mode:              ArchiveMode,
-	/// Print Youtube-DL stdout
+	/// Print Youtube-DL log
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
-	#[arg(long = "youtubedl-stdout")]
-	pub print_youtubedl_stdout:    bool,
+	#[arg(long = "youtubedl-log")]
+	pub print_youtubedl_log:       bool,
 	/// Disables allowing 0 URL's to just check the recovery
 	#[arg(long = "no-check-recovery")]
 	pub no_check_recovery:         bool,
@@ -406,7 +406,7 @@ impl Default for CommandDownload {
 			reapply_thumbnail_disable: false,
 			urls: Vec::new(),
 			archive_mode: ArchiveMode::Default,
-			print_youtubedl_stdout: false,
+			print_youtubedl_log: false,
 			tagger_editor: None,
 			no_check_recovery: false,
 			open_tagger: false,

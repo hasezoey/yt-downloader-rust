@@ -505,7 +505,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	pgcb(DownloadProgress::AllStarting);
 
 	// cache the bool for "print_command_stdout" to not execute the function for every line (should be a static value)
-	let print_stdout = options.print_command_stdout();
+	let print_stdout = options.print_command_log();
 
 	// the array where finished "current_mediainfo" gets appended to
 	// for performance / allocation efficiency, a count is requested from options
@@ -666,15 +666,15 @@ mod test {
 
 	/// Test Implementation for [`DownloadOptions`]
 	struct TestOptions {
-		audio_only:           bool,
-		extra_arguments:      Vec<PathBuf>,
-		download_path:        PathBuf,
-		url:                  String,
-		archive_lines:        Vec<String>,
-		print_command_stdout: bool,
-		count_estimate:       usize,
-		sub_langs:            Option<String>,
-		ytdl_version:         chrono::NaiveDate,
+		audio_only:        bool,
+		extra_arguments:   Vec<PathBuf>,
+		download_path:     PathBuf,
+		url:               String,
+		archive_lines:     Vec<String>,
+		print_command_log: bool,
+		count_estimate:    usize,
+		sub_langs:         Option<String>,
+		ytdl_version:      chrono::NaiveDate,
 	}
 
 	impl TestOptions {
@@ -697,9 +697,9 @@ mod test {
 		}
 
 		/// Helper Function for easily creating a new instance of [`TestOptions`] for [`handle_stdout`] testing
-		pub fn new_handle_stdout(print_command_stdout: bool, count_estimate: usize) -> Self {
+		pub fn new_handle_stdout(print_command_log: bool, count_estimate: usize) -> Self {
 			return Self {
-				print_command_stdout,
+				print_command_log,
 				count_estimate,
 				..Default::default()
 			};
@@ -726,15 +726,15 @@ mod test {
 	impl Default for TestOptions {
 		fn default() -> Self {
 			return Self {
-				audio_only:           false,
-				extra_arguments:      Vec::default(),
-				download_path:        PathBuf::default(),
-				url:                  String::default(),
-				archive_lines:        Vec::default(),
-				print_command_stdout: false,
-				count_estimate:       0,
-				sub_langs:            None,
-				ytdl_version:         Self::default_version(),
+				audio_only:        false,
+				extra_arguments:   Vec::default(),
+				download_path:     PathBuf::default(),
+				url:               String::default(),
+				archive_lines:     Vec::default(),
+				print_command_log: false,
+				count_estimate:    0,
+				sub_langs:         None,
+				ytdl_version:      Self::default_version(),
 			};
 		}
 	}
@@ -764,8 +764,8 @@ mod test {
 			return self.extra_arguments.iter().map(|v| return v.as_os_str()).collect();
 		}
 
-		fn print_command_stdout(&self) -> bool {
-			return self.print_command_stdout;
+		fn print_command_log(&self) -> bool {
+			return self.print_command_log;
 		}
 
 		fn get_count_estimate(&self) -> usize {
