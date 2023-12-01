@@ -348,6 +348,10 @@ impl LineType {
 		static YTDL_ARCHIVE_SKIP_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?m)^\[\w+\] [^:]+: has already been recorded in the archive$").unwrap();
 		});
+		/// regex to check for "[] Playlist ...:" lines
+		static YTDL_PLAYLIST_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?m)^\[[\w:]+\] Playlist [^:]+:").unwrap();
+		});
 
 		let input = input.as_ref();
 
@@ -365,6 +369,11 @@ impl LineType {
 
 			if YTDL_ARCHIVE_SKIP_REGEX.is_match(input) {
 				return Some(Self::ArchiveSkip);
+			}
+
+			if YTDL_PLAYLIST_REGEX.is_match(input) {
+				// this likely should have its own LineType, but for now the path of "Custom" is used
+				return Some(Self::Custom);
 			}
 
 			// everything that is not specially handled before, will get treated as being a provider
@@ -447,6 +456,10 @@ impl LineType {
 		static PARSE_MOVE_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?mi)^MOVE '([^']+)' '([^']+)' (.+)$").unwrap();
 		});
+		/// regex to check for "[] Playlist ...: Downloading ... items of ..." lines
+		static YTDL_PLAYLIST_COUNT_REGEX: Lazy<Regex> = Lazy::new(|| {
+			return Regex::new(r"(?m)^\[[\w:]+\] Playlist [^:]+: Downloading (\d+) items of (\d+)$").unwrap();
+		});
 
 		let input = input.as_ref();
 
@@ -485,6 +498,19 @@ impl LineType {
 			return Some(CustomParseType::Move(
 				MediaInfo::new(id, provider).with_filename(filename),
 			));
+		}
+
+		// handle "[] Playlist ...: Downloading ... items of ..." lines
+		if let Some(cap) = YTDL_PLAYLIST_COUNT_REGEX.captures(input) {
+			let count_str = &cap[1];
+
+			return match count_str.parse::<usize>() {
+				Ok(count) => Some(CustomParseType::Playlist(count)),
+				Err(err) => {
+					info!("Failed to parse \"[] Playlist ...: Downloading ... items of ...\" count, error: {err}");
+					None
+				},
+			};
 		}
 
 		// handle "PLAYLIST" lines
@@ -1511,9 +1537,10 @@ PARSE_END 'youtube' '-----------'
 		fn test_skip_error_and_normal() {
 			let expected_pg = &vec![
 				DownloadProgress::AllStarting,
+				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
-				DownloadProgress::Skipped(1, SkippedType::Error),     // one error skip
+				DownloadProgress::Skipped(1, SkippedType::Error), // one error skip
 				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
@@ -1576,6 +1603,7 @@ PARSE_END 'aprovider' 'someid4'
 		fn test_error_while_downloading() {
 			let expected_pg = &vec![
 				DownloadProgress::AllStarting,
+				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::SingleStarting("someid1".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid1".to_owned()), 0),
 				DownloadProgress::SingleProgress(Some("someid1".to_owned()), 100),
@@ -1664,6 +1692,140 @@ PARSE_END 'aprovider' 'someid4'
 
 			assert_eq!(
 				vec![MediaInfo::new("someid1", "aprovider")
+					.with_title("Some Title Here")
+					.with_filename("somewhere")],
+				media_vec
+			);
+		}
+
+		/// Test parsing of "[] Playlist ...: Downloading ... items of ..." lines
+		#[test]
+		fn test_playlistsize_from_playlist_downloading_items() {
+			let expected_pg = &vec![
+				DownloadProgress::AllStarting,
+				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
+				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
+				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
+				DownloadProgress::Skipped(1, SkippedType::Error), // one error skip
+				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
+				DownloadProgress::SingleFinished("someid4".to_owned()),
+				DownloadProgress::AllFinished(1),
+			];
+			let expect_index = Arc::new(AtomicUsize::new(0));
+
+			let options = TestOptions::new_handle_stdout(false, 1);
+
+			let input = r#"
+[aprovider] Extracting URL: https://someurl.com/hello
+[download] Downloading playlist: someplaylist
+[aprovider] someplaylist: Downloading page 0
+[aprovider] Playlist someplaylist: Downloading 4 items of 4
+[download] Downloading item 1 of 4
+[aprovider] someid1: has already been recorded in the archive
+[download] Downloading item 2 of 4
+[aprovider] someid2: has already been recorded in the archive
+[download] Downloading item 3 of 4
+[aprovider] Extracting URL: https://someurl.com/video/someid3
+[aprovider] someid3: Downloading JSON metadata
+ERROR: [aprovider] someid3: somekinda error
+[download] Downloading item 4 of 4
+[aprovider] someid4: Downloading JSON metadata
+[info] someid4: Downloading 1 format(s): Source
+PARSE_START 'aprovider' 'someid4' Some Title Here
+[download] Destination: Some Title Here [someid4].mp4
+[download]   0.1% of  3.47MiB at  10.57MiB/s ETA 09:37
+[download] 100% of 3.47MiB at 10.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB in 00:00
+MOVE 'aprovider' 'someid4' /path/to/somewhere
+PARSE_END 'aprovider' 'someid4'
+	"#;
+
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
+			let res = handle_stdout(
+				&options,
+				callback_counter(&expect_index, expected_pg),
+				BufReader::new(input.as_bytes()),
+				&mut media_vec,
+			);
+
+			assert!(res.is_ok());
+
+			assert_eq!(1, media_vec.len());
+
+			assert_eq!(
+				vec![MediaInfo::new("someid4", "aprovider")
+					.with_title("Some Title Here")
+					.with_filename("somewhere")],
+				media_vec
+			);
+		}
+
+		/// Test parsing of "PLAYLIST ''" lines
+		#[test]
+		fn test_playlistsize_from_custom_playlist() {
+			let expected_pg = &vec![
+				DownloadProgress::AllStarting,
+				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
+				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
+				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
+				DownloadProgress::Skipped(1, SkippedType::Error), // one error skip
+				DownloadProgress::PlaylistInfo(4), // custom "PLAYLIST ''" line
+				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
+				DownloadProgress::SingleFinished("someid4".to_owned()),
+				DownloadProgress::AllFinished(1),
+			];
+			let expect_index = Arc::new(AtomicUsize::new(0));
+
+			let options = TestOptions::new_handle_stdout(false, 1);
+
+			let input = r#"
+[aprovider] Extracting URL: https://someurl.com/hello
+[download] Downloading playlist: someplaylist
+[aprovider] someplaylist: Downloading page 0
+[aprovider] Playlist someplaylist: Downloading 4 items of 4
+[download] Downloading item 1 of 4
+[aprovider] someid1: has already been recorded in the archive
+[download] Downloading item 2 of 4
+[aprovider] someid2: has already been recorded in the archive
+[download] Downloading item 3 of 4
+[aprovider] Extracting URL: https://someurl.com/video/someid3
+[aprovider] someid3: Downloading JSON metadata
+ERROR: [aprovider] someid3: somekinda error
+[download] Downloading item 4 of 4
+[aprovider] someid4: Downloading JSON metadata
+[info] someid4: Downloading 1 format(s): Source
+PLAYLIST '4'
+PARSE_START 'aprovider' 'someid4' Some Title Here
+[download] Destination: Some Title Here [someid4].mp4
+[download]   0.1% of  3.47MiB at  10.57MiB/s ETA 09:37
+[download] 100% of 3.47MiB at 10.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB in 00:00
+MOVE 'aprovider' 'someid4' /path/to/somewhere
+PARSE_END 'aprovider' 'someid4'
+"#;
+
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
+			let res = handle_stdout(
+				&options,
+				callback_counter(&expect_index, expected_pg),
+				BufReader::new(input.as_bytes()),
+				&mut media_vec,
+			);
+
+			assert!(res.is_ok());
+
+			assert_eq!(1, media_vec.len());
+
+			assert_eq!(
+				vec![MediaInfo::new("someid4", "aprovider")
 					.with_title("Some Title Here")
 					.with_filename("somewhere")],
 				media_vec
