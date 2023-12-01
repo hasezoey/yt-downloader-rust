@@ -25,6 +25,15 @@ use crate::{
 	traits::download_options::DownloadOptions,
 };
 
+/// Types for [DownloadProgress::Skipped]
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum SkippedType {
+	/// Skipped because of a Error
+	Error,
+	/// Skipped because already being in the archive
+	InArchive,
+}
+
 /// Enum for hooks to know what is currently happening
 /// All Variants will have a certian order in which they are called (like AllStarting is always before a SingleStarting)
 /// but not all may be called, like there may be "SingleStarting -> SingleProgress -> Skipped" instead of "SingleStarting -> SingleProgress -> SingleFinished"
@@ -35,7 +44,7 @@ pub enum DownloadProgress {
 	/// Variant representing a skipped element, may or may not come because of it already being in the archive
 	/// may be called after "SingleStarting" and / or "SingleProcess" instead of "SingleFinished"
 	/// values (skipped_count)
-	Skipped(usize),
+	Skipped(usize, SkippedType),
 	/// Variant representing that a media has started the process
 	/// values: (id, title)
 	SingleStarting(String, String),
@@ -312,7 +321,7 @@ enum LineType {
 	/// Variant for lines that start with "ERROR:"
 	Error,
 	/// Variant for archive skip lines
-	Skip,
+	ArchiveSkip,
 }
 
 impl LineType {
@@ -355,7 +364,7 @@ impl LineType {
 			}
 
 			if YTDL_ARCHIVE_SKIP_REGEX.is_match(input) {
-				return Some(Self::Skip);
+				return Some(Self::ArchiveSkip);
 			}
 
 			// everything that is not specially handled before, will get treated as being a provider
@@ -582,14 +591,14 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					}
 				},
 				LineType::Custom => handle_linetype_custom(&linetype, &line, &mut current_mediainfo, &mut pgcb, &mut had_download, mediainfo_vec),
-				LineType::Skip => {
-					pgcb(DownloadProgress::Skipped(1));
+				LineType::ArchiveSkip => {
+					pgcb(DownloadProgress::Skipped(1, SkippedType::InArchive));
 				},
 				LineType::Error => {
 					// the following is using debug printing, because the line may include escape characters, which would mess-up the printing, but is still good to know when reading
 					warn!("Encountered youtube-dl error: {:#?}", line);
 					last_error = Some(crate::Error::other(line));
-					pgcb(DownloadProgress::Skipped(1));
+					pgcb(DownloadProgress::Skipped(1, SkippedType::Error));
 					current_mediainfo.take(); // replace with none, because this media should not be added
 				},
 			}
@@ -1457,7 +1466,7 @@ PARSE_END 'soundcloud' '----------1'
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
 				DownloadProgress::SingleFinished("-----------".to_owned()),
-				DownloadProgress::Skipped(1),
+				DownloadProgress::Skipped(1, SkippedType::InArchive),
 				DownloadProgress::AllFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
@@ -1502,9 +1511,9 @@ PARSE_END 'youtube' '-----------'
 		fn test_skip_error_and_normal() {
 			let expected_pg = &vec![
 				DownloadProgress::AllStarting,
-				DownloadProgress::Skipped(1), // one archive skip
-				DownloadProgress::Skipped(1), // one archive skip
-				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
+				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
+				DownloadProgress::Skipped(1, SkippedType::Error),     // one error skip
 				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
@@ -1574,13 +1583,13 @@ PARSE_END 'aprovider' 'someid4'
 				DownloadProgress::SingleFinished("someid1".to_owned()),
 				DownloadProgress::SingleStarting("someid2".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid2".to_owned()), 2),
-				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::Skipped(1, SkippedType::Error), // one error skip
 				DownloadProgress::SingleStarting("someid3".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid3".to_owned()), 0),
-				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::Skipped(1, SkippedType::Error), // one error skip
 				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
-				DownloadProgress::Skipped(1), // one error skip
+				DownloadProgress::Skipped(1, SkippedType::Error), // one error skip
 				DownloadProgress::AllFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));

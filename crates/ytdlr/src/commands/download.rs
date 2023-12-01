@@ -710,7 +710,7 @@ fn do_download(
 			}
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
-		main::download::DownloadProgress::Skipped(skipped_count) => {
+		main::download::DownloadProgress::Skipped(skipped_count, _skipped_type) => {
 			download_state_cell.borrow().decrease_count_estimate(skipped_count);
 			pgbar.reset(); // reset so that it can work both with "SingleStarting" happening or not
 			   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
