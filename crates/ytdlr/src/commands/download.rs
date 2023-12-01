@@ -454,6 +454,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	let mut download_state = DownloadState::new(
 		sub_args.audio_only_enable,
 		sub_args.print_youtubedl_log,
+		sub_args.save_youtubedl_log,
 		tmp_path,
 		sub_args.archive_mode,
 		sub_args.sub_langs.as_ref(),

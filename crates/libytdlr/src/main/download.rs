@@ -5,7 +5,10 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
 	ffi::OsString,
-	fs::File,
+	fs::{
+		File,
+		OpenOptions,
+	},
 	io::{
 		BufRead,
 		BufReader,
@@ -517,6 +520,28 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	// store the last error line encountered
 	let mut last_error = None;
 
+	let mut maybe_command_file_log = if options.save_command_log() {
+		let path = options
+			.download_path()
+			.join(format!("yt-dl_{}.log", std::process::id()));
+
+		info!("Logging command output to \"{}\"", path.display());
+
+		let mut file = BufWriter::new(
+			OpenOptions::new()
+				.create(true)
+				.append(true)
+				.open(&path)
+				.attach_path_err(&path)?,
+		);
+
+		file.write_all(b"\nNew Instance\n").attach_path_err(&path)?;
+
+		Some((file, path))
+	} else {
+		None
+	};
+
 	// HACK: .lines() iter never exits on non-0 exit codes in duct, see https://github.com/oconnor663/duct.rs/issues/112
 	for line in reader.lines() {
 		let line = match line {
@@ -530,6 +555,10 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 		// only print STDOUT to output when requested
 		if print_stdout {
 			trace!("ytdl [STDOUT]: \"{}\"", line);
+		}
+		if let Some((file, path)) = &mut maybe_command_file_log {
+			file.write_all(line.as_bytes()).attach_path_err(&path)?;
+			file.write_all(&[b'\n']).attach_path_err(path)?;
 		}
 
 		if let Some(linetype) = LineType::try_from_line(&line) {
@@ -672,6 +701,7 @@ mod test {
 		url:               String,
 		archive_lines:     Vec<String>,
 		print_command_log: bool,
+		save_command_log:  bool,
 		count_estimate:    usize,
 		sub_langs:         Option<String>,
 		ytdl_version:      chrono::NaiveDate,
@@ -732,6 +762,7 @@ mod test {
 				url:               String::default(),
 				archive_lines:     Vec::default(),
 				print_command_log: false,
+				save_command_log:  false,
 				count_estimate:    0,
 				sub_langs:         None,
 				ytdl_version:      Self::default_version(),
@@ -766,6 +797,10 @@ mod test {
 
 		fn print_command_log(&self) -> bool {
 			return self.print_command_log;
+		}
+
+		fn save_command_log(&self) -> bool {
+			return self.save_command_log;
 		}
 
 		fn get_count_estimate(&self) -> usize {

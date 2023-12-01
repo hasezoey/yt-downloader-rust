@@ -41,6 +41,8 @@ pub struct DownloadState<'a> {
 	extra_command_arguments: Vec<std::ffi::OsString>,
 	/// Print youtube-dl stdout as trace logs
 	print_command_log:       bool,
+	/// Save youtube-dl logs to a file
+	save_command_log:        bool,
 	/// The Path to download to
 	download_path:           PathBuf,
 	/// Contains the value for the current playlist count estimate
@@ -71,6 +73,7 @@ impl<'a> DownloadState<'a> {
 	pub fn new(
 		audio_only_enable: bool,
 		print_command_log: bool,
+		save_command_log: bool,
 		download_path: PathBuf,
 		archive_mode: ArchiveMode,
 		sub_langs: Option<&'a String>,
@@ -107,6 +110,7 @@ impl<'a> DownloadState<'a> {
 			audio_only_enable,
 			extra_command_arguments: extra_cmd_args,
 			print_command_log,
+			save_command_log,
 			count_estimate: Cell::new(CountStore(DEFAULT_COUNT_ESTIMATE, false, 0)),
 			download_path,
 			sub_langs,
@@ -245,6 +249,10 @@ impl DownloadOptions for DownloadState<'_> {
 
 	fn print_command_log(&self) -> bool {
 		return self.print_command_log;
+	}
+
+	fn save_command_log(&self) -> bool {
+		return self.save_command_log;
 	}
 
 	fn get_count_estimate(&self) -> usize {

@@ -360,6 +360,10 @@ pub struct CommandDownload {
 	/// This will still require logging verbosity set to 3 or "RUST_LOG=trace"
 	#[arg(long = "youtubedl-log")]
 	pub print_youtubedl_log:       bool,
+	/// Save Youtube-DL logs to a file
+	/// File will be in the temporary directory, named "yt-dl_PID.log" where the PID is the ytdlr's pid
+	#[arg(long = "youtubedl-logfile")]
+	pub save_youtubedl_log:        bool,
 	/// Disables allowing 0 URL's to just check the recovery
 	#[arg(long = "no-check-recovery")]
 	pub no_check_recovery:         bool,
@@ -407,6 +411,7 @@ impl Default for CommandDownload {
 			urls: Vec::new(),
 			archive_mode: ArchiveMode::Default,
 			print_youtubedl_log: false,
+			save_youtubedl_log: false,
 			tagger_editor: None,
 			no_check_recovery: false,
 			open_tagger: false,

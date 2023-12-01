@@ -25,6 +25,8 @@ pub trait DownloadOptions {
 	/// STDERR is always printed (using [`log::trace`])
 	/// With this returning `true`, the STDOUT output is also printed with [`log::trace`]
 	fn print_command_log(&self) -> bool;
+	/// Get whether or not to save the Command STDOUT & STDERR to a file in the temporary directory
+	fn save_command_log(&self) -> bool;
 	/// Get a estimate of how many media elements will be downloaded in this run
 	/// This could commonly be the playlist count that youtube-dl outputs
 	/// if no count is available, a minimal count of 1 should be returned
