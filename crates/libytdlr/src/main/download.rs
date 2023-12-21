@@ -450,7 +450,7 @@ impl LineType {
 		});
 		/// Regex to get all information from the Parsing helper "PLAYLIST"
 		static PARSE_PLAYLIST_REGEX: Lazy<Regex> = Lazy::new(|| {
-			return Regex::new(r"(?mi)^PLAYLIST '([^']+)'$").unwrap();
+			return Regex::new(r"(?mi)^PLAYLIST '(\d+)'$").unwrap();
 		});
 		/// Regex to get all information from the Parsing helper "MOVE"
 		static PARSE_MOVE_REGEX: Lazy<Regex> = Lazy::new(|| {
