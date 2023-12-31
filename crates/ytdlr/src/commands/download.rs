@@ -32,7 +32,10 @@ use libytdlr::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
-	cell::RefCell,
+	cell::{
+		Cell,
+		RefCell,
+	},
 	collections::HashMap,
 	io::{
 		BufRead,
@@ -560,7 +563,6 @@ const PREFIX_UNKNOWN: &str = "??";
 fn set_progressbar_prefix(
 	pgbar: &ProgressBar,
 	download_info: &DownloadInfo,
-	download_state: &DownloadState,
 	unknown_playlist_count: bool,
 	unknown_current_count: bool,
 ) {
@@ -572,12 +574,42 @@ fn set_progressbar_prefix(
 	let playlist_count = if unknown_playlist_count {
 		PREFIX_UNKNOWN.into()
 	} else {
-		download_state.get_count_estimate().to_string()
+		download_info.get_count_estimate().to_string()
 	};
 	pgbar.set_prefix(format!("[{}/{}]", current_count, playlist_count));
 }
 
+/// Set the default count estimate
+const DEFAULT_COUNT_ESTIMATE: usize = 1;
+
+/// NewType to store a count and a bool together
+/// Where the count is the playlist size estimate and the bool for whether it has already been set to a non-default
+/// values: (count_estimate, has_been_set, decrease_by)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CountStore {
+	count_estimate: usize,
+	has_been_set:   bool,
+	decrease_by:    usize,
+}
+
+impl CountStore {
+	pub fn new(count_estimate: usize, has_been_set: bool, decrease_by: usize) -> Self {
+		return Self {
+			count_estimate,
+			has_been_set,
+			decrease_by,
+		};
+	}
+
+	/// Get wheter a count set (non-default) has occured
+	pub fn has_been_set(&self) -> bool {
+		return self.has_been_set;
+	}
+}
+
 /// Helper struct to keep track of some state, while having named fields instead of numbered tuple fields
+///
+/// This State contains state about the url position and playlist (inside one url) position
 #[derive(Debug, PartialEq, Clone)]
 struct DownloadInfo {
 	/// Count of how many Media have been downloaded in the current URL (playlist)
@@ -590,6 +622,8 @@ struct DownloadInfo {
 	/// Index of the current url being processed
 	/// not 0 based
 	pub url_index:      usize,
+	/// Contains the value for the current playlist count estimate
+	count_estimate:     Cell<CountStore>,
 }
 
 impl DownloadInfo {
@@ -600,12 +634,74 @@ impl DownloadInfo {
 			id,
 			title,
 			url_index,
+			count_estimate: Cell::new(CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0)),
 		};
 	}
 
-	/// Create a new default instance of [Self], but with a set "url_index"
-	pub fn new_with_url_index(url_index: usize) -> Self {
-		return Self::new(0, String::default(), String::default(), url_index);
+	/// Set "count_result" for generating the archive and for "get_count_estimate"
+	/// this function will automatically decrease the count by "decrease_by" (`CountStore.2`)
+	pub fn set_count_estimate(&self, count: usize) {
+		let old_count = self.count_estimate.get();
+
+		let new_count = count.saturating_sub(old_count.decrease_by);
+		if new_count < DEFAULT_COUNT_ESTIMATE {
+			self.count_estimate
+				.replace(CountStore::new(DEFAULT_COUNT_ESTIMATE, true, 0));
+		} else {
+			self.count_estimate.replace(CountStore::new(new_count, true, 0));
+		}
+	}
+
+	/// Reset the count estimate to default
+	pub fn reset_count_estimate(&self) {
+		self.count_estimate
+			.replace(CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0));
+	}
+
+	/// Dedicated function to decrease the count estimate, even if no estimate has been given yet
+	pub fn decrease_count_estimate(&self, decrease_by: usize) {
+		let old_count = self.count_estimate.get();
+
+		if old_count.has_been_set() {
+			let mut new_count = old_count
+				.count_estimate
+				.saturating_sub(decrease_by)
+				.saturating_sub(old_count.decrease_by);
+			if new_count < DEFAULT_COUNT_ESTIMATE {
+				new_count = DEFAULT_COUNT_ESTIMATE;
+			}
+			self.count_estimate
+				.replace(CountStore::new(new_count, old_count.has_been_set, 0));
+		} else {
+			self.count_estimate.replace(CountStore::new(
+				old_count.count_estimate,
+				old_count.has_been_set,
+				old_count.decrease_by + decrease_by,
+			));
+		}
+	}
+
+	/// Get the a copy of the current [CountStore]
+	pub fn get_count_store(&self) -> CountStore {
+		return self.count_estimate.get();
+	}
+
+	pub fn get_count_estimate(&self) -> usize {
+		return self.count_estimate.get().count_estimate;
+	}
+
+	pub fn reset_new_starting(&mut self, playlist_count: usize, id: String, title: String, url_index: usize) {
+		self.playlist_count = playlist_count;
+		self.id = id;
+		self.title = title;
+		self.url_index = url_index;
+	}
+
+	pub fn reset_for_new_url(&mut self, url_index: usize) {
+		self.playlist_count = 0;
+		self.id = String::default();
+		self.title = String::default();
+		self.url_index = url_index
 	}
 }
 
@@ -633,13 +729,7 @@ fn do_download(
 	let download_state_cell: RefCell<&mut DownloadState> = RefCell::new(download_state);
 	let download_info: RefCell<DownloadInfo> = RefCell::new(DownloadInfo::default());
 	let url_len = sub_args.urls.len();
-	set_progressbar_prefix(
-		pgbar,
-		&download_info.borrow(),
-		*download_state_cell.borrow(),
-		true,
-		true,
-	);
+	set_progressbar_prefix(pgbar, &download_info.borrow(), true, true);
 	// track total count finished (no error)
 	let total_count = std::sync::atomic::AtomicUsize::new(0);
 	let download_pgcb = |dpg| match dpg {
@@ -647,24 +737,20 @@ fn do_download(
 			pgbar.reset();
 			pgbar.set_message(""); // ensure it is not still present across finish and reset
 			let url_index = download_info.borrow().url_index;
-			download_info.replace(DownloadInfo::new_with_url_index(url_index));
-			download_state_cell.borrow().reset_count_estimate(); // reset count estimate so that it does not carry over to different URLs
+			download_info.borrow_mut().reset_for_new_url(url_index);
+			download_info.borrow().reset_count_estimate(); // reset count estimate so that it does not carry over to different URLs
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
 			let new_count = download_info.borrow().playlist_count + 1;
 			let url_index = download_info.borrow().url_index;
-			download_info.replace(DownloadInfo::new(new_count, id, title, url_index));
+			download_info
+				.borrow_mut()
+				.reset_new_starting(new_count, id, title, url_index);
 
 			pgbar.reset();
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
 			let download_info_borrowed = download_info.borrow();
-			set_progressbar_prefix(
-				pgbar,
-				&download_info.borrow(),
-				*download_state_cell.borrow(),
-				false,
-				false,
-			);
+			set_progressbar_prefix(pgbar, &download_info.borrow(), false, false);
 			// steady-ticks have to be re-done after every "pgbar.finish" because the ticker will exit once it notices the state is "finished"
 			pgbar.enable_steady_tick(Duration::from_secs(1));
 			pgbar.set_message(truncate_message_term_width(&download_info_borrowed.title));
@@ -677,13 +763,7 @@ fn do_download(
 			// dont hide the progressbar so that the cli does not appear to do nothing
 			pgbar.reset();
 			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().title));
-			set_progressbar_prefix(
-				pgbar,
-				&download_info.borrow(),
-				*download_state_cell.borrow(),
-				false,
-				false,
-			);
+			set_progressbar_prefix(pgbar, &download_info.borrow(), false, false);
 		},
 		main::download::DownloadProgress::AllFinished(new_count) => {
 			pgbar.finish_and_clear();
@@ -696,7 +776,7 @@ fn do_download(
 			));
 		},
 		main::download::DownloadProgress::PlaylistInfo(new_count) => {
-			let borrow = download_state_cell.borrow();
+			let borrow = download_info.borrow();
 			// only assign a playlist estimate count once for the current URL
 			if !borrow.get_count_store().has_been_set() {
 				borrow.set_count_estimate(new_count);
@@ -704,7 +784,7 @@ fn do_download(
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
 		main::download::DownloadProgress::Skipped(skipped_count, skipped_type) => {
-			download_state_cell.borrow().decrease_count_estimate(skipped_count);
+			download_info.borrow().decrease_count_estimate(skipped_count);
 
 			// decrease playlist count too in case of error, because otherwise it could be playlist_count > count_estimate
 			// like 20 > 10
@@ -717,8 +797,7 @@ fn do_download(
 			set_progressbar_prefix(
 				pgbar,
 				&download_info.borrow(),
-				*download_state_cell.borrow(),
-				!download_state_cell.borrow().get_count_store().has_been_set(),
+				!download_info.borrow().get_count_store().has_been_set(),
 				false,
 			);
 		},
@@ -739,7 +818,7 @@ fn do_download(
 
 		// the array where finished "current_mediainfo" gets appended to
 		// for performance / allocation efficiency, a count is requested from options
-		let mut new_media: Vec<MediaInfo> = Vec::with_capacity(download_state_cell.borrow().get_count_estimate());
+		let mut new_media: Vec<MediaInfo> = Vec::with_capacity(download_info.borrow().get_count_estimate());
 
 		// dont error immediately on error
 		let res = libytdlr::main::download::download_single(

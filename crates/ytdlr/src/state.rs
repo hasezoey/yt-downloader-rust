@@ -1,7 +1,6 @@
 //! Module for State Struct for all commands
 
 use std::{
-	cell::Cell,
 	ffi::OsString,
 	path::PathBuf,
 };
@@ -19,23 +18,9 @@ use crate::clap_conf::{
 	CommandDownload,
 };
 
-/// Set the default count estimate
-const DEFAULT_COUNT_ESTIMATE: usize = 1;
-
-/// NewType to store a count and a bool together
-/// Where the count is the playlist size estimate and the bool for whether it has already been set to a non-default
-/// values: (count_estimate, has_been_set, decrease_by)
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CountStore(usize, bool, usize);
-
-impl CountStore {
-	/// Get wheter a count set (non-default) has occured
-	pub fn has_been_set(&self) -> bool {
-		return self.1;
-	}
-}
-
 /// Struct to keep configuration data for the [`DownloadOptions`] trait
+///
+/// This data basically only contains non-chaning data between URLs
 #[derive(Debug, PartialEq, Clone)]
 pub struct DownloadState<'a> {
 	/// Enable downloading / converting to audio only format
@@ -48,8 +33,6 @@ pub struct DownloadState<'a> {
 	save_command_log:        bool,
 	/// The Path to download to
 	download_path:           PathBuf,
-	/// Contains the value for the current playlist count estimate
-	count_estimate:          Cell<CountStore>,
 
 	/// Set which / how many entries of the archive are output to the youtube-dl archive
 	archive_mode: ArchiveMode,
@@ -106,7 +89,6 @@ impl<'a> DownloadState<'a> {
 			extra_command_arguments: extra_cmd_args,
 			print_command_log: sub_args.print_youtubedl_log,
 			save_command_log: sub_args.save_youtubedl_log,
-			count_estimate: Cell::new(CountStore(DEFAULT_COUNT_ESTIMATE, false, 0)),
 			download_path,
 			sub_langs: sub_args.sub_langs.as_ref(),
 
@@ -121,46 +103,6 @@ impl<'a> DownloadState<'a> {
 	pub fn set_current_url<S: AsRef<str>>(&mut self, new_url: S) {
 		// replace the already allocated string with the "new_url" without creating a new string
 		self.current_url.replace_range(.., new_url.as_ref());
-	}
-
-	/// Set "count_result" for generating the archive and for "get_count_estimate"
-	/// this function will automatically decrease the count by "decrease_by" (`CountStore.2`)
-	pub fn set_count_estimate(&self, count: usize) {
-		let old_count = self.count_estimate.get();
-
-		let new_count = count.saturating_sub(old_count.2);
-		if new_count < DEFAULT_COUNT_ESTIMATE {
-			self.count_estimate.replace(CountStore(DEFAULT_COUNT_ESTIMATE, true, 0));
-		} else {
-			self.count_estimate.replace(CountStore(new_count, true, 0));
-		}
-	}
-
-	/// Reset the count estimate to default
-	pub fn reset_count_estimate(&self) {
-		self.count_estimate
-			.replace(CountStore(DEFAULT_COUNT_ESTIMATE, false, 0));
-	}
-
-	/// Dedicated function to decrease the count estimate, even if no estimate has been given yet
-	pub fn decrease_count_estimate(&self, decrease_by: usize) {
-		let old_count = self.count_estimate.get();
-
-		if old_count.has_been_set() {
-			let mut new_count = old_count.0.saturating_sub(decrease_by).saturating_sub(old_count.2);
-			if new_count < DEFAULT_COUNT_ESTIMATE {
-				new_count = DEFAULT_COUNT_ESTIMATE;
-			}
-			self.count_estimate.replace(CountStore(new_count, old_count.1, 0));
-		} else {
-			self.count_estimate
-				.replace(CountStore(old_count.0, old_count.1, old_count.2 + decrease_by));
-		}
-	}
-
-	/// Get the a copy of the current [CountStore]
-	pub fn get_count_store(&self) -> CountStore {
-		return self.count_estimate.get();
 	}
 }
 
@@ -248,10 +190,6 @@ impl DownloadOptions for DownloadState<'_> {
 
 	fn save_command_log(&self) -> bool {
 		return self.save_command_log;
-	}
-
-	fn get_count_estimate(&self) -> usize {
-		return self.count_estimate.get().0;
 	}
 
 	fn sub_langs(&self) -> Option<&String> {

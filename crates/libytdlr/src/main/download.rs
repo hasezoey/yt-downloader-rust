@@ -838,10 +838,6 @@ mod test {
 			return self.save_command_log;
 		}
 
-		fn get_count_estimate(&self) -> usize {
-			return self.count_estimate;
-		}
-
 		fn sub_langs(&self) -> Option<&String> {
 			return self.sub_langs.as_ref();
 		}

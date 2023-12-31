@@ -27,10 +27,6 @@ pub trait DownloadOptions {
 	fn print_command_log(&self) -> bool;
 	/// Get whether or not to save the Command STDOUT & STDERR to a file in the temporary directory
 	fn save_command_log(&self) -> bool;
-	/// Get a estimate of how many media elements will be downloaded in this run
-	/// This could commonly be the playlist count that youtube-dl outputs
-	/// if no count is available, a minimal count of 1 should be returned
-	fn get_count_estimate(&self) -> usize;
 	/// Get which subtitle languages to download
 	/// see <https://github.com/yt-dlp/yt-dlp#subtitle-options> for what is available
 	/// [None] disables adding subtitles
