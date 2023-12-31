@@ -504,6 +504,11 @@ where
 		.map(|(i, s)| {
 			display_position += s.width();
 
+			#[cfg(feature = "workaround_fe0f")]
+			if s.contains("\u{FE0F}") {
+				display_position += 1;
+			}
+
 			size_bytes_to += s.as_bytes().len();
 			return CharInfo {
 				start_index:      i,

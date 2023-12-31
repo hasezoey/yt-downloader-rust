@@ -35,3 +35,17 @@ path = "src/main.rs"
 
 [lints]
 workspace = true
+
+[features]
+default = [
+	# included as default, because unicode-width is basically only used to count available space for progress-bar message truncation
+	# which will only result in terminals which display 2 to work correctly (not going to a new-line) and terminals which display 1 to just have less characters displayed
+	"workaround_fe0f",
+]
+# Feature to count unicode code-point "\u{fe0f}" (VS16, render emoji in emoji-style) as a additional display position
+# this basically works-around any terminal that displays it as 2 characters, but unicode-width only thinking it is 1 character
+# Example terminals which display this as 2:
+# - KDE Konsole (23.08.4)
+# Example terminals which display this as 1:
+# - Alacritty (0.12.3)
+workaround_fe0f = []
