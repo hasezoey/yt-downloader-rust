@@ -127,6 +127,10 @@ pub enum SubCommands {
 	ReThumbnail(CommandReThumbnail),
 	/// Generate shell completions
 	Completions(CommandCompletions),
+	/// Unicode Terminal testing options
+	#[cfg(debug_assertions)]
+	#[command(name = "unicode-test")]
+	UnicodeTerminalTest(CommandUnicodeTerminalTest),
 }
 
 impl Check for SubCommands {
@@ -136,6 +140,8 @@ impl Check for SubCommands {
 			SubCommands::Archive(v) => return Check::check(v),
 			SubCommands::ReThumbnail(v) => return Check::check(v),
 			SubCommands::Completions(v) => return Check::check(v),
+			#[cfg(debug_assertions)]
+			SubCommands::UnicodeTerminalTest(v) => return Check::check(v),
 		}
 	}
 }
@@ -489,6 +495,24 @@ impl Check for CommandCompletions {
 			None => None,
 		};
 
+		return Ok(());
+	}
+}
+
+/// Unicode Terminal Testing options
+#[cfg(debug_assertions)]
+#[derive(Debug, Parser, Clone, PartialEq)]
+pub struct CommandUnicodeTerminalTest {
+	/// Print full `msg_to_cluster` vec
+	#[arg(short = 'c', long = "content")]
+	pub print_content: bool,
+	/// The string to test
+	pub string:        String,
+}
+
+#[cfg(debug_assertions)]
+impl Check for CommandUnicodeTerminalTest {
+	fn check(&mut self) -> Result<(), crate::Error> {
 		return Ok(());
 	}
 }

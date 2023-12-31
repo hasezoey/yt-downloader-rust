@@ -184,6 +184,8 @@ fn actual_main() -> Result<(), crate::Error> {
 		SubCommands::Archive(v) => sub_archive(&cli_matches, v),
 		SubCommands::ReThumbnail(v) => commands::rethumbnail::command_rethumbnail(&cli_matches, v),
 		SubCommands::Completions(v) => commands::completions::command_completions(&cli_matches, v),
+		#[cfg(debug_assertions)]
+		SubCommands::UnicodeTerminalTest(v) => commands::unicode_test::command_unicodeterminaltest(&cli_matches, v),
 	};
 }
 
