@@ -43,7 +43,6 @@ use std::{
 	},
 	time::Duration,
 };
-use sysinfo::SystemExt;
 
 /// Static for easily referencing the 100% length for a progressbar
 const PG_PERCENT_100: u64 = 100;
