@@ -480,7 +480,7 @@ pub struct CharInfo<'a> {
 	/// Index of character in the characters vec
 	pub start_index:      usize,
 	/// Bytes length of the character
-	pub length:           usize,
+	pub byte_length:      usize,
 	/// Display position
 	pub display_pos:      usize,
 	/// Bytes position of the full characters (including length)
@@ -503,10 +503,11 @@ where
 		.grapheme_indices(true)
 		.map(|(i, s)| {
 			display_position += s.width();
+
 			size_bytes_to += s.as_bytes().len();
 			return CharInfo {
 				start_index:      i,
-				length:           s.len(),
+				byte_length:      s.len(),
 				display_pos:      display_position,
 				size_bytes_total: size_bytes_to,
 				full_char:        s,
@@ -553,7 +554,7 @@ where
 	// get the char boundary for the last character's end
 	let msg_end_idx = if let Some(characters_end_idx) = characters_end_idx {
 		let charinfo = &characters[characters_end_idx - 1];
-		charinfo.start_index + charinfo.length
+		charinfo.start_index + charinfo.byte_length
 	} else {
 		0
 	};
@@ -612,7 +613,7 @@ where
 	// get the char boundary for the last character's end
 	let msg_end_idx = if let Some(characters_end_idx) = characters_end_idx {
 		let charinfo = &characters[characters_end_idx - 1];
-		charinfo.start_index + charinfo.length
+		charinfo.start_index + charinfo.byte_length
 	} else {
 		0
 	};
