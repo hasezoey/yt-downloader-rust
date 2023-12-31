@@ -338,8 +338,8 @@ fn truncate_message_term_width<M>(msg: &M) -> String
 where
 	M: AsRef<str>,
 {
-	let display_width_available = term_size::dimensions().map(|(w, _h)| {
-		return w.saturating_sub(STYLE_STATIC_SIZE);
+	let display_width_available = terminal_size::terminal_size().map(|(w, _h)| {
+		return (w.0 as usize).saturating_sub(STYLE_STATIC_SIZE);
 	});
 
 	let Some(display_width_available) = display_width_available else {
