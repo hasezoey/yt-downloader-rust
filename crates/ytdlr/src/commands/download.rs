@@ -23,7 +23,10 @@ use libytdlr::{
 	diesel,
 	error::IOErrorToError,
 	main,
-	main::download::YTDL_ARCHIVE_PREFIX,
+	main::download::{
+		SkippedType,
+		YTDL_ARCHIVE_PREFIX,
+	},
 	traits::download_options::DownloadOptions,
 };
 use once_cell::sync::Lazy;
@@ -700,8 +703,15 @@ fn do_download(
 			}
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
-		main::download::DownloadProgress::Skipped(skipped_count, _skipped_type) => {
+		main::download::DownloadProgress::Skipped(skipped_count, skipped_type) => {
 			download_state_cell.borrow().decrease_count_estimate(skipped_count);
+
+			// decrease playlist count too in case of error, because otherwise it could be playlist_count > count_estimate
+			// like 20 > 10
+			if skipped_type == SkippedType::Error {
+				download_info.borrow_mut().playlist_count -= 1;
+			}
+
 			pgbar.reset(); // reset so that it can work both with "SingleStarting" happening or not
 			   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
 			set_progressbar_prefix(
