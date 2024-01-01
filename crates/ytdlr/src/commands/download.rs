@@ -816,6 +816,13 @@ fn do_download(
 
 			download_info_borrowed.set_single_specific(DownloadInfoSingleSpecific::new(id, title));
 
+			// set to default estimate, if by the time the first is starting it has not been got
+			if !download_info_borrowed.url_specific.playlist_estimate.has_been_set() {
+				download_info_borrowed
+					.url_specific
+					.set_playlist_estimate(DEFAULT_COUNT_ESTIMATE);
+			}
+
 			pgbar.reset();
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
 			let download_info_borrowed = &download_info_borrowed.url_specific;
