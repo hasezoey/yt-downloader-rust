@@ -2,6 +2,7 @@ use crate::{
 	clap_conf::{
 		CliDerive,
 		CommandDownload,
+		DownloadSkipWith,
 	},
 	commands::download::quirks::apply_metadata,
 	state::DownloadState,
@@ -950,6 +951,12 @@ fn edit_media(
 		return Ok(());
 	}
 
+	if let Some(DownloadSkipWith::Skip) = sub_args.skip_with {
+		// early-return for a simple case
+		info!("Not asking edit-media because of skip-with: Skip");
+		return Ok(());
+	}
+
 	let media_sorted_vec = final_media.as_sorted_vec();
 	let mut next_index = 0;
 
@@ -1015,21 +1022,32 @@ fn edit_media(
 		go_back = false;
 		// extra loop is required for printing the help and asking again
 		'ask_do_loop: loop {
-			let input = utils::get_input(
-				&format!(
-					"Edit Media \"{}\"?{}",
-					media
-						.title
-						.as_ref()
-						.expect("Expected MediaInfo to have a title from \"try_from_filename\""),
-					media_helper
-						.comment
-						.as_ref()
-						.map_or(String::new(), |msg| format!(" ({msg})"))
-				),
-				&["h", "y", "N", "a", "v", "p", "b"],
-				"n",
-			)?;
+			let input = if let Some(skip_with) = sub_args.skip_with {
+				match skip_with {
+					// NOTE: be careful to keep the symbols in-sync with the "get_input" and matching below
+					DownloadSkipWith::Skip => "n",
+					DownloadSkipWith::Edit => "y",
+					DownloadSkipWith::AudioEdit => "a",
+					DownloadSkipWith::VideoEdit => "v",
+				}
+				.into()
+			} else {
+				utils::get_input(
+					&format!(
+						"Edit Media \"{}\"?{}",
+						media
+							.title
+							.as_ref()
+							.expect("Expected MediaInfo to have a title from \"try_from_filename\""),
+						media_helper
+							.comment
+							.as_ref()
+							.map_or(String::new(), |msg| format!(" ({msg})"))
+					),
+					&["h", "y", "N", "a", "v", "p", "b"],
+					"n",
+				)?
+			};
 
 			match input.as_str() {
 				"n" => continue 'media_loop,
