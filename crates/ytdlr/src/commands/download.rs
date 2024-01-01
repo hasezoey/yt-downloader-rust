@@ -560,21 +560,16 @@ fn download_wrapper(
 const PREFIX_UNKNOWN: &str = "??";
 
 /// Helper function to consistently set the progressbar prefix
-fn set_progressbar_prefix(
-	pgbar: &ProgressBar,
-	download_info: &DownloadInfo,
-	unknown_playlist_count: bool,
-	unknown_current_count: bool,
-) {
-	let current_count = if unknown_current_count {
-		PREFIX_UNKNOWN.into()
+fn set_progressbar_prefix(pgbar: &ProgressBar, download_info: &DownloadInfoUrlSpecific) {
+	let current_count = if let Some(playlist_count) = download_info.playlist_count {
+		playlist_count.to_string()
 	} else {
-		download_info.playlist_count.to_string()
+		PREFIX_UNKNOWN.into()
 	};
-	let playlist_count = if unknown_playlist_count {
-		PREFIX_UNKNOWN.into()
-	} else {
+	let playlist_count = if download_info.get_count_store().has_been_set() {
 		download_info.get_count_estimate().to_string()
+	} else {
+		PREFIX_UNKNOWN.into()
 	};
 	pgbar.set_prefix(format!("[{}/{}]", current_count, playlist_count));
 }
@@ -607,35 +602,77 @@ impl CountStore {
 	}
 }
 
-/// Helper struct to keep track of some state, while having named fields instead of numbered tuple fields
-///
-/// This State contains state about the url position and playlist (inside one url) position
+/// Single Specific (a single media inside a url)
 #[derive(Debug, PartialEq, Clone)]
-struct DownloadInfo {
-	/// Count of how many Media have been downloaded in the current URL (playlist)
-	/// because it does not include media already in archive
-	pub playlist_count: usize,
+struct DownloadInfoSingleSpecific {
 	/// Media id of the current Media being downloaded
-	pub id:             String,
+	pub id:    String,
 	/// Title of the current Media being downloaded
-	pub title:          String,
-	/// Index of the current url being processed
-	/// not 0 based
-	pub url_index:      usize,
-	/// Contains the value for the current playlist count estimate
-	count_estimate:     Cell<CountStore>,
+	pub title: String,
 }
 
-impl DownloadInfo {
+impl DownloadInfoSingleSpecific {
 	/// Create a new instance of [Self] with all the provided options
-	pub fn new(playlist_count: usize, id: String, title: String, url_index: usize) -> Self {
+	pub fn new(id: String, title: String) -> Self {
+		return Self { id, title };
+	}
+}
+
+/// Url specific state
+///
+/// Gets cleared for each URL
+#[derive(Debug, PartialEq, Clone)]
+struct DownloadInfoUrlSpecific {
+	/// Count of how many Media have been downloaded in the current URL (playlist)
+	/// because it does not include media already in archive
+	pub playlist_count: Option<usize>,
+
+	/// Single-Specific options that get cleared every [SingleStarting](main::download::DownloadProgress::SingleStarting)
+	pub single_specific: Option<DownloadInfoSingleSpecific>,
+
+	/// Contains the value for the current playlist count estimate
+	count_estimate: Cell<CountStore>,
+}
+
+impl DownloadInfoUrlSpecific {
+	/// Create a new instance of [Self] with all the provided options
+	pub fn new(playlist_count: Option<usize>) -> Self {
 		return Self {
 			playlist_count,
-			id,
-			title,
-			url_index,
 			count_estimate: Cell::new(CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0)),
+			single_specific: None,
 		};
+	}
+
+	/// Set a new [DownloadInfoSingleSpecific] instance
+	pub fn set_single_specific(&mut self, single_specific: DownloadInfoSingleSpecific) {
+		self.single_specific = Some(single_specific);
+	}
+
+	/// Remove the currently set [DownloadInfoSingleSpecific] instance. if [None] do nothing
+	pub fn reset_single_specific(&mut self) {
+		self.single_specific.take();
+	}
+
+	/// Increment the playlist_count. if [None] set it to [by]
+	pub fn inc_playlist_count(&mut self, by: usize) {
+		if self.playlist_count.is_none() {
+			self.playlist_count = Some(by);
+			return;
+		}
+
+		// Safe unwrap because of previous "if"
+		*self.playlist_count.as_mut().unwrap() += by;
+	}
+
+	/// Decrement the playlist_count. if [None] do nothing
+	pub fn dec_playlist_count(&mut self, by: usize) {
+		if self.playlist_count.is_none() {
+			return;
+		}
+
+		// Safe unwrap because of previous "if"
+		*self.playlist_count.as_mut().unwrap() = self.playlist_count.as_ref().unwrap().saturating_sub(by);
 	}
 
 	/// Set "count_result" for generating the archive and for "get_count_estimate"
@@ -650,12 +687,6 @@ impl DownloadInfo {
 		} else {
 			self.count_estimate.replace(CountStore::new(new_count, true, 0));
 		}
-	}
-
-	/// Reset the count estimate to default
-	pub fn reset_count_estimate(&self) {
-		self.count_estimate
-			.replace(CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0));
 	}
 
 	/// Dedicated function to decrease the count estimate, even if no estimate has been given yet
@@ -689,25 +720,65 @@ impl DownloadInfo {
 	pub fn get_count_estimate(&self) -> usize {
 		return self.count_estimate.get().count_estimate;
 	}
+}
 
-	pub fn reset_new_starting(&mut self, playlist_count: usize, id: String, title: String, url_index: usize) {
-		self.playlist_count = playlist_count;
-		self.id = id;
-		self.title = title;
-		self.url_index = url_index;
+impl Default for DownloadInfoUrlSpecific {
+	fn default() -> Self {
+		return Self::new(None);
+	}
+}
+
+/// Helper struct to keep track of some state, while having named fields instead of numbered tuple fields
+///
+/// This State contains state about the url position and playlist (inside one url) position
+#[derive(Debug, PartialEq, Clone)]
+struct DownloadInfo {
+	/// Index of the current url being processed
+	/// not 0 based
+	pub url_index: usize,
+
+	/// Options specific to a single url
+	pub url_specific: DownloadInfoUrlSpecific,
+}
+
+impl DownloadInfo {
+	/// Create a new instance of [Self] with all the provided options
+	pub fn new(url_index: usize) -> Self {
+		return Self {
+			url_index,
+			url_specific: DownloadInfoUrlSpecific::default(),
+		};
 	}
 
+	/// Wrapper for [DownloadInfoUrlSpecific::set_single_specific]
+	pub fn set_single_specific(&mut self, single_specific: DownloadInfoSingleSpecific) {
+		self.url_specific.set_single_specific(single_specific);
+	}
+
+	/// Reset all options for a new single url
 	pub fn reset_for_new_url(&mut self, url_index: usize) {
-		self.playlist_count = 0;
-		self.id = String::default();
-		self.title = String::default();
+		self.url_specific = DownloadInfoUrlSpecific::default();
 		self.url_index = url_index
+	}
+
+	/// Wrapper for [DownloadInfoUrlSpecific::reset_single_specific]
+	pub fn reset_single_specific(&mut self) {
+		self.url_specific.reset_single_specific();
+	}
+
+	/// Wrapper to easily get the title (or empty string)
+	pub fn get_title(&self) -> &str {
+		if let Some(single_specific) = self.url_specific.single_specific.as_ref() {
+			return single_specific.title.as_str();
+		}
+
+		return "";
 	}
 }
 
 impl Default for DownloadInfo {
 	fn default() -> Self {
-		return Self::new(0, String::default(), String::default(), 0);
+		return Self::new(0);
 	}
 }
 
@@ -729,32 +800,31 @@ fn do_download(
 	let download_state_cell: RefCell<&mut DownloadState> = RefCell::new(download_state);
 	let download_info: RefCell<DownloadInfo> = RefCell::new(DownloadInfo::default());
 	let url_len = sub_args.urls.len();
-	set_progressbar_prefix(pgbar, &download_info.borrow(), true, true);
+	set_progressbar_prefix(pgbar, &download_info.borrow().url_specific);
 	// track total count finished (no error)
 	let total_count = std::sync::atomic::AtomicUsize::new(0);
 	let download_pgcb = |dpg| match dpg {
 		main::download::DownloadProgress::AllStarting => {
 			pgbar.reset();
-			pgbar.set_message(""); // ensure it is not still present across finish and reset
+			pgbar.set_message(""); // because pgbar is not hidden and "reset" seemingly does not clear the message
 			let url_index = download_info.borrow().url_index;
 			download_info.borrow_mut().reset_for_new_url(url_index);
-			download_info.borrow().reset_count_estimate(); // reset count estimate so that it does not carry over to different URLs
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
-			let new_count = download_info.borrow().playlist_count + 1;
-			let url_index = download_info.borrow().url_index;
-			download_info
-				.borrow_mut()
-				.reset_new_starting(new_count, id, title, url_index);
+			let mut download_info_borrowed = download_info.borrow_mut();
+			download_info_borrowed.url_specific.inc_playlist_count(1);
+
+			download_info_borrowed.set_single_specific(DownloadInfoSingleSpecific::new(id, title));
 
 			pgbar.reset();
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
-			let download_info_borrowed = download_info.borrow();
-			set_progressbar_prefix(pgbar, &download_info.borrow(), false, false);
+			let download_info_borrowed = &download_info_borrowed.url_specific;
+			set_progressbar_prefix(pgbar, &download_info_borrowed);
 			// steady-ticks have to be re-done after every "pgbar.finish" because the ticker will exit once it notices the state is "finished"
 			pgbar.enable_steady_tick(Duration::from_secs(1));
-			pgbar.set_message(truncate_message_term_width(&download_info_borrowed.title));
-			pgbar.println(format!("Downloading: {}", download_info_borrowed.title));
+			let title = download_info_borrowed.single_specific.as_ref().unwrap().title.as_str();
+			pgbar.set_message(truncate_message_term_width(&title));
+			pgbar.println(format!("Downloading: {}", &title));
 		},
 		main::download::DownloadProgress::SingleProgress(_maybe_id, percent) => {
 			pgbar.set_position(percent.into());
@@ -762,8 +832,10 @@ fn do_download(
 		main::download::DownloadProgress::SingleFinished(_id) => {
 			// dont hide the progressbar so that the cli does not appear to do nothing
 			pgbar.reset();
-			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().title));
-			set_progressbar_prefix(pgbar, &download_info.borrow(), false, false);
+			pgbar.set_message(""); // because pgbar is not hidden and "reset" seemingly does not clear the message
+			pgbar.println(format!("Finished Downloading: {}", download_info.borrow().get_title()));
+			download_info.borrow_mut().reset_single_specific();
+			set_progressbar_prefix(pgbar, &download_info.borrow().url_specific);
 		},
 		main::download::DownloadProgress::AllFinished(new_count) => {
 			pgbar.finish_and_clear();
@@ -777,6 +849,7 @@ fn do_download(
 		},
 		main::download::DownloadProgress::PlaylistInfo(new_count) => {
 			let borrow = download_info.borrow();
+			let borrow = &borrow.url_specific;
 			// only assign a playlist estimate count once for the current URL
 			if !borrow.get_count_store().has_been_set() {
 				borrow.set_count_estimate(new_count);
@@ -784,22 +857,23 @@ fn do_download(
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
 		main::download::DownloadProgress::Skipped(skipped_count, skipped_type) => {
-			download_info.borrow().decrease_count_estimate(skipped_count);
+			download_info
+				.borrow()
+				.url_specific
+				.decrease_count_estimate(skipped_count);
 
 			// decrease playlist count too in case of error, because otherwise it could be playlist_count > count_estimate
 			// like 20 > 10
 			if skipped_type == SkippedType::Error {
-				download_info.borrow_mut().playlist_count -= 1;
+				download_info.borrow_mut().url_specific.dec_playlist_count(1);
 			}
 
+			download_info.borrow_mut().reset_single_specific();
+
 			pgbar.reset(); // reset so that it can work both with "SingleStarting" happening or not
-			   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
-			set_progressbar_prefix(
-				pgbar,
-				&download_info.borrow(),
-				!download_info.borrow().get_count_store().has_been_set(),
-				false,
-			);
+			pgbar.set_message(""); // because pgbar is not hidden and "reset" seemingly does not clear the message
+					   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
+			set_progressbar_prefix(pgbar, &download_info.borrow().url_specific);
 		},
 	};
 
@@ -818,7 +892,7 @@ fn do_download(
 
 		// the array where finished "current_mediainfo" gets appended to
 		// for performance / allocation efficiency, a count is requested from options
-		let mut new_media: Vec<MediaInfo> = Vec::with_capacity(download_info.borrow().get_count_estimate());
+		let mut new_media: Vec<MediaInfo> = Vec::with_capacity(DEFAULT_COUNT_ESTIMATE);
 
 		// dont error immediately on error
 		let res = libytdlr::main::download::download_single(
