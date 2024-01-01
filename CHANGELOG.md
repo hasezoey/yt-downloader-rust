@@ -2,6 +2,19 @@
 
 This is a manually written changelog, and only tracks front-facing changes since version [`v0.5.0`](#v050)
 
+## unreleased
+
+- `download`: enable steady-tick for the progress-bar (progressbar will get printed, even if "stuck")
+- `download`: rename option `youtubedl-stdout` to `youtubedl-log`
+- `download`: add option to save the youtube-dl log to file `youtubedl-logfile`
+- `download`: (debug only): add subcommand `unicode-test` to debug string display widths
+- `download`: decrease current counter on error
+- `download`: add option `skip-with` to apply a single action to all media in edit-media stage
+- `download`: some internal refactors on the state handling
+- add feature `workaround_fe0f` (enabled by default) to workaround some terminals seeing `FE0F`(or previous emoji) as double-space (because `unicode-width` reports it is only 1 length)
+- bump msrv to `1.70`
+- disable feature `multithread` on `sysinfo` to not have unnecessary empty threads hanging around
+
 ## v0.9.0
 
 - `download`: handle files with the same name at the end by automatically adding a `-X` (where `X` is a number up to 30)
