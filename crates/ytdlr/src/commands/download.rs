@@ -32,10 +32,7 @@ use libytdlr::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
-	cell::{
-		Cell,
-		RefCell,
-	},
+	cell::RefCell,
 	collections::HashMap,
 	io::{
 		BufRead,
@@ -631,7 +628,7 @@ struct DownloadInfoUrlSpecific {
 	pub single_specific: Option<DownloadInfoSingleSpecific>,
 
 	/// Contains the value for the current playlist count estimate
-	count_estimate: Cell<CountStore>,
+	count_estimate: CountStore,
 }
 
 impl DownloadInfoUrlSpecific {
@@ -639,7 +636,7 @@ impl DownloadInfoUrlSpecific {
 	pub fn new(playlist_count: Option<usize>) -> Self {
 		return Self {
 			playlist_count,
-			count_estimate: Cell::new(CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0)),
+			count_estimate: CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0),
 			single_specific: None,
 		};
 	}
@@ -677,21 +674,18 @@ impl DownloadInfoUrlSpecific {
 
 	/// Set "count_result" for generating the archive and for "get_count_estimate"
 	/// this function will automatically decrease the count by "decrease_by" (`CountStore.2`)
-	pub fn set_count_estimate(&self, count: usize) {
-		let old_count = self.count_estimate.get();
-
-		let new_count = count.saturating_sub(old_count.decrease_by);
+	pub fn set_count_estimate(&mut self, count: usize) {
+		let new_count = count.saturating_sub(self.count_estimate.decrease_by);
 		if new_count < DEFAULT_COUNT_ESTIMATE {
-			self.count_estimate
-				.replace(CountStore::new(DEFAULT_COUNT_ESTIMATE, true, 0));
+			self.count_estimate = CountStore::new(DEFAULT_COUNT_ESTIMATE, true, 0)
 		} else {
-			self.count_estimate.replace(CountStore::new(new_count, true, 0));
+			self.count_estimate = CountStore::new(new_count, true, 0);
 		}
 	}
 
 	/// Dedicated function to decrease the count estimate, even if no estimate has been given yet
-	pub fn decrease_count_estimate(&self, decrease_by: usize) {
-		let old_count = self.count_estimate.get();
+	pub fn decrease_count_estimate(&mut self, decrease_by: usize) {
+		let old_count = self.count_estimate;
 
 		if old_count.has_been_set() {
 			let mut new_count = old_count
@@ -701,24 +695,24 @@ impl DownloadInfoUrlSpecific {
 			if new_count < DEFAULT_COUNT_ESTIMATE {
 				new_count = DEFAULT_COUNT_ESTIMATE;
 			}
-			self.count_estimate
-				.replace(CountStore::new(new_count, old_count.has_been_set, 0));
+
+			self.count_estimate = CountStore::new(new_count, old_count.has_been_set, 0);
 		} else {
-			self.count_estimate.replace(CountStore::new(
+			self.count_estimate = CountStore::new(
 				old_count.count_estimate,
 				old_count.has_been_set,
 				old_count.decrease_by + decrease_by,
-			));
+			);
 		}
 	}
 
 	/// Get the a copy of the current [CountStore]
-	pub fn get_count_store(&self) -> CountStore {
-		return self.count_estimate.get();
+	pub fn get_count_store(&self) -> &CountStore {
+		return &self.count_estimate;
 	}
 
 	pub fn get_count_estimate(&self) -> usize {
-		return self.count_estimate.get().count_estimate;
+		return self.count_estimate.count_estimate;
 	}
 }
 
@@ -848,8 +842,8 @@ fn do_download(
 			));
 		},
 		main::download::DownloadProgress::PlaylistInfo(new_count) => {
-			let borrow = download_info.borrow();
-			let borrow = &borrow.url_specific;
+			let mut borrow = download_info.borrow_mut();
+			let borrow = &mut borrow.url_specific;
 			// only assign a playlist estimate count once for the current URL
 			if !borrow.get_count_store().has_been_set() {
 				borrow.set_count_estimate(new_count);
@@ -857,23 +851,21 @@ fn do_download(
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
 		main::download::DownloadProgress::Skipped(skipped_count, skipped_type) => {
-			download_info
-				.borrow()
-				.url_specific
-				.decrease_count_estimate(skipped_count);
+			let mut download_info_borrow = download_info.borrow_mut();
+			download_info_borrow.url_specific.decrease_count_estimate(skipped_count);
 
 			// decrease playlist count too in case of error, because otherwise it could be playlist_count > count_estimate
 			// like 20 > 10
 			if skipped_type == SkippedType::Error {
-				download_info.borrow_mut().url_specific.dec_playlist_count(1);
+				download_info_borrow.url_specific.dec_playlist_count(1);
 			}
 
-			download_info.borrow_mut().reset_single_specific();
+			download_info_borrow.reset_single_specific();
 
 			pgbar.reset(); // reset so that it can work both with "SingleStarting" happening or not
 			pgbar.set_message(""); // because pgbar is not hidden and "reset" seemingly does not clear the message
 					   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
-			set_progressbar_prefix(pgbar, &download_info.borrow().url_specific);
+			set_progressbar_prefix(pgbar, &download_info_borrow.url_specific);
 		},
 	};
 
