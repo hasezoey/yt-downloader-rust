@@ -24,10 +24,7 @@ use libytdlr::{
 	diesel,
 	error::IOErrorToError,
 	main,
-	main::download::{
-		SkippedType,
-		YTDL_ARCHIVE_PREFIX,
-	},
+	main::download::YTDL_ARCHIVE_PREFIX,
 	traits::download_options::DownloadOptions,
 };
 use once_cell::sync::Lazy;
@@ -624,6 +621,9 @@ struct DownloadInfoUrlSpecific {
 	/// Count of how many Media have been downloaded in the current URL (playlist)
 	/// because it does not include media already in archive
 	pub current_playlist_position: Option<usize>,
+	/// A tracker to see if `current_playlist_position` has been increased for this SingleMedia round
+	// This value does not exist on [DownloadInfoSingleSpecific] because it may need to persist
+	pub set_for_current_single: bool,
 
 	/// Single-Specific options that get cleared every [SingleStarting](main::download::DownloadProgress::SingleStarting)
 	pub single_specific: Option<DownloadInfoSingleSpecific>,
@@ -639,6 +639,7 @@ impl DownloadInfoUrlSpecific {
 			current_playlist_position,
 			playlist_estimate: CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0),
 			single_specific: None,
+			set_for_current_single: false,
 		};
 	}
 
@@ -650,10 +651,12 @@ impl DownloadInfoUrlSpecific {
 	/// Remove the currently set [DownloadInfoSingleSpecific] instance. if [None] do nothing
 	pub fn reset_single_specific(&mut self) {
 		self.single_specific.take();
+		self.set_for_current_single = false;
 	}
 
 	/// Increment the playlist_count. if [None] set it to [by]
 	pub fn inc_current_playlist_pos(&mut self, by: usize) {
+		self.set_for_current_single = true;
 		if self.current_playlist_position.is_none() {
 			self.current_playlist_position = Some(by);
 			return;
@@ -665,6 +668,7 @@ impl DownloadInfoUrlSpecific {
 
 	/// Decrement the playlist_count. if [None] do nothing
 	pub fn dec_current_playlist_pos(&mut self, by: usize) {
+		self.set_for_current_single = false;
 		if self.current_playlist_position.is_none() {
 			return;
 		}
@@ -852,13 +856,13 @@ fn do_download(
 			}
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
-		main::download::DownloadProgress::Skipped(skipped_count, skipped_type) => {
+		main::download::DownloadProgress::Skipped(skipped_count, _skipped_type) => {
 			let mut download_info_borrow = download_info.borrow_mut();
 			download_info_borrow.url_specific.dec_playlist_estimate(skipped_count);
 
 			// decrease playlist count too in case of error, because otherwise it could be playlist_count > count_estimate
 			// like 20 > 10
-			if skipped_type == SkippedType::Error {
+			if download_info_borrow.url_specific.set_for_current_single {
 				download_info_borrow.url_specific.dec_current_playlist_pos(1);
 			}
 
