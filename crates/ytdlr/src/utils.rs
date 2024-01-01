@@ -505,7 +505,7 @@ where
 			display_position += s.width();
 
 			#[cfg(feature = "workaround_fe0f")]
-			if s.contains("\u{FE0F}") {
+			if s.contains('\u{FE0F}') {
 				display_position += 1;
 			}
 

@@ -737,7 +737,6 @@ mod test {
 		archive_lines:     Vec<String>,
 		print_command_log: bool,
 		save_command_log:  bool,
-		count_estimate:    usize,
 		sub_langs:         Option<String>,
 		ytdl_version:      chrono::NaiveDate,
 	}
@@ -762,10 +761,9 @@ mod test {
 		}
 
 		/// Helper Function for easily creating a new instance of [`TestOptions`] for [`handle_stdout`] testing
-		pub fn new_handle_stdout(print_command_log: bool, count_estimate: usize) -> Self {
+		pub fn new_handle_stdout(print_command_log: bool) -> Self {
 			return Self {
 				print_command_log,
-				count_estimate,
 				..Default::default()
 			};
 		}
@@ -798,7 +796,6 @@ mod test {
 				archive_lines:     Vec::default(),
 				print_command_log: false,
 				save_command_log:  false,
-				count_estimate:    0,
 				sub_langs:         None,
 				ytdl_version:      Self::default_version(),
 			};
@@ -873,7 +870,7 @@ mod test {
 	/// Test utility function for easy callbacks
 	fn callback_counter<'a>(
 		index_pg: &'a Arc<AtomicUsize>,
-		expected_pg: &'a Vec<DownloadProgress>,
+		expected_pg: &'a [DownloadProgress],
 	) -> impl FnMut(DownloadProgress) + 'a {
 		return |imp| {
 			let index = index_pg.load(std::sync::atomic::Ordering::Relaxed);
@@ -1365,7 +1362,7 @@ mod test {
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
-			let options = TestOptions::new_handle_stdout(false, 1);
+			let options = TestOptions::new_handle_stdout(false);
 
 			let input = r#"
 PARSE_START 'youtube' '-----------' Some Title Here
@@ -1427,7 +1424,7 @@ PARSE_END 'youtube' '-----------'
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
-			let options = TestOptions::new_handle_stdout(false, 1);
+			let options = TestOptions::new_handle_stdout(false);
 
 			let input = r#"
 PARSE_START 'youtube' '----------0' Some Title Here 0
@@ -1493,7 +1490,7 @@ PARSE_END 'soundcloud' '----------1'
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
-			let options = TestOptions::new_handle_stdout(false, 1);
+			let options = TestOptions::new_handle_stdout(false);
 
 			let input = r#"
 PARSE_START 'youtube' '-----------' Some Title Here
@@ -1546,7 +1543,7 @@ PARSE_END 'youtube' '-----------'
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
-			let options = TestOptions::new_handle_stdout(false, 1);
+			let options = TestOptions::new_handle_stdout(false);
 
 			let input = r#"
 [aprovider] Extracting URL: https://someurl.com/hello
@@ -1618,7 +1615,7 @@ PARSE_END 'aprovider' 'someid4'
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
-			let options = TestOptions::new_handle_stdout(false, 1);
+			let options = TestOptions::new_handle_stdout(false);
 
 			let input = r#"
 [aprovider] Extracting URL: https://someurl.com/hello
@@ -1712,7 +1709,7 @@ PARSE_END 'aprovider' 'someid4'
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
-			let options = TestOptions::new_handle_stdout(false, 1);
+			let options = TestOptions::new_handle_stdout(false);
 
 			let input = r#"
 [aprovider] Extracting URL: https://someurl.com/hello
@@ -1779,7 +1776,7 @@ PARSE_END 'aprovider' 'someid4'
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
-			let options = TestOptions::new_handle_stdout(false, 1);
+			let options = TestOptions::new_handle_stdout(false);
 
 			let input = r#"
 [aprovider] Extracting URL: https://someurl.com/hello

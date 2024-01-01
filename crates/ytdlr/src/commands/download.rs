@@ -678,7 +678,7 @@ impl DownloadInfoUrlSpecific {
 	pub fn set_count_estimate(&mut self, count: usize) {
 		let new_count = count.saturating_sub(self.count_estimate.decrease_by);
 		if new_count < DEFAULT_COUNT_ESTIMATE {
-			self.count_estimate = CountStore::new(DEFAULT_COUNT_ESTIMATE, true, 0)
+			self.count_estimate = CountStore::new(DEFAULT_COUNT_ESTIMATE, true, 0);
 		} else {
 			self.count_estimate = CountStore::new(new_count, true, 0);
 		}
@@ -753,7 +753,7 @@ impl DownloadInfo {
 	/// Reset all options for a new single url
 	pub fn reset_for_new_url(&mut self, url_index: usize) {
 		self.url_specific = DownloadInfoUrlSpecific::default();
-		self.url_index = url_index
+		self.url_index = url_index;
 	}
 
 	/// Wrapper for [DownloadInfoUrlSpecific::reset_single_specific]
@@ -814,7 +814,7 @@ fn do_download(
 			pgbar.reset();
 			pgbar.set_length(PG_PERCENT_100); // reset length, because it may get changed because of connection insert
 			let download_info_borrowed = &download_info_borrowed.url_specific;
-			set_progressbar_prefix(pgbar, &download_info_borrowed);
+			set_progressbar_prefix(pgbar, download_info_borrowed);
 			// steady-ticks have to be re-done after every "pgbar.finish" because the ticker will exit once it notices the state is "finished"
 			pgbar.enable_steady_tick(Duration::from_secs(1));
 			let title = download_info_borrowed.single_specific.as_ref().unwrap().title.as_str();
