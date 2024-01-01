@@ -559,7 +559,7 @@ const PREFIX_UNKNOWN: &str = "??";
 
 /// Helper function to consistently set the progressbar prefix
 fn set_progressbar_prefix(pgbar: &ProgressBar, download_info: &DownloadInfoUrlSpecific) {
-	let current_count = if let Some(playlist_count) = download_info.playlist_count {
+	let current_count = if let Some(playlist_count) = download_info.current_playlist_position {
 		playlist_count.to_string()
 	} else {
 		PREFIX_UNKNOWN.into()
@@ -623,21 +623,21 @@ impl DownloadInfoSingleSpecific {
 struct DownloadInfoUrlSpecific {
 	/// Count of how many Media have been downloaded in the current URL (playlist)
 	/// because it does not include media already in archive
-	pub playlist_count: Option<usize>,
+	pub current_playlist_position: Option<usize>,
 
 	/// Single-Specific options that get cleared every [SingleStarting](main::download::DownloadProgress::SingleStarting)
 	pub single_specific: Option<DownloadInfoSingleSpecific>,
 
 	/// Contains the value for the current playlist count estimate
-	count_estimate: CountStore,
+	playlist_estimate: CountStore,
 }
 
 impl DownloadInfoUrlSpecific {
 	/// Create a new instance of [Self] with all the provided options
-	pub fn new(playlist_count: Option<usize>) -> Self {
+	pub fn new(current_playlist_position: Option<usize>) -> Self {
 		return Self {
-			playlist_count,
-			count_estimate: CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0),
+			current_playlist_position,
+			playlist_estimate: CountStore::new(DEFAULT_COUNT_ESTIMATE, false, 0),
 			single_specific: None,
 		};
 	}
@@ -653,40 +653,41 @@ impl DownloadInfoUrlSpecific {
 	}
 
 	/// Increment the playlist_count. if [None] set it to [by]
-	pub fn inc_playlist_count(&mut self, by: usize) {
-		if self.playlist_count.is_none() {
-			self.playlist_count = Some(by);
+	pub fn inc_current_playlist_pos(&mut self, by: usize) {
+		if self.current_playlist_position.is_none() {
+			self.current_playlist_position = Some(by);
 			return;
 		}
 
 		// Safe unwrap because of previous "if"
-		*self.playlist_count.as_mut().unwrap() += by;
+		*self.current_playlist_position.as_mut().unwrap() += by;
 	}
 
 	/// Decrement the playlist_count. if [None] do nothing
-	pub fn dec_playlist_count(&mut self, by: usize) {
-		if self.playlist_count.is_none() {
+	pub fn dec_current_playlist_pos(&mut self, by: usize) {
+		if self.current_playlist_position.is_none() {
 			return;
 		}
 
 		// Safe unwrap because of previous "if"
-		*self.playlist_count.as_mut().unwrap() = self.playlist_count.as_ref().unwrap().saturating_sub(by);
+		*self.current_playlist_position.as_mut().unwrap() =
+			self.current_playlist_position.as_ref().unwrap().saturating_sub(by);
 	}
 
 	/// Set "count_result" for generating the archive and for "get_count_estimate"
 	/// this function will automatically decrease the count by "decrease_by" (`CountStore.2`)
-	pub fn set_count_estimate(&mut self, count: usize) {
-		let new_count = count.saturating_sub(self.count_estimate.decrease_by);
+	pub fn set_playlist_estimate(&mut self, count: usize) {
+		let new_count = count.saturating_sub(self.playlist_estimate.decrease_by);
 		if new_count < DEFAULT_COUNT_ESTIMATE {
-			self.count_estimate = CountStore::new(DEFAULT_COUNT_ESTIMATE, true, 0);
+			self.playlist_estimate = CountStore::new(DEFAULT_COUNT_ESTIMATE, true, 0);
 		} else {
-			self.count_estimate = CountStore::new(new_count, true, 0);
+			self.playlist_estimate = CountStore::new(new_count, true, 0);
 		}
 	}
 
 	/// Dedicated function to decrease the count estimate, even if no estimate has been given yet
-	pub fn decrease_count_estimate(&mut self, decrease_by: usize) {
-		let old_count = self.count_estimate;
+	pub fn dec_playlist_estimate(&mut self, decrease_by: usize) {
+		let old_count = self.playlist_estimate;
 
 		if old_count.has_been_set() {
 			let mut new_count = old_count
@@ -697,9 +698,9 @@ impl DownloadInfoUrlSpecific {
 				new_count = DEFAULT_COUNT_ESTIMATE;
 			}
 
-			self.count_estimate = CountStore::new(new_count, old_count.has_been_set, 0);
+			self.playlist_estimate = CountStore::new(new_count, old_count.has_been_set, 0);
 		} else {
-			self.count_estimate = CountStore::new(
+			self.playlist_estimate = CountStore::new(
 				old_count.count_estimate,
 				old_count.has_been_set,
 				old_count.decrease_by + decrease_by,
@@ -709,11 +710,11 @@ impl DownloadInfoUrlSpecific {
 
 	/// Get the a copy of the current [CountStore]
 	pub fn get_count_store(&self) -> &CountStore {
-		return &self.count_estimate;
+		return &self.playlist_estimate;
 	}
 
 	pub fn get_count_estimate(&self) -> usize {
-		return self.count_estimate.count_estimate;
+		return self.playlist_estimate.count_estimate;
 	}
 }
 
@@ -807,7 +808,7 @@ fn do_download(
 		},
 		main::download::DownloadProgress::SingleStarting(id, title) => {
 			let mut download_info_borrowed = download_info.borrow_mut();
-			download_info_borrowed.url_specific.inc_playlist_count(1);
+			download_info_borrowed.url_specific.inc_current_playlist_pos(1);
 
 			download_info_borrowed.set_single_specific(DownloadInfoSingleSpecific::new(id, title));
 
@@ -847,18 +848,18 @@ fn do_download(
 			let borrow = &mut borrow.url_specific;
 			// only assign a playlist estimate count once for the current URL
 			if !borrow.get_count_store().has_been_set() {
-				borrow.set_count_estimate(new_count);
+				borrow.set_playlist_estimate(new_count);
 			}
 		},
 		// remove skipped medias from the count estimate (for the progress-bar)
 		main::download::DownloadProgress::Skipped(skipped_count, skipped_type) => {
 			let mut download_info_borrow = download_info.borrow_mut();
-			download_info_borrow.url_specific.decrease_count_estimate(skipped_count);
+			download_info_borrow.url_specific.dec_playlist_estimate(skipped_count);
 
 			// decrease playlist count too in case of error, because otherwise it could be playlist_count > count_estimate
 			// like 20 > 10
 			if skipped_type == SkippedType::Error {
-				download_info_borrow.url_specific.dec_playlist_count(1);
+				download_info_borrow.url_specific.dec_current_playlist_pos(1);
 			}
 
 			download_info_borrow.reset_single_specific();
