@@ -11,9 +11,11 @@ This is a manually written changelog, and only tracks front-facing changes since
 - `download`: decrease current counter on error
 - `download`: add option `skip-with` to apply a single action to all media in edit-media stage
 - `download`: some internal refactors on the state handling
+- `download`: set default count estimate (1) if not set by the time the first download starts
 - add feature `workaround_fe0f` (enabled by default) to workaround some terminals seeing `FE0F`(or previous emoji) as double-space (because `unicode-width` reports it is only 1 length)
 - bump msrv to `1.70`
 - disable feature `multithread` on `sysinfo` to not have unnecessary empty threads hanging around
+- various dependency updates
 
 ## v0.9.0
 
