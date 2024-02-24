@@ -29,7 +29,10 @@ pub fn command_unicodeterminaltest(
 
 	let details = msg_to_cluster(&msg);
 	let last_char = details.last().expect("Expected to return earlier at this case");
-	println!("{}^", (1..last_char.display_pos).map(|_| return ' ').collect::<String>());
+	println!(
+		"{}^",
+		(1..last_char.display_pos).map(|_| return ' ').collect::<String>()
+	);
 	println!(
 		"App thinks display-width is {}, above \"^\" means where it thinks in terms of display",
 		last_char.display_pos,
