@@ -2,7 +2,7 @@ use crate::{
 	clap_conf::{
 		CliDerive,
 		CommandDownload,
-		DownloadSkipWith,
+		DownloadEditAction,
 	},
 	commands::download::quirks::apply_metadata,
 	state::DownloadState,
@@ -963,9 +963,9 @@ fn edit_media(
 		return Ok(());
 	}
 
-	if let Some(DownloadSkipWith::Skip) = sub_args.skip_with {
+	if let Some(DownloadEditAction::Skip) = sub_args.edit_action {
 		// early-return for a simple case
-		info!("Not asking edit-media because of skip-with: Skip");
+		info!("Not asking edit-media because of edit-action: Skip");
 		return Ok(());
 	}
 
@@ -1034,13 +1034,13 @@ fn edit_media(
 		go_back = false;
 		// extra loop is required for printing the help and asking again
 		'ask_do_loop: loop {
-			let input = if let Some(skip_with) = sub_args.skip_with {
+			let input = if let Some(skip_with) = sub_args.edit_action {
 				match skip_with {
 					// NOTE: be careful to keep the symbols in-sync with the "get_input" and matching below
-					DownloadSkipWith::Skip => "n",
-					DownloadSkipWith::Edit => "y",
-					DownloadSkipWith::AudioEdit => "a",
-					DownloadSkipWith::VideoEdit => "v",
+					DownloadEditAction::Skip => "n",
+					DownloadEditAction::Edit => "y",
+					DownloadEditAction::AudioEdit => "a",
+					DownloadEditAction::VideoEdit => "v",
 				}
 				.into()
 			} else {

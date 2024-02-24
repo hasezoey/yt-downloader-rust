@@ -9,7 +9,7 @@ This is a manually written changelog, and only tracks front-facing changes since
 - `download`: add option to save the youtube-dl log to file `youtubedl-logfile`
 - `download`: (debug only): add subcommand `unicode-test` to debug string display widths
 - `download`: decrease current counter on error
-- `download`: add option `skip-with` to apply a single action to all media in edit-media stage
+- `download`: add option `edit-action` to apply a single action to all media in edit-media stage
 - `download`: some internal refactors on the state handling
 - `download`: set default count estimate (1) if not set by the time the first download starts
 - add feature `workaround_fe0f` (enabled by default) to workaround some terminals seeing `FE0F`(or previous emoji) as double-space (because `unicode-width` reports it is only 1 length)

@@ -326,7 +326,7 @@ pub enum ArchiveMode {
 
 #[derive(ValueEnum, Clone, Debug, PartialEq, Copy)]
 #[value(rename_all = "camelCase")]
-pub enum DownloadSkipWith {
+pub enum DownloadEditAction {
 	/// Corresponds to "n"
 	Skip,
 	/// Corresponds to "y"
@@ -390,9 +390,9 @@ pub struct CommandDownload {
 	/// also overwrites the default option of moving for non-interactive mode
 	#[arg(long = "open-tagger")]
 	pub open_tagger:               bool,
-	/// Apply a single action to all edit-media
-	#[arg(long = "skip-with", value_enum)]
-	pub skip_with:                 Option<DownloadSkipWith>,
+	/// Apply a single action to all media in the edit stage
+	#[arg(long = "edit-action", value_enum)]
+	pub edit_action:               Option<DownloadEditAction>,
 	/// Set which subtitle languages to download
 	/// see <https://github.com/yt-dlp/yt-dlp#subtitle-options>
 	#[arg(long = "sub-langs", env = "YTDL_SUB_LANGS")]
@@ -440,7 +440,7 @@ impl Default for CommandDownload {
 			sub_langs: None,
 			player_editor: None,
 			extra_ytdl_args: Vec::new(),
-			skip_with: None,
+			edit_action: None,
 		};
 	}
 }
