@@ -4,6 +4,8 @@ This is a manually written changelog, and only tracks front-facing changes since
 
 ## unreleased
 
+## v0.10.0
+
 - `download`: enable steady-tick for the progress-bar (progressbar will get printed, even if "stuck")
 - `download`: rename option `youtubedl-stdout` to `youtubedl-log`
 - `download`: add option to save the youtube-dl log to file `youtubedl-logfile`
