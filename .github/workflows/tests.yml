@@ -16,7 +16,7 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
@@ -27,7 +27,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
@@ -41,9 +41,9 @@ jobs:
       matrix:
         toolchain: [stable, nightly, "1.70"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event.inputs.git-ref == ''
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event.inputs.git-ref != ''
         with:
           ref: ${{ github.event.inputs.git-ref }}
