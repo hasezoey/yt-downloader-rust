@@ -38,20 +38,6 @@ impl std::str::FromStr for MediaProvider {
 	}
 }
 
-// Implement FROM reference-Self to String
-impl From<&MediaProvider> for String {
-	fn from(p: &MediaProvider) -> Self {
-		return p.to_str().to_owned();
-	}
-}
-
-// Implement FROM Self to String
-impl From<MediaProvider> for String {
-	fn from(p: MediaProvider) -> Self {
-		return p.to_str().to_owned();
-	}
-}
-
 // Implement Casting Self as str
 impl AsRef<str> for MediaProvider {
 	fn as_ref(&self) -> &str {
@@ -103,24 +89,21 @@ mod test {
 			// reference
 			assert_eq!(
 				String::from("youtube"),
-				String::from(&MediaProvider("youtube".to_owned()))
+				(&MediaProvider("youtube".to_owned())).to_string()
 			);
 			assert_eq!(
 				String::from("soundcloud"),
-				String::from(&MediaProvider("soundcloud".to_owned()))
+				(&MediaProvider("soundcloud".to_owned())).to_string()
 			);
-			assert_eq!(String::from("other"), String::from(&MediaProvider("other".to_owned())));
+			assert_eq!(String::from("other"), (&MediaProvider("other".to_owned())).to_string());
 
 			// owned
-			assert_eq!(
-				String::from("youtube"),
-				String::from(MediaProvider("youtube".to_owned()))
-			);
+			assert_eq!(String::from("youtube"), MediaProvider("youtube".to_owned()).to_string());
 			assert_eq!(
 				String::from("soundcloud"),
-				String::from(MediaProvider("soundcloud".to_owned()))
+				MediaProvider("soundcloud".to_owned()).to_string()
 			);
-			assert_eq!(String::from("other"), String::from(MediaProvider("other".to_owned())));
+			assert_eq!(String::from("other"), MediaProvider("other".to_owned()).to_string());
 		}
 
 		#[test]
