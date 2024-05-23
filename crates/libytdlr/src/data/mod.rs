@@ -9,3 +9,7 @@ pub mod sql_schema;
 ///
 /// Example: importing a ytdl archive which is "id provider" only
 pub const UNKNOWN_NONE_PROVIDED: &str = "unknown (none-provided)";
+/// Common type for a unknown field, which is required but unavailable
+///
+/// Example: if parsing fails in a infallible method
+pub const UNKNOWN: &str = "unknown";

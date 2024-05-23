@@ -3,6 +3,8 @@
 
 use serde::Deserialize;
 
+use crate::data::UNKNOWN;
+
 /// All Providers from ytdl which need custom handling
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct Provider(String);
@@ -18,7 +20,7 @@ impl<T: AsRef<str>> From<T> for Provider {
 		let mut lower = v.as_ref().to_lowercase();
 
 		if lower.is_empty() {
-			lower.push_str("unknown");
+			lower.push_str(UNKNOWN);
 		}
 
 		return Self(lower);
@@ -31,7 +33,7 @@ mod test {
 
 	#[test]
 	fn test_into_string() {
-		assert_eq!(String::from("unknown"), String::from(&Provider("unknown".into())));
+		assert_eq!(String::from(UNKNOWN), String::from(&Provider(UNKNOWN.into())));
 		assert_eq!(String::from("youtube"), String::from(&Provider("youtube".into())));
 		assert_eq!(
 			String::from("other different"),
@@ -41,11 +43,11 @@ mod test {
 
 	#[test]
 	fn test_from_strings() {
-		assert_eq!(Provider("unknown".into()), Provider::from(""));
-		assert_eq!(Provider("unknown".into()), Provider::from(String::new()));
+		assert_eq!(Provider(UNKNOWN.into()), Provider::from(""));
+		assert_eq!(Provider(UNKNOWN.into()), Provider::from(String::new()));
 
-		assert_eq!(Provider("unknown".into()), Provider::from("Unknown"));
-		assert_eq!(Provider("unknown".into()), Provider::from(String::from("Unknown")));
+		assert_eq!(Provider(UNKNOWN.into()), Provider::from(UNKNOWN));
+		assert_eq!(Provider(UNKNOWN.into()), Provider::from(String::from(UNKNOWN)));
 
 		assert_eq!(Provider("youtube".into()), Provider::from("Youtube"));
 		assert_eq!(Provider("youtube".into()), Provider::from(String::from("Youtube")));

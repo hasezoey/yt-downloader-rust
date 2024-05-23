@@ -84,6 +84,8 @@ impl From<&crate::data::sql_models::Media> for Video {
 
 #[cfg(test)]
 mod test {
+	use crate::data::UNKNOWN;
+
 	use super::*;
 
 	#[test]
@@ -93,9 +95,9 @@ mod test {
 			Video {
 				file_name: String::new(),
 				id:        String::from("helloid1"),
-				provider:  provider::Provider::from("unknown"),
+				provider:  provider::Provider::from(UNKNOWN),
 			},
-			Video::new("helloid1", provider::Provider::from("unknown"))
+			Video::new("helloid1", provider::Provider::from(UNKNOWN))
 		);
 
 		// Test basic, with String
@@ -103,9 +105,9 @@ mod test {
 			Video {
 				file_name: String::new(),
 				id:        String::from("helloid2"),
-				provider:  provider::Provider::from("unknown"),
+				provider:  provider::Provider::from(UNKNOWN),
 			},
-			Video::new("helloid2".to_owned(), provider::Provider::from("unknown"))
+			Video::new("helloid2".to_owned(), provider::Provider::from(UNKNOWN))
 		);
 	}
 
@@ -115,9 +117,9 @@ mod test {
 			Video {
 				file_name: String::from("hello_filename"),
 				id:        String::from("helloid"),
-				provider:  provider::Provider::from("unknown"),
+				provider:  provider::Provider::from(UNKNOWN),
 			},
-			Video::new("helloid", provider::Provider::from("unknown")).with_filename("hello_filename")
+			Video::new("helloid", provider::Provider::from(UNKNOWN)).with_filename("hello_filename")
 		);
 	}
 
@@ -139,10 +141,10 @@ mod test {
 
 	#[test]
 	fn test_set_file_name() {
-		let mut video1 = Video::new("id", provider::Provider::from("unknown"));
+		let mut video1 = Video::new("id", provider::Provider::from(UNKNOWN));
 		video1.set_file_name("Hello");
 		assert_eq!(
-			Video::new("id", provider::Provider::from("unknown")).with_filename("Hello"),
+			Video::new("id", provider::Provider::from(UNKNOWN)).with_filename("Hello"),
 			video1
 		);
 	}

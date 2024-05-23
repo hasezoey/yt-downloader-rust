@@ -7,6 +7,8 @@ use serde::{
 	Serialize,
 };
 
+use crate::data::UNKNOWN;
+
 /// NewType struct to contain the provider in formatted form for [`super::media_info::MediaInfo`]
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct MediaProvider(String);
@@ -24,7 +26,7 @@ impl MediaProvider {
 		let mut lower = input.as_ref().trim().to_lowercase();
 
 		if lower.is_empty() {
-			lower.push_str("unknown");
+			lower.push_str(UNKNOWN);
 		}
 
 		return Self(lower);

@@ -107,6 +107,8 @@ impl From<&MediaInfo> for InsMedia {
 
 #[cfg(test)]
 mod test {
+	use crate::data::UNKNOWN;
+
 	use super::*;
 
 	#[test]
@@ -181,8 +183,8 @@ mod test {
 
 		// test with only id
 		assert_eq!(
-			InsMedia::new("someid", "unknown", UNKNOWN_NONE_PROVIDED),
-			(&MediaInfo::new("someid", "unknown")).into()
+			InsMedia::new("someid", UNKNOWN, UNKNOWN_NONE_PROVIDED),
+			(&MediaInfo::new("someid", UNKNOWN)).into()
 		);
 	}
 
