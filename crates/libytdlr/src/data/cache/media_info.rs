@@ -12,7 +12,10 @@ use std::path::{
 };
 
 use super::media_provider::MediaProvider;
-use crate::data::sql_models::InsMedia;
+use crate::data::{
+	sql_models::InsMedia,
+	UNKNOWN_NONE_PROVIDED,
+};
 
 /// Contains Media Information, like file-name and last processed status
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -97,7 +100,7 @@ impl From<&MediaInfo> for InsMedia {
 			v.provider.clone(),
 			v.title
 				.clone()
-				.unwrap_or_else(|| return "unknown (none-provided)".to_owned()),
+				.unwrap_or_else(|| return UNKNOWN_NONE_PROVIDED.to_owned()),
 		);
 	}
 }
@@ -178,7 +181,7 @@ mod test {
 
 		// test with only id
 		assert_eq!(
-			InsMedia::new("someid", "unknown", "unknown (none-provided)"),
+			InsMedia::new("someid", "unknown", UNKNOWN_NONE_PROVIDED),
 			(&MediaInfo::new("someid", "unknown")).into()
 		);
 	}

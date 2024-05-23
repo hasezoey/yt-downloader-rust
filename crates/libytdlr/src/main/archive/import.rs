@@ -26,6 +26,7 @@ use crate::{
 			Media,
 		},
 		sql_schema::media_archive,
+		UNKNOWN_NONE_PROVIDED,
 	},
 	error::IOErrorToError,
 };
@@ -241,11 +242,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(line) {
 			let affected = insert_insmedia(
-				&InsMedia::new(
-					&cap[2],
-					String::from(&Provider::from(&cap[1])),
-					"unknown (none-provided)",
-				),
+				&InsMedia::new(&cap[2], String::from(&Provider::from(&cap[1])), UNKNOWN_NONE_PROVIDED),
 				merge_to,
 			)?;
 
@@ -448,10 +445,10 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::from("youtube")).with_filename("unknown (none-provided)"),
-				Video::new("------------", Provider::from("youtube")).with_filename("unknown (none-provided)"),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("unknown (none-provided)"),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename("unknown (none-provided)"),
+				Video::new("____________", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
+				Video::new("------------", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename(UNKNOWN_NONE_PROVIDED),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -596,10 +593,10 @@ mod test {
 
 			assert!(res0.is_ok());
 			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::from("youtube")).with_filename("unknown (none-provided)"),
-				Video::new("------------", Provider::from("youtube")).with_filename("unknown (none-provided)"),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("unknown (none-provided)"),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename("unknown (none-provided)"),
+				Video::new("____________", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
+				Video::new("------------", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
+				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
+				Video::new("0000000000", Provider::from("soundcloud")).with_filename(UNKNOWN_NONE_PROVIDED),
 			];
 
 			let found = media_archive::dsl::media_archive
