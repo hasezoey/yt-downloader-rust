@@ -16,7 +16,7 @@ pub struct MediaProvider(String);
 impl MediaProvider {
 	/// Get current current [`MediaProvider`] as a str
 	#[must_use]
-	pub fn to_str(&self) -> &str {
+	pub fn as_str(&self) -> &str {
 		return &self.0;
 	}
 
@@ -45,7 +45,7 @@ impl std::str::FromStr for MediaProvider {
 // Implement Casting Self as str
 impl AsRef<str> for MediaProvider {
 	fn as_ref(&self) -> &str {
-		return self.to_str();
+		return self.as_str();
 	}
 }
 
@@ -60,7 +60,7 @@ impl From<&str> for MediaProvider {
 impl std::fmt::Display for MediaProvider {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		// using a format! which ends up with a String, but i dont know how to circumvent that
-		return write!(f, "{}", self.to_str());
+		return write!(f, "{}", self.as_str());
 	}
 }
 
@@ -143,10 +143,10 @@ mod test {
 		use super::*;
 
 		#[test]
-		fn test_to_str() {
-			assert_eq!("youtube", MediaProvider("youtube".to_owned()).to_str());
-			assert_eq!("soundcloud", MediaProvider("soundcloud".to_owned()).to_str());
-			assert_eq!("other", MediaProvider("other".to_owned()).to_str());
+		fn test_as_str() {
+			assert_eq!("youtube", MediaProvider("youtube".to_owned()).as_str());
+			assert_eq!("soundcloud", MediaProvider("soundcloud".to_owned()).as_str());
+			assert_eq!("other", MediaProvider("other".to_owned()).as_str());
 		}
 
 		#[test]
