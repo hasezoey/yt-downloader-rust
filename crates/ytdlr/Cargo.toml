@@ -23,7 +23,7 @@ sysinfo = { version = "0.30", default-features = false }
 ctrlc = { version = "3", features = ["termination"] }
 once_cell.workspace = true
 # the following 2 are required to get the correct boundaries to truncate at
-unicode-segmentation = "1.10" # cluster all characters into display-able characters
+unicode-segmentation = "1.11" # cluster all characters into display-able characters
 unicode-width = "0.1" # get display width of a given string
 
 [dev-dependencies]
