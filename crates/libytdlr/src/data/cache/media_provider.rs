@@ -1,5 +1,7 @@
 //! Module containing [`MediaProvider`]
 
+use std::convert::Infallible;
+
 use serde::{
 	Deserialize,
 	Serialize,
@@ -31,7 +33,7 @@ impl MediaProvider {
 
 impl std::str::FromStr for MediaProvider {
 	// this implementation cannot fail, because if there is no dedicated way it will fallback to variant "Other"
-	type Err = ();
+	type Err = Infallible;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		return Ok(Self::from_str_like(s));
