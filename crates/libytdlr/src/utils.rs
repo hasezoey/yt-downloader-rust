@@ -36,9 +36,16 @@ pub fn expand_tidle<I: AsRef<Path>>(input: I) -> Option<PathBuf> {
 	});
 }
 
-/// Convert input path to a absolute path, without hitting the filesystem
+/// Convert input path to a absolute path, without hitting the filesystem.
+/// This function handles `~`(home)
 ///
-/// If the start is not absolute, CWD will be used
+/// If the start is not absolute, CWD will be used.
+///
+/// This functions behavior:
+/// - `/path/to/inner/../somewhere` -> `/path/to/somewhere`
+/// - `relative/to/somewhere` -> `CWD/relative/to/somewhere`
+/// - `./somewhere/./path` -> `CWD/somewhere/path`
+/// - `~/somewhere/in/home` -> `HOME/somewhere/in/home`
 pub fn to_absolute<P: AsRef<Path>>(input: P) -> std::io::Result<PathBuf> {
 	let Some(converted) = expand_tidle(input) else {
 		return Err(std::io::Error::new(
