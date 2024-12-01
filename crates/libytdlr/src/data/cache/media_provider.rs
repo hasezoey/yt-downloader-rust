@@ -91,15 +91,12 @@ mod test {
 		#[test]
 		fn test_as_string() {
 			// reference
-			assert_eq!(
-				String::from("youtube"),
-				(&MediaProvider("youtube".to_owned())).to_string()
-			);
+			assert_eq!(String::from("youtube"), MediaProvider("youtube".to_owned()).to_string());
 			assert_eq!(
 				String::from("soundcloud"),
-				(&MediaProvider("soundcloud".to_owned())).to_string()
+				MediaProvider("soundcloud".to_owned()).to_string()
 			);
-			assert_eq!(String::from("other"), (&MediaProvider("other".to_owned())).to_string());
+			assert_eq!(String::from("other"), MediaProvider("other".to_owned()).to_string());
 
 			// owned
 			assert_eq!(String::from("youtube"), MediaProvider("youtube".to_owned()).to_string());

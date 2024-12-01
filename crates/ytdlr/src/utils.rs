@@ -448,7 +448,7 @@ pub fn convert_mediainfo_to_filename(media: &MediaInfo) -> Option<(&PathBuf, Pat
 
 	// the title to use in the end
 	// using 254 instead of 255 just to be safe
-	let title_use = if media_title_conv.as_bytes().len() + extension_length > 254 {
+	let title_use = if media_title_conv.len() + extension_length > 254 {
 		let truncate_to_max = 254 - extension_length;
 		truncate_to_size_bytes(&media_title_conv, truncate_to_max, true)
 	} else {
@@ -509,7 +509,7 @@ where
 				display_position += 1;
 			}
 
-			size_bytes_to += s.as_bytes().len();
+			size_bytes_to += s.len();
 			return CharInfo {
 				start_index:      i,
 				byte_length:      s.len(),
@@ -531,7 +531,7 @@ where
 	let msg = msg.as_ref();
 
 	// dont run function if size is lower or equal to target
-	if msg.as_bytes().len() <= to_size_bytes {
+	if msg.len() <= to_size_bytes {
 		return msg.into();
 	}
 
@@ -571,7 +571,7 @@ where
 	}
 
 	// a safety check to not return bad strings
-	assert!(ret.as_bytes().len() <= to_size_bytes);
+	assert!(ret.len() <= to_size_bytes);
 
 	return ret.into();
 }
@@ -651,37 +651,19 @@ mod test {
 		fn should_truncate_latin_message() {
 			let message = "hello there";
 
-			assert_eq!(
-				"hello t...",
-				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, true)
-			);
-			assert_eq!(
-				"hello ther",
-				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, false)
-			);
+			assert_eq!("hello t...", truncate_to_size_bytes(&message, message.len() - 1, true));
+			assert_eq!("hello ther", truncate_to_size_bytes(&message, message.len() - 1, false));
 		}
 
 		#[test]
 		fn should_properly_truncate_at_unicode_boundary() {
 			let message = "a…b…c"; // bytes: 1 + 3 + 1 + 3 + 1 = 9
 
-			assert_eq!(
-				"a…b…",
-				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, false)
-			);
-			assert_eq!(
-				"a…b",
-				truncate_to_size_bytes(&message, message.as_bytes().len() - 2, false)
-			);
+			assert_eq!("a…b…", truncate_to_size_bytes(&message, message.len() - 1, false));
+			assert_eq!("a…b", truncate_to_size_bytes(&message, message.len() - 2, false));
 
-			assert_eq!(
-				"a…b...",
-				truncate_to_size_bytes(&message, message.as_bytes().len() - 1, true)
-			);
-			assert_eq!(
-				"a…...",
-				truncate_to_size_bytes(&message, message.as_bytes().len() - 2, true)
-			);
+			assert_eq!("a…b...", truncate_to_size_bytes(&message, message.len() - 1, true));
+			assert_eq!("a…...", truncate_to_size_bytes(&message, message.len() - 2, true));
 		}
 	}
 

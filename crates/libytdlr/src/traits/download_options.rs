@@ -18,7 +18,7 @@ pub trait DownloadOptions {
 	/// Get a iterator over all the lines for a ytdl archive
 	/// All required videos should be made available with this function
 	fn gen_archive<'a>(&'a self, connection: &'a mut SqliteConnection)
-		-> Option<Box<dyn Iterator<Item = String> + '_>>;
+		-> Option<Box<dyn Iterator<Item = String> + 'a>>;
 	/// Get the URL to download
 	fn get_url(&self) -> &str;
 	/// Get whether or not to print out Command STDOUT & STDERR (in this case ytdl)

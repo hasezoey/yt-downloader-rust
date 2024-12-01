@@ -593,7 +593,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 		}
 		if let Some((file, path)) = &mut maybe_command_file_log {
 			file.write_all(line.as_bytes()).attach_path_err(&path)?;
-			file.write_all(&[b'\n']).attach_path_err(path)?;
+			file.write_all(b"\n").attach_path_err(path)?;
 		}
 
 		if let Some(linetype) = LineType::try_from_line(&line) {

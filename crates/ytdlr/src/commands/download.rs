@@ -877,7 +877,7 @@ fn do_download(
 
 			pgbar.reset(); // reset so that it can work both with "SingleStarting" happening or not
 			pgbar.set_message(""); // because pgbar is not hidden and "reset" seemingly does not clear the message
-					   // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
+						  // set prefex so that the progressbar is shown while skipping elements, to not have the cli appear as "doing nothing"
 			set_progressbar_prefix(pgbar, &download_info_borrow.url_specific);
 		},
 	};
@@ -1704,7 +1704,7 @@ fn try_find_and_read_recovery_files(
 
 	// recovery files dont contain the file path, so find editable file and merge them
 	for new_media in utils::find_editable_files(path)? {
-		if let Some(media) = finished_media_vec.get_mut(&format!("{}-{}", new_media.provider.as_ref(), new_media.id)) {
+		if let Some(media) = finished_media_vec.get_mut(format!("{}-{}", new_media.provider.as_ref(), new_media.id)) {
 			let new_media_filename = new_media
 				.filename
 				.expect("Expected MediaInfo to have a filename from \"find_editable_files\"");

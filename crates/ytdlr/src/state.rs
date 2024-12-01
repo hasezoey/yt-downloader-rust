@@ -126,7 +126,7 @@ impl DownloadOptions for DownloadState<'_> {
 	fn gen_archive<'a>(
 		&'a self,
 		connection: &'a mut diesel::SqliteConnection,
-	) -> Option<Box<dyn Iterator<Item = String> + '_>> {
+	) -> Option<Box<dyn Iterator<Item = String> + 'a>> {
 		use diesel::prelude::*;
 		use libytdlr::data::{
 			sql_models::Media,
