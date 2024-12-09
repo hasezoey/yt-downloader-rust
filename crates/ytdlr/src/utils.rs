@@ -169,6 +169,16 @@ fn process_path_for_editable_files(path: &Path) -> Option<MediaInfo> {
 	if !match_extension_for_editable_files(path.extension()?) {
 		return None;
 	}
+	// if the name contains "temp" as a extension at the end, ignore the file
+	// as it is not post-processed yet
+	// example: "'provider'-'id'-some name.with.dots.temp.opus"
+	if path
+		.file_stem()
+		.and_then(|v| Path::new(v).extension())
+		.map_or(false, |v| v == "temp")
+	{
+		return None;
+	}
 
 	return MediaInfo::try_from_filename(&path.file_name()?.to_str()?);
 }
