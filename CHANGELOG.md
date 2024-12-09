@@ -11,6 +11,7 @@ This is a manually written changelog, and only tracks front-facing changes since
 - `rethumbnail`: support ogg container (via lofty)
 - `rethumbnail`: use lofty for mp3 rethumbnailing
 - add ability to choose what output container to use for audio (`--audio-format`) / video (`--video-format`), for rules see [yt-dlp Post-Processing Options `--remux-video`](- `rethumbnail`: support ogg container (via lofty))
+- set default audio format to `best` (will use whatever is downloaded if possible or try to convert losslessly, otherwise `mp3`)
 
 ## v0.10.0
 
