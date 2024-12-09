@@ -1189,7 +1189,10 @@ mod quirks {
 		PathBuf,
 	};
 	use libytdlr::spawn::ffmpeg::base_ffmpeg_hidebanner;
-	use std::collections::HashSet;
+	use std::{
+		collections::HashSet,
+		ffi::OsString,
+	};
 
 	/// Save the Metadata of the given media file
 	/// Returns the Path to the metadata file
@@ -1335,19 +1338,32 @@ mod quirks {
 		let metadata_file = metadata_file.as_ref();
 
 		let media_file_tmp = {
-			let mut tmp_media_file_tmp = media_file.to_path_buf();
-			let mut file_name = tmp_media_file_tmp
-				.file_name()
-				.ok_or_else(|| {
-					return crate::Error::other(format!(
-						"Expected file to have a filename, File: \"{}\"",
-						tmp_media_file_tmp.to_string_lossy()
-					));
-				})?
+			let mut media_file = media_file.to_path_buf();
+			let mut stem = media_file
+				.file_stem()
+				.expect("Expected Output to be a file with name")
 				.to_os_string();
-			file_name.push(".tmp");
-			tmp_media_file_tmp.set_file_name(file_name);
-			tmp_media_file_tmp
+
+			stem.push(".tmp");
+
+			stem.push(
+				media_file
+					.extension()
+					// map extension to a extension with "."
+					.map_or_else(
+						|| return OsString::from(""),
+						|v| {
+							let mut tmp = OsString::from(".");
+
+							tmp.push(v);
+
+							return tmp;
+						},
+					),
+			); // push original extension, because there is currently no function to just modify the file stem
+
+			media_file.set_file_name(stem);
+			media_file
 		};
 
 		let mut ffmpeg_cmd = base_ffmpeg_hidebanner(true); // overwrite metadata file if already exists
@@ -1358,18 +1374,18 @@ mod quirks {
 		ffmpeg_cmd.arg("-i");
 		ffmpeg_cmd.arg(metadata_file);
 
-		ffmpeg_cmd.args(["-map_metadata", "1", "-map_metadata:s:a", "1:g", "-codec", "copy"]);
+		ffmpeg_cmd.args(["-map_metadata", "1", "-map_metadata:s:a", "1:g", "-c", "copy"]);
 
-		// explicitly setting output format, because ffmpeg tries to infer from output extension - which may fail
-		match get_format(media_file) {
-			Ok(media_file_format) => {
-				ffmpeg_cmd.arg("-f");
-				ffmpeg_cmd.arg(media_file_format);
-			},
-			Err(err) => {
-				debug!("Getting format for input file failed, letting ffmpeg to automatically decide output format. Error: {}", err);
-			},
-		}
+		// // explicitly setting output format, because ffmpeg tries to infer from output extension - which may fail
+		// match get_format(media_file) {
+		// 	Ok(media_file_format) => {
+		// 		ffmpeg_cmd.arg("-f");
+		// 		ffmpeg_cmd.arg(media_file_format);
+		// 	},
+		// 	Err(err) => {
+		// 		debug!("Getting format for input file failed, letting ffmpeg to automatically decide output format. Error: {}", err);
+		// 	},
+		// }
 
 		ffmpeg_cmd.arg(&media_file_tmp);
 
