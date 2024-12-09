@@ -5,6 +5,7 @@ use std::{
 		OsStr,
 		OsString,
 	},
+	fs::File,
 	io::{
 		BufRead,
 		BufReader,
@@ -15,6 +16,17 @@ use std::{
 		PathBuf,
 	},
 	process::Stdio,
+};
+
+use lofty::{
+	config::WriteOptions,
+	file::TaggedFileExt,
+	picture::{
+		Picture,
+		PictureType,
+	},
+	probe::Probe,
+	tag::TagExt,
 };
 
 use crate::error::{
@@ -99,74 +111,11 @@ pub fn re_thumbnail<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 	image: I,
 	output: O,
 ) -> Result<(), crate::Error> {
-	let cmd = crate::spawn::ffmpeg::base_ffmpeg_hidebanner(true);
-
-	return re_thumbnail_with_command(cmd, media, image, output);
-}
-
-/// Build the actual Command
-/// `formats` is a array, because formats can have various names, example: `matroska,webm`
-fn re_thumbnail_build_ffmpeg_cmd(
-	cmd: &mut std::process::Command,
-	media: &Path,
-	image: &Path,
-	output: &Path,
-	container_formats: &[&str],
-) {
-	cmd.arg("-i").arg(media); // set media file as input "0"
-
-	// mkv needs covers to be a attachment, instead of a video stream
-	if container_formats.contains(&"matroska") {
-		cmd.arg("-attach").arg(image);
-		cmd.args([
-			"-metadata:s:t:0",
-			"mimetype=image/jpeg", // set the attachment's mimetype (because it is not automatically done)
-			"-c",
-			"copy", // copy everything instead of re-encoding
-		]);
-	} else {
-		cmd.arg("-i").arg(image); // set image file as input "1"
-		cmd.args([
-			"-map",
-			"0", // map input stream 0 to output stream 0
-			"-map",
-			"1", // map input stream 1 to output stream 0
-			"-c",
-			"copy", // copy all input streams into output stream without re-encoding
-			"-disposition:v:1",
-			"attached_pic", // set input "1" as the thumbnail (required for some thumbnails, like mp4 - also works with others)
-			"-id3v2_version",
-			"3", // set which id3 version to use
-			"-metadata:s:v",
-			"title=\"Album cover\"", // set metadata for output video stream
-		]);
-
-		// the following options seem to not work correctly anymore
-		// cmd.args([
-		// 	"-movflags",
-		// 	"use_metadata_tags", // copy existing metadata tags
-		// ]);
-	}
-	cmd.arg(output); // set output path
-
-	// create pipe for stderr, other stream are ignored
-	// this is because ffmpeg only logs to stderr, where stdout is used for data piping
-	cmd.stdout(Stdio::null()).stderr(Stdio::piped()).stdin(Stdio::null());
-}
-
-/// Re-Apply a thumbnail from `image` onto `media` as `output` with base command `cmd`
-///
-/// This function should not be called directly, use [`re_thumbnail`] or [`re_thumbnail_with_tmp`] instead
-pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
-	mut cmd: std::process::Command,
-	media: M,
-	image: I,
-	output: O,
-) -> Result<(), crate::Error> {
 	let media = media.as_ref();
 	let image = image.as_ref();
 	let output = output.as_ref();
-	log::debug!(
+
+	info!(
 		"ReThumbnail media \"{}\", with image \"{}\", into \"{}\"",
 		media.to_string_lossy(),
 		image.to_string_lossy(),
@@ -174,13 +123,168 @@ pub fn re_thumbnail_with_command<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>
 	);
 
 	let ffmpeg_output = crate::spawn::ffmpeg::ffmpeg_probe(media)?;
-	let formats = crate::spawn::ffmpeg::parse_format(&ffmpeg_output)?;
+	let container_formats = crate::spawn::ffmpeg::parse_format(&ffmpeg_output)?;
 
-	let mut child = {
-		re_thumbnail_build_ffmpeg_cmd(&mut cmd, media, image, output, &formats);
+	if container_formats.contains(&"ogg") | container_formats.contains(&"flac") {
+		return rethumbnail_ogg(media, image, output);
+	}
+	if container_formats.contains(&"matroska") {
+		return rethumbnail_mkv(media, image, output);
+	} else if container_formats.contains(&"mp3") {
+		return rethumbnail_mp3_lofty(media, image, output);
 
-		cmd.spawn().attach_location_err("ffmpeg spawn")?
+		// return rethumbnail_mp3_ffmpeg(media, image, output);
+	}
+
+	return Err(crate::Error::other(format!(
+		"Unhandled container format: \"{}\"",
+		container_formats.join(", ")
+	)));
+}
+
+/// Rethumbnail for container format "ogg" (using lofty)
+fn rethumbnail_ogg(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
+	trace!("Using lofty ogg rethumbnail");
+
+	debug!("WHAT {:#?}", (media, image, output));
+
+	// ffmpeg somehow does not support embedding a mjpeg to a ogg/opus file, so we have to use lofty
+
+	// get the existing metadata in the original file
+	let mut tagged_file = Probe::open(media)
+		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?
+		.read()
+		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?;
+
+	// get the existing metadata, either from the primary tag format, or the first found
+	let primary_tag = match tagged_file.primary_tag_mut() {
+		Some(v) => v,
+		None => tagged_file
+			.first_tag_mut()
+			.ok_or_else(|| crate::Error::other(format!("No tags in file \"{}\"", media.display())))?,
 	};
+
+	// read & add the picture
+	let mut reader = BufReader::new(File::open(image).attach_path_err(image)?);
+	let mut picture = Picture::from_reader(&mut reader)
+		.map_err(|err| crate::Error::other(format!("Could not parse picture at \"{}\": {:#}", image.display(), err)))?;
+	picture.set_pic_type(PictureType::CoverFront);
+	// set picture instead of push to only have one image
+	primary_tag.set_picture(0, picture);
+
+	// copy the original file first, because lofty changes metadata and does not remux (requires existing file)
+	// but dont apply it to the original yet
+	std::fs::copy(media, output).attach_path_err(output)?;
+
+	primary_tag
+		.save_to_path(output, WriteOptions::default())
+		.expect("Writing tags failed");
+
+	Ok(())
+}
+
+/// Rethumbnail fo container format "mkv" and related
+fn rethumbnail_mkv(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
+	trace!("Using ffmpeg mkv rethumbnail");
+	let mut cmd = crate::spawn::ffmpeg::base_ffmpeg_hidebanner(true);
+
+	cmd.arg("-i").arg(media); // set media file as input "0"
+
+	// in mkv, covers should be attachments
+	cmd.arg("-attach").arg(image);
+	cmd.args([
+		"-metadata:s:t:0",
+		"mimetype=image/jpeg", // set the attachment's mimetype (because it is not automatically done)
+		"-c",
+		"copy", // copy everything instead of re-encoding
+	]);
+
+	cmd.arg(output); // set output path
+
+	return re_thumbnail_with_command(cmd);
+}
+
+// the following code is retained in case it is ever necessary
+// /// Rethumbnail fo container format "mp3"
+// fn rethumbnail_mp3_ffmpeg(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
+// 	trace!("Using ffmpeg mp3 rethumbnail");
+// 	let mut cmd = crate::spawn::ffmpeg::base_ffmpeg_hidebanner(true);
+
+// 	cmd.arg("-i").arg(media); // set media file as input "0"
+// 	cmd.arg("-i").arg(image); // set image file as input "1"
+
+// 	cmd.args([
+// 		"-map",
+// 		"0", // map input stream 0 to output stream 0
+// 		"-map",
+// 		"1", // map input stream 1 to output stream 0
+// 		"-c",
+// 		"copy", // copy all input streams into output stream without re-encoding
+// 		"-disposition:v:1",
+// 		"attached_pic", // set input "1" as the thumbnail (required for some thumbnails, like mp4 - also works with others)
+// 		"-id3v2_version",
+// 		"3", // set which id3 version to use
+// 		"-metadata:s:v",
+// 		"title=\"Album cover\"", // set metadata for output video stream
+// 	]);
+
+// 	// the following options seem to not work correctly anymore
+// 	// cmd.args([
+// 	// 	"-movflags",
+// 	// 	"use_metadata_tags", // copy existing metadata tags
+// 	// ]);
+
+// 	cmd.arg(output); // set output path
+
+// 	return re_thumbnail_with_command(cmd);
+// }
+
+/// Rethumbnail for container format "mp3" (using lofty)
+fn rethumbnail_mp3_lofty(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
+	trace!("Using lofty mp3 rethumbnail");
+
+	// alternative path for mp3, use lofty without having to spawn ffmpeg
+
+	// get the existing metadata in the original file
+	let mut tagged_file = Probe::open(media)
+		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?
+		.read()
+		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?;
+
+	// get the existing metadata, either from the primary tag format, or the first found
+	let primary_tag = match tagged_file.primary_tag_mut() {
+		Some(v) => v,
+		None => tagged_file
+			.first_tag_mut()
+			.ok_or_else(|| crate::Error::other(format!("No tags in file \"{}\"", media.display())))?,
+	};
+
+	// read & add the picture
+	let mut reader = BufReader::new(File::open(image).attach_path_err(image)?);
+	let mut picture = Picture::from_reader(&mut reader)
+		.map_err(|err| crate::Error::other(format!("Could not parse picture at \"{}\": {:#}", image.display(), err)))?;
+	picture.set_pic_type(PictureType::CoverFront);
+	// set picture instead of push to only have one image
+	primary_tag.set_picture(0, picture);
+
+	// copy the original file first, because lofty changes metadata and does not remux (requires existing file)
+	// but dont apply it to the original yet
+	std::fs::copy(media, output).attach_path_err(output)?;
+
+	primary_tag
+		.save_to_path(output, WriteOptions::default())
+		.expect("Writing tags failed");
+
+	Ok(())
+}
+
+/// Run the provided command and log the stderr
+fn re_thumbnail_with_command(mut cmd: std::process::Command) -> Result<(), crate::Error> {
+	// create pipe for stderr, other stream are ignored
+	// this is because ffmpeg only logs to stderr, where stdout is used for data piping
+	cmd.stdout(Stdio::null()).stderr(Stdio::piped()).stdin(Stdio::null());
+
+	let mut child = cmd.spawn().attach_location_err("ffmpeg spawn")?;
 
 	let stderr_reader = BufReader::new(child.stderr.take().ok_or_else(|| {
 		return crate::Error::custom_ioerror_location(
@@ -386,71 +490,7 @@ mod test {
 	}
 
 	mod re_thumbnail {
-		use std::ffi::OsStr;
-
 		use super::*;
-
-		#[test]
-		fn test_basic_func_mp4() {
-			let mut fake_command = std::process::Command::new("echo");
-
-			let media = Path::new("/hello/media.mp3");
-			let image = Path::new("/hello/image.jpg");
-			let output = Path::new("/hello/output.mp3");
-
-			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, &["mp4"]);
-
-			assert_eq!(
-				fake_command.get_args().collect::<Vec<&std::ffi::OsStr>>(),
-				vec![
-					OsStr::new("-i"),
-					media.as_os_str(),
-					OsStr::new("-i"),
-					image.as_os_str(),
-					OsStr::new("-map"),
-					OsStr::new("0"),
-					OsStr::new("-map"),
-					OsStr::new("1"),
-					OsStr::new("-c"),
-					OsStr::new("copy"),
-					OsStr::new("-disposition:v:1"),
-					OsStr::new("attached_pic"),
-					OsStr::new("-id3v2_version"),
-					OsStr::new("3"),
-					OsStr::new("-metadata:s:v"),
-					OsStr::new("title=\"Album cover\""),
-					// OsStr::new("-movflags"),
-					// OsStr::new("use_metadata_tags"),
-					output.as_os_str()
-				]
-			);
-		}
-
-		#[test]
-		fn test_basic_func_mkv() {
-			let mut fake_command = std::process::Command::new("echo");
-
-			let media = Path::new("/hello/media.mkv");
-			let image = Path::new("/hello/image.jpg");
-			let output = Path::new("/hello/output.mkv");
-
-			re_thumbnail_build_ffmpeg_cmd(&mut fake_command, media, image, output, &["matroska"]);
-
-			assert_eq!(
-				fake_command.get_args().collect::<Vec<&std::ffi::OsStr>>(),
-				vec![
-					OsStr::new("-i"),
-					media.as_os_str(),
-					OsStr::new("-attach"),
-					image.as_os_str(),
-					OsStr::new("-metadata:s:t:0"),
-					OsStr::new("mimetype=image/jpeg"),
-					OsStr::new("-c"),
-					OsStr::new("copy"),
-					output.as_os_str()
-				]
-			);
-		}
 
 		#[test]
 		#[ignore = "CI Install not present currently"]
@@ -461,11 +501,7 @@ mod test {
 				"exit 1",
 			]);
 
-			let media = Path::new("/hello/media.mp3");
-			let image = Path::new("/hello/image.jpg");
-			let output = Path::new("/hello/output.mp3");
-
-			let output = re_thumbnail_with_command(fake_command, media, image, output);
+			let output = re_thumbnail_with_command(fake_command);
 
 			assert!(output.is_err());
 
