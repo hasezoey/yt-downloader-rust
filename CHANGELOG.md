@@ -4,6 +4,14 @@ This is a manually written changelog, and only tracks front-facing changes since
 
 ## unreleased
 
+- `download`: add `opus`, `m4a` and `flac` as possible extension to be found during recovery
+- `download`: add `matroska` & `flac` to the list of containers that use global metadata
+- `download`: ignore files that have `.temp` before the extension (youtube-dl files before post-processing)
+- `download`: ignore entries that are not a file or are size 0
+- `rethumbnail`: support ogg container (via lofty)
+- `rethumbnail`: use lofty for mp3 rethumbnailing
+- add ability to choose what output container to use for audio (`--audio-format`) / video (`--video-format`), for rules see [yt-dlp Post-Processing Options `--remux-video`](- `rethumbnail`: support ogg container (via lofty))
+
 ## v0.10.0
 
 - `download`: enable steady-tick for the progress-bar (progressbar will get printed, even if "stuck")
