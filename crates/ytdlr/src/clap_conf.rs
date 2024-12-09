@@ -397,6 +397,14 @@ pub struct CommandDownload {
 	/// see <https://github.com/yt-dlp/yt-dlp#subtitle-options>
 	#[arg(long = "sub-langs", env = "YTDL_SUB_LANGS")]
 	pub sub_langs:                 Option<String>,
+	/// Set the video container download rules
+	/// see `--remux-video` in <https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#post-processing-options>
+	#[arg(long = "video-format", default_value_t=String::from("mkv"))]
+	pub video_format:              String,
+	/// Set audio container download rules
+	/// see `--remux-video` in <https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#post-processing-options>
+	#[arg(long = "audio-format", default_value_t=String::from("mp3"))]
+	pub audio_format:              String,
 	/// Add extra arguments to the ytdl command, requires usage of "="
 	/// Example: --extra-ytdl-args="--max-downloads 10"
 	#[arg(long = "extra-ytdl-args")]
@@ -441,6 +449,8 @@ impl Default for CommandDownload {
 			player_editor: None,
 			extra_ytdl_args: Vec::new(),
 			edit_action: None,
+			video_format: String::from("mkv"),
+			audio_format: String::from("mp3"),
 		};
 	}
 }

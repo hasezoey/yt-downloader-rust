@@ -9,7 +9,10 @@ use libytdlr::{
 	chrono,
 	diesel,
 	spawn::ytdl::YTDL_BIN_NAME,
-	traits::download_options::DownloadOptions,
+	traits::download_options::{
+		DownloadOptions,
+		FormatArgument,
+	},
 };
 use once_cell::sync::Lazy;
 
@@ -42,8 +45,13 @@ pub struct DownloadState<'a> {
 	/// Set which subtitle languages to download
 	sub_langs:   Option<&'a String>,
 
-	// Stores the youtube-dl version in use
+	/// Stores the youtube-dl version in use
 	ytdl_version: libytdlr::chrono::NaiveDate,
+
+	/// Set which audio container should be preferred
+	audio_format: &'a str,
+	/// Set which video container should be preferred
+	video_format: &'a str,
 }
 
 /// The default youtube-dl version to use
@@ -96,6 +104,9 @@ impl<'a> DownloadState<'a> {
 
 			current_url: String::default(),
 			ytdl_version,
+
+			audio_format: &sub_args.audio_format,
+			video_format: &sub_args.video_format,
 		};
 	}
 
@@ -198,6 +209,14 @@ impl DownloadOptions for DownloadState<'_> {
 
 	fn ytdl_version(&self) -> chrono::NaiveDate {
 		return self.ytdl_version;
+	}
+
+	fn get_audio_format(&self) -> FormatArgument {
+		return self.audio_format;
+	}
+
+	fn get_video_format(&self) -> FormatArgument {
+		return self.video_format;
 	}
 }
 

@@ -214,12 +214,12 @@ fn assemble_ytdl_command<A: DownloadOptions>(
 		// set ytdl to always extract the audio, if it is not already audio-only
 		ytdl_args.arg("-x");
 		// set the output audio format
-		ytdl_args.arg("--audio-format").arg("mp3");
+		ytdl_args.arg("--audio-format").arg(options.get_audio_format());
 	} else {
 		// set the format that should be downloaded
 		ytdl_args.arg("-f").arg("bestvideo+bestaudio/best");
 		// set final consistent output format
-		ytdl_args.arg("--remux-video").arg("mkv");
+		ytdl_args.arg("--remux-video").arg(options.get_video_format());
 	}
 
 	// embed the videoo thumbnail if available into the output container
@@ -726,6 +726,8 @@ mod test {
 		TempDir,
 	};
 
+	use crate::traits::download_options::FormatArgument;
+
 	use super::*;
 
 	/// Test Implementation for [`DownloadOptions`]
@@ -739,6 +741,9 @@ mod test {
 		save_command_log:  bool,
 		sub_langs:         Option<String>,
 		ytdl_version:      chrono::NaiveDate,
+
+		audio_format: FormatArgument<'static>,
+		video_format: FormatArgument<'static>,
 	}
 
 	impl TestOptions {
@@ -784,6 +789,15 @@ mod test {
 				.unwrap()
 				.into();
 		}
+
+		/// Set custom audio & video formats
+		pub fn set_format(self, audio_format: FormatArgument<'static>, video_format: FormatArgument<'static>) -> Self {
+			return Self {
+				audio_format,
+				video_format,
+				..self
+			};
+		}
 	}
 
 	impl Default for TestOptions {
@@ -798,6 +812,9 @@ mod test {
 				save_command_log:  false,
 				sub_langs:         None,
 				ytdl_version:      Self::default_version(),
+
+				audio_format: "mp3",
+				video_format: "mkv",
 			};
 		}
 	}
@@ -841,6 +858,14 @@ mod test {
 
 		fn ytdl_version(&self) -> chrono::NaiveDate {
 			return self.ytdl_version;
+		}
+
+		fn get_audio_format(&self) -> FormatArgument {
+			return self.audio_format;
+		}
+
+		fn get_video_format(&self) -> FormatArgument {
+			return self.video_format;
 		}
 	}
 
@@ -1019,6 +1044,50 @@ mod test {
 					OsString::from("someURL"),
 				]
 			);
+		}
+
+		#[test]
+		fn test_audio_custom_format() {
+			let (dl_dir, _tempdir) = create_dl_dir();
+			let options = TestOptions::new_assemble(
+				true,
+				Vec::default(),
+				dl_dir.clone(),
+				"someURL".to_owned(),
+				Vec::default(),
+			)
+			.set_format("m4a>mp3", "webm>mp4");
+
+			let ret = assemble_ytdl_command(None, &options);
+
+			assert!(ret.is_ok());
+			let ret = ret.expect("Expected is_ok check to pass");
+
+			let ret: Vec<OsString> = ret.into_iter().skip_while(|v| v != "--audio-format").take(2).collect();
+
+			assert_eq!(ret, vec![OsString::from("--audio-format"), OsString::from("m4a>mp3")]);
+		}
+
+		#[test]
+		fn test_video_custom_format() {
+			let (dl_dir, _tempdir) = create_dl_dir();
+			let options = TestOptions::new_assemble(
+				false,
+				Vec::default(),
+				dl_dir.clone(),
+				"someURL".to_owned(),
+				Vec::default(),
+			)
+			.set_format("m4a>mp3", "webm>mp4");
+
+			let ret = assemble_ytdl_command(None, &options);
+
+			assert!(ret.is_ok());
+			let ret = ret.expect("Expected is_ok check to pass");
+
+			let ret: Vec<OsString> = ret.into_iter().skip_while(|v| v != "--remux-video").take(2).collect();
+
+			assert_eq!(ret, vec![OsString::from("--remux-video"), OsString::from("webm>mp4")]);
 		}
 
 		#[test]

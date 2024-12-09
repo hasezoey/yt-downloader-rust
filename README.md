@@ -68,9 +68,11 @@ Aliases: `download`
 |                 |       |  --no-check-recovery   |                                |                           |  flag  | Disables allowing 0 URL's to just check the recovery                                                                                             |
 |                 |       |     --open-tagger      |                                |                           |  flag  | Set to automatically open the tagger in the end. also overwrites the default option of moving for non-interactive mode                           |
 |                 |       |     --edit-action      |                                |                           |  enum  | Apply a single action to all media in the edit stage                                                                                             |
-|                 |       |      --sub-langs       |         YTDL_SUB_LANGS         |                           | string | Set which subtitles to download / embed, see [yt-dl(p) subtitle options](https://github.com/yt-dlp/yt-dlp#subtitle-options) for what is accepted |
+|                 |       |      --sub-langs       |         YTDL_SUB_LANGS         |                           | String | Set which subtitles to download / embed, see [yt-dl(p) subtitle options](https://github.com/yt-dlp/yt-dlp#subtitle-options) for what is accepted |
+|                 |       |     --video-format     |                                |           `mkv`           | String | Set the output video container remux rules                                                                                                       |
+|                 |       |     --audio-format     |                                |           `mp3`           | String | Set the output audio container remux rules                                                                                                       |
 |                 |       |   --extra-ytdl-args    |                                |                           | String | Add extra youtube-dl arguments                                                                                                                   |
-|      URLS       |       |                        |                                |                           | string | The URLS (one or more) to be downloaded            (or 0 for error recovery)                                                                     |
+|      URLS       |       |                        |                                |                           | String | The URLS (one or more) to be downloaded            (or 0 for error recovery)                                                                     |
 
 Notes:
 
