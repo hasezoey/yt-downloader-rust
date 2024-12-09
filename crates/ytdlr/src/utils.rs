@@ -34,9 +34,12 @@ use std::{
 		Error as ioError,
 		Write,
 	},
-	os::unix::prelude::{
-		ExitStatusExt,
-		OsStrExt,
+	os::unix::{
+		fs::MetadataExt,
+		prelude::{
+			ExitStatusExt,
+			OsStrExt,
+		},
 	},
 	path::{
 		Path,
@@ -149,6 +152,12 @@ pub fn find_editable_files<P: AsRef<Path>>(path: P) -> Result<Vec<MediaInfo>, cr
 
 	// do a loop over each element in the directory, and filter out paths that are not valid / accessable
 	for entry in (std::fs::read_dir(path).attach_path_err(path)?).flatten() {
+		if let Ok(metadata) = entry.metadata() {
+			if !metadata.is_file() || metadata.size() == 0 {
+				continue;
+			}
+		}
+
 		if let Some(mediainfo) = process_path_for_editable_files(&entry.path()) {
 			mediainfo_vec.push(mediainfo);
 		}
