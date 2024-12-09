@@ -1063,7 +1063,11 @@ mod test {
 			assert!(ret.is_ok());
 			let ret = ret.expect("Expected is_ok check to pass");
 
-			let ret: Vec<OsString> = ret.into_iter().skip_while(|v| v != "--audio-format").take(2).collect();
+			let ret: Vec<OsString> = ret
+				.into_iter()
+				.skip_while(|v| return v != "--audio-format")
+				.take(2)
+				.collect();
 
 			assert_eq!(ret, vec![OsString::from("--audio-format"), OsString::from("m4a>mp3")]);
 		}
@@ -1085,7 +1089,11 @@ mod test {
 			assert!(ret.is_ok());
 			let ret = ret.expect("Expected is_ok check to pass");
 
-			let ret: Vec<OsString> = ret.into_iter().skip_while(|v| v != "--remux-video").take(2).collect();
+			let ret: Vec<OsString> = ret
+				.into_iter()
+				.skip_while(|v| return v != "--remux-video")
+				.take(2)
+				.collect();
 
 			assert_eq!(ret, vec![OsString::from("--remux-video"), OsString::from("webm>mp4")]);
 		}

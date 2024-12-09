@@ -152,22 +152,23 @@ fn rethumbnail_ogg(media: &Path, image: &Path, output: &Path) -> Result<(), crat
 
 	// get the existing metadata in the original file
 	let mut tagged_file = Probe::open(media)
-		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?
+		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?
 		.read()
-		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?;
+		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?;
 
 	// get the existing metadata, either from the primary tag format, or the first found
 	let primary_tag = match tagged_file.primary_tag_mut() {
 		Some(v) => v,
 		None => tagged_file
 			.first_tag_mut()
-			.ok_or_else(|| crate::Error::other(format!("No tags in file \"{}\"", media.display())))?,
+			.ok_or_else(|| return crate::Error::other(format!("No tags in file \"{}\"", media.display())))?,
 	};
 
 	// read & add the picture
 	let mut reader = BufReader::new(File::open(image).attach_path_err(image)?);
-	let mut picture = Picture::from_reader(&mut reader)
-		.map_err(|err| crate::Error::other(format!("Could not parse picture at \"{}\": {:#}", image.display(), err)))?;
+	let mut picture = Picture::from_reader(&mut reader).map_err(|err| {
+		return crate::Error::other(format!("Could not parse picture at \"{}\": {:#}", image.display(), err));
+	})?;
 	picture.set_pic_type(PictureType::CoverFront);
 	// set picture instead of push to only have one image
 	primary_tag.set_picture(0, picture);
@@ -180,7 +181,7 @@ fn rethumbnail_ogg(media: &Path, image: &Path, output: &Path) -> Result<(), crat
 		.save_to_path(output, WriteOptions::default())
 		.expect("Writing tags failed");
 
-	Ok(())
+	return Ok(());
 }
 
 /// Rethumbnail fo container format "mkv" and related
@@ -247,22 +248,23 @@ fn rethumbnail_mp3_lofty(media: &Path, image: &Path, output: &Path) -> Result<()
 
 	// get the existing metadata in the original file
 	let mut tagged_file = Probe::open(media)
-		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?
+		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?
 		.read()
-		.map_err(|err| crate::Error::other(format!("LoftyError: {}", err)))?;
+		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?;
 
 	// get the existing metadata, either from the primary tag format, or the first found
 	let primary_tag = match tagged_file.primary_tag_mut() {
 		Some(v) => v,
 		None => tagged_file
 			.first_tag_mut()
-			.ok_or_else(|| crate::Error::other(format!("No tags in file \"{}\"", media.display())))?,
+			.ok_or_else(|| return crate::Error::other(format!("No tags in file \"{}\"", media.display())))?,
 	};
 
 	// read & add the picture
 	let mut reader = BufReader::new(File::open(image).attach_path_err(image)?);
-	let mut picture = Picture::from_reader(&mut reader)
-		.map_err(|err| crate::Error::other(format!("Could not parse picture at \"{}\": {:#}", image.display(), err)))?;
+	let mut picture = Picture::from_reader(&mut reader).map_err(|err| {
+		return crate::Error::other(format!("Could not parse picture at \"{}\": {:#}", image.display(), err));
+	})?;
 	picture.set_pic_type(PictureType::CoverFront);
 	// set picture instead of push to only have one image
 	primary_tag.set_picture(0, picture);
@@ -275,7 +277,7 @@ fn rethumbnail_mp3_lofty(media: &Path, image: &Path, output: &Path) -> Result<()
 		.save_to_path(output, WriteOptions::default())
 		.expect("Writing tags failed");
 
-	Ok(())
+	return Ok(());
 }
 
 /// Run the provided command and log the stderr

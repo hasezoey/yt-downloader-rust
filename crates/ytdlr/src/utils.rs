@@ -183,8 +183,8 @@ fn process_path_for_editable_files(path: &Path) -> Option<MediaInfo> {
 	// example: "'provider'-'id'-some name.with.dots.temp.opus"
 	if path
 		.file_stem()
-		.and_then(|v| Path::new(v).extension())
-		.map_or(false, |v| v == "temp")
+		.and_then(|v| return Path::new(v).extension())
+		.is_some_and(|v| return v == "temp")
 	{
 		return None;
 	}
