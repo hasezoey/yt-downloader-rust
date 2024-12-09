@@ -174,7 +174,7 @@ fn process_path_for_editable_files(path: &Path) -> Option<MediaInfo> {
 }
 
 // Array of AUDIO extensions supported for matching in ytdlr
-const AUDIO_EXTENSION_LIST: &[&str] = &["mp3", "wav", "aac", "ogg", "opus", "m4a"];
+const AUDIO_EXTENSION_LIST: &[&str] = &["mp3", "wav", "aac", "ogg", "opus", "m4a", "flac"];
 // Array of VIDEO extensions supported for matching in ytdlr
 const VIDEO_EXTENSION_LIST: &[&str] = &["mp4", "mkv", "webm"];
 
