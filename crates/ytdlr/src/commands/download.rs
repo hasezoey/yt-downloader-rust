@@ -1262,7 +1262,7 @@ mod quirks {
 
 	/// Extensions that store metadata in the global
 	static GLOBAL_METADATA_EXT: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-		return HashSet::from(["mp3"]);
+		return HashSet::from(["mp3", "matroska", "flac"]);
 	});
 	/// Extensions that store metadata in the stream
 	static STREAM_METADATA_EXT: Lazy<HashSet<&'static str>> = Lazy::new(|| {
