@@ -1,6 +1,7 @@
 //! Module for Re-Applying Thumbnails to media
 
 use std::{
+	borrow::Cow,
 	ffi::{
 		OsStr,
 		OsString,
@@ -83,7 +84,7 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 
 		let image = image.as_ref();
 
-		let converted = convert_image_to_jpg(image, tmp_dir)?;
+		let converted = convert_image_to_jpg(image, &tmp_dir)?;
 
 		if converted != image {
 			is_tmp_image = true;
@@ -336,10 +337,7 @@ pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, cr
 /// This will need to be used to convert * to jpg for thumbnails (mainly from webp)
 /// "output_dir" will be used when a conversion happens to store the converted file
 /// Returns the converted image's path
-pub fn convert_image_to_jpg<IP: AsRef<Path>, OP: AsRef<Path>>(
-	image_path: IP,
-	output_dir: OP,
-) -> Result<PathBuf, crate::Error> {
+pub fn convert_image_to_jpg<'a>(image_path: &'a Path, output_dir: &Path) -> Result<Cow<'a, Path>, crate::Error> {
 	let cmd = crate::spawn::ffmpeg::base_ffmpeg_hidebanner(true);
 
 	return convert_image_to_jpg_with_command(cmd, image_path, output_dir);
@@ -351,14 +349,11 @@ pub fn convert_image_to_jpg<IP: AsRef<Path>, OP: AsRef<Path>>(
 /// Returns the converted image's path
 ///
 /// This function should not be called directly, use [`convert_image_to_jpg`] instead
-pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
+pub fn convert_image_to_jpg_with_command<'a>(
 	mut cmd: std::process::Command,
-	image_path: IP,
-	output_dir: OP,
-) -> Result<PathBuf, crate::Error> {
-	let image_path = image_path.as_ref();
-	let output_dir = output_dir.as_ref();
-
+	image_path: &'a Path,
+	output_dir: &Path,
+) -> Result<Cow<'a, Path>, crate::Error> {
 	if !image_path.exists() {
 		return Err(crate::Error::custom_ioerror_path(
 			std::io::ErrorKind::NotFound,
@@ -374,7 +369,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	// check if the input path is already a jpg, if it is do not apply ffmpeg
 	if let Some(ext) = image_path.extension() {
 		if ext == OsStr::new("jpg") {
-			return Ok(image_path.to_owned());
+			return Ok(image_path.into());
 		}
 	}
 
@@ -421,7 +416,7 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 		return Err(unsuccessfull_command_exit(ffmpeg_output.status, &output_as_string));
 	}
 
-	return Ok(output_path);
+	return Ok(output_path.into());
 }
 
 #[cfg(test)]
@@ -529,7 +524,7 @@ mod test {
 			std::fs::File::create(&image_path).expect("Expected File::create to be successfull");
 			let expected_output = output_dir.join("hello.jpg");
 
-			let result = convert_image_to_jpg_with_command(fake_command, image_path, output_dir);
+			let result = convert_image_to_jpg_with_command(fake_command, &image_path, &output_dir);
 
 			assert!(result.is_ok());
 			let result = result.expect("Expected is_ok assert to throw");
@@ -550,7 +545,7 @@ mod test {
 			std::fs::File::create(&image_path).expect("Expected File::create to be successfull");
 			let expected_output = image_path.clone();
 
-			let result = convert_image_to_jpg_with_command(fake_command, image_path, output_dir);
+			let result = convert_image_to_jpg_with_command(fake_command, &image_path, &output_dir);
 
 			assert!(result.is_ok());
 			let result = result.expect("Expected is_ok assert to throw");
@@ -570,7 +565,7 @@ mod test {
 			let image_path = workdir.join("hello.webp");
 			std::fs::File::create(&image_path).expect("Expected File::create to be successfull");
 
-			let result = convert_image_to_jpg_with_command(fake_command, image_path, output_dir);
+			let result = convert_image_to_jpg_with_command(fake_command, &image_path, &output_dir);
 
 			assert!(result.is_err());
 
