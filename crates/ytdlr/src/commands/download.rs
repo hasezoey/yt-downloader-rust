@@ -1135,7 +1135,7 @@ fn edit_media(
 			if let Some(image_path) = libytdlr::main::rethumbnail::find_image(&media_path)? {
 				// re-apply thumbnail to "media_path", and have the output be the same path
 				// "re_thumbnail_with_tmp" will handle that the original will only be overwritten once successfully finished
-				libytdlr::main::rethumbnail::re_thumbnail_with_tmp(&media_path, image_path, &media_path)?;
+				libytdlr::main::rethumbnail::re_thumbnail_with_tmp(&media_path, &image_path, &media_path)?;
 			} else {
 				warn!(
 					"No Image found for media, not re-applying thumbnail! Media: \"{}\"",

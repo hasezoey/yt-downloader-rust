@@ -40,12 +40,8 @@ use crate::{
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
 /// Where the output is added with a "tmp" to the `output` until finished
 /// Will convert input images to jpg
-pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
-	media: M,
-	image: I,
-	output: O,
-) -> Result<(), crate::Error> {
-	let mut output_path_tmp = output.as_ref().to_owned();
+pub fn re_thumbnail_with_tmp(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
+	let mut output_path_tmp = output.to_owned();
 
 	// Generate a temporary filename, while leaving everything else like it was before
 	{
@@ -82,8 +78,6 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 	let image_path = {
 		let tmp_dir = std::env::temp_dir().join("libytdlr-imageconvert");
 
-		let image = image.as_ref();
-
 		let converted = convert_image_to_jpg(image, &tmp_dir)?;
 
 		if converted != image {
@@ -95,7 +89,7 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 
 	re_thumbnail(media, &image_path, &output_path_tmp)?;
 
-	std::fs::rename(&output_path_tmp, output.as_ref()).attach_path_err(output_path_tmp)?;
+	std::fs::rename(&output_path_tmp, output).attach_path_err(output_path_tmp)?;
 
 	// remove temporary converted image file
 	if is_tmp_image {
@@ -109,20 +103,12 @@ pub fn re_thumbnail_with_tmp<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 /// Will not apply any image conversion
 ///
 /// To Automatically handle with a temporary file, use [`re_thumbnail_with_tmp`]
-pub fn re_thumbnail<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
-	media: M,
-	image: I,
-	output: O,
-) -> Result<(), crate::Error> {
-	let media = media.as_ref();
-	let image = image.as_ref();
-	let output = output.as_ref();
-
+pub fn re_thumbnail(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
 	info!(
 		"ReThumbnail media \"{}\", with image \"{}\", into \"{}\"",
-		media.to_string_lossy(),
-		image.to_string_lossy(),
-		output.to_string_lossy()
+		media.display(),
+		image.display(),
+		output.display()
 	);
 
 	let ffmpeg_output = crate::spawn::ffmpeg::ffmpeg_probe(media)?;
