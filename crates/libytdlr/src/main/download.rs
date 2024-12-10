@@ -320,6 +320,8 @@ enum LineType {
 	Custom,
 	/// Variant for lines that start with "ERROR:"
 	Error,
+	/// Variant for lines that start with "WARNING:"
+	Warning,
 	/// Variant for archive skip lines
 	ArchiveSkip,
 }
@@ -336,15 +338,7 @@ impl LineType {
 		static GENERIC_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?mi)^deleting original file").unwrap();
 		});
-		/// regex to check for "ERROR:" lines
-		static ERROR_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
-			return Regex::new(r"(?m)^ERROR:").unwrap();
-		});
-		/// regex to check for "youtube-dl: error:" lines
-		static YTDL_ERROR_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
-			return Regex::new(r"(?m)^youtube-dl: error:").unwrap();
-		});
-		/// regex to check for "youtube-dl: error:" lines
+		/// regex to check for skip lines
 		static YTDL_ARCHIVE_SKIP_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?m)^\[\w+\] [^:]+: has already been recorded in the archive$").unwrap();
 		});
@@ -396,12 +390,16 @@ impl LineType {
 			return Some(Self::Generic);
 		}
 
-		if ERROR_TYPE_REGEX.is_match(input) {
+		if input.starts_with("ERROR:") {
 			return Some(Self::Error);
 		}
 
-		if YTDL_ERROR_TYPE_REGEX.is_match(input) {
+		if input.starts_with("youtube-dl: error:") {
 			return Some(Self::Error);
+		}
+
+		if input.starts_with("WARNING:") {
+			return Some(Self::Warning);
 		}
 
 		// if nothing above matches, return None, because no type has been found
@@ -625,6 +623,10 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					pgcb(DownloadProgress::Skipped(1, SkippedType::Error));
 					current_mediainfo.take(); // replace with none, because this media should not be added
 				},
+				LineType::Warning => {
+					// ytdl warnings are non-fatal, but should still be logged
+					warn!("youtube-dl: {:#?}", line);
+				}
 			}
 		} else if !line.is_empty() {
 			info!("No type has been found for line \"{}\"", line);
@@ -1347,6 +1349,10 @@ mod test {
 
 			let input = r#"youtube-dl: error: invalid thumbnail format ""webp>jpg"" given"#;
 			assert_eq!(Some(LineType::Error), LineType::try_from_line(input));
+
+			let input = "WARNING: [youtube] Falling back to generic n function search
+         player = https://somewhere.com/some.js";
+			assert_eq!(Some(LineType::Warning), LineType::try_from_line(input));
 		}
 
 		#[test]
@@ -1662,6 +1668,60 @@ PARSE_END 'aprovider' 'someid4'
 				vec![MediaInfo::new("someid4", "aprovider")
 					.with_title("Some Title Here")
 					.with_filename("somewhere")],
+				media_vec
+			);
+		}
+
+		#[test]
+		fn test_warning_line() {
+			let expected_pg = &vec![
+				DownloadProgress::AllStarting,
+				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 50),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 57),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
+				DownloadProgress::SingleFinished("-----------".to_owned()),
+				DownloadProgress::AllFinished(1),
+			];
+			let expect_index = Arc::new(AtomicUsize::new(0));
+
+			let options = TestOptions::new_handle_stdout(false);
+
+			let input = r#"
+PARSE_START 'youtube' '-----------' Some Title Here
+WARNING: [youtube] Falling back to generic n function search
+         player = https://youtube.com/some.js
+[download]   0.0% of 78.44MiB at 207.76KiB/s ETA 06:27
+[download]  50.0% of 78.44MiB at 526.19KiB/s ETA 01:16
+[download] 100% of 78.44MiB at  5.89MiB/s ETA 00:00
+[download] 100% of 78.44MiB in 00:07
+[download]   0.0% of 3.47MiB at 196.76KiB/s ETA 00:18
+[download]  57.6% of 3.47MiB at  9.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB at 10.57MiB/s ETA 00:00
+[download] 100% of 3.47MiB in 00:00
+PARSE_END 'youtube' '-----------'
+			"#;
+
+			let mut media_vec: Vec<MediaInfo> = Vec::new();
+
+			let res = handle_stdout(
+				&options,
+				callback_counter(&expect_index, expected_pg),
+				BufReader::new(input.as_bytes()),
+				&mut media_vec,
+			);
+
+			assert!(res.is_ok());
+
+			assert_eq!(1, media_vec.len());
+
+			assert_eq!(
+				vec![MediaInfo::new("-----------", "youtube").with_title("Some Title Here")],
 				media_vec
 			);
 		}
