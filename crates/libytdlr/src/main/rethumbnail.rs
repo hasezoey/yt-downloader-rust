@@ -304,9 +304,7 @@ const IMAGE_EXTENSIONS: &[&str] = &["jpg", "png", "webp"];
 
 /// Find a image based on the input's media_path
 /// Returns [`Some`] with a path to the image found, otherwise [`None`] if none was found
-pub fn find_image<MP: AsRef<Path>>(media_path: MP) -> Result<Option<PathBuf>, crate::Error> {
-	let media_path = media_path.as_ref();
-
+pub fn find_image(media_path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 	if !media_path.exists() {
 		return Err(crate::Error::custom_ioerror_path(
 			std::io::ErrorKind::NotFound,
