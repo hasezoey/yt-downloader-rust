@@ -327,7 +327,7 @@ enum LineType {
 impl LineType {
 	/// Try to get the correct Variant for a input line
 	/// Will return [`None`] if no type has been found
-	pub fn try_from_line<I: AsRef<str>>(input: I) -> Option<Self> {
+	pub fn try_from_line(input: &str) -> Option<Self> {
 		/// basic regex to test if the line is "[something] something", and if it is, return what is inside "[]"
 		static BASIC_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?mi)^\[([\da-z:_]*)\]").unwrap();
@@ -352,8 +352,6 @@ impl LineType {
 		static YTDL_PLAYLIST_REGEX: Lazy<Regex> = Lazy::new(|| {
 			return Regex::new(r"(?m)^\[[\w:]+\] Playlist [^:]+:").unwrap();
 		});
-
-		let input = input.as_ref();
 
 		// check if the line is from a provider-like output
 		if let Some(cap) = BASIC_TYPE_REGEX.captures(input) {
