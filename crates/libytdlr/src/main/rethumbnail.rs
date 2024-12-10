@@ -10,7 +10,6 @@ use std::{
 		BufRead,
 		BufReader,
 	},
-	os::unix::prelude::ExitStatusExt,
 	path::{
 		Path,
 		PathBuf,
@@ -29,9 +28,12 @@ use lofty::{
 	tag::TagExt,
 };
 
-use crate::error::{
-	CustomThreadJoin,
-	IOErrorToError,
+use crate::{
+	error::{
+		CustomThreadJoin,
+		IOErrorToError,
+	},
+	spawn::ffmpeg::unsuccessfull_command_exit,
 };
 
 /// Re-Apply a thumbnail from `image` onto `media` as `output`
@@ -406,43 +408,17 @@ pub fn convert_image_to_jpg_with_command<IP: AsRef<Path>, OP: AsRef<Path>>(
 	// this is because ffmpeg only logs to stderr, where stdout is used for data piping
 	cmd.stdout(Stdio::null()).stderr(Stdio::piped()).stdin(Stdio::null());
 
-	let mut ffmpeg_child = cmd.spawn().attach_location_err("ffmpeg spawn")?;
+	// the command should be fast enough that we shouldnt need a extra thread to read the output in real-time
+	let ffmpeg_output = cmd
+		.spawn()
+		.attach_location_err("ffmpeg spawn")?
+		.wait_with_output()
+		.attach_location_err("ffmpeg wait_with_output")?;
 
-	let stderr_reader = BufReader::new(ffmpeg_child.stderr.take().ok_or_else(|| {
-		return crate::Error::custom_ioerror_location(
-			std::io::ErrorKind::BrokenPipe,
-			"Failed to get Child STDERR",
-			"ffmpeg stderr take",
-		);
-	})?);
+	let output_as_string = String::from_utf8_lossy(&ffmpeg_output.stderr);
 
-	// offload the stderr reader to a different thread to not block main
-	let ffmpeg_child_stderr_thread = std::thread::Builder::new()
-		.name("ffmpeg stderr handler".to_owned())
-		.spawn(|| {
-			stderr_reader
-				.lines()
-				.filter_map(|v| return v.ok())
-				.for_each(|line| log::info!("ffmpeg STDERR: {}", line));
-		})
-		.attach_location_err("ffmpeg stderr thread spawn")?;
-
-	let ffmpeg_child_exit_status = ffmpeg_child.wait().attach_path_err("ffmpeg wait")?;
-
-	// wait until the stderr thread has exited
-	ffmpeg_child_stderr_thread.join_err()?;
-
-	if !ffmpeg_child_exit_status.success() {
-		return Err(if let Some(code) = ffmpeg_child_exit_status.code() {
-			crate::Error::command_unsuccessful(format!("ffmpeg_child exited with code: {code}"))
-		} else {
-			let signal = match ffmpeg_child_exit_status.signal() {
-				Some(code) => code.to_string(),
-				None => "None".to_owned(),
-			};
-
-			crate::Error::command_unsuccessful(format!("ffmpeg_child exited with signal: {signal}"))
-		});
+	if !ffmpeg_output.status.success() {
+		return Err(unsuccessfull_command_exit(ffmpeg_output.status, &output_as_string));
 	}
 
 	return Ok(output_path);
@@ -599,7 +575,7 @@ mod test {
 			assert!(result.is_err());
 
 			assert_eq!(
-				crate::Error::command_unsuccessful("ffmpeg_child exited with code: 1"),
+				crate::Error::command_unsuccessful("FFMPEG did not successfully exit! Exit Code: 1\nLast Lines:\n"),
 				result.expect_err("Expected Assert to test Result to be ERR")
 			);
 		}
