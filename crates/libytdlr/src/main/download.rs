@@ -306,7 +306,7 @@ enum CustomParseType {
 }
 
 /// Line type for a ytdl output line
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum LineType {
 	/// Variant for FFmpeg processing lines
 	Ffmpeg,
