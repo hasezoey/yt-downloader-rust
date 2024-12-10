@@ -1,6 +1,7 @@
 //! Module that contains all logic for spawning the "ffmpeg" command
 use std::{
 	ffi::OsStr,
+	os::unix::process::ExitStatusExt,
 	process::{
 		Command,
 		Output,
@@ -49,12 +50,20 @@ static FFMPEG_VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 /// Helper to consistently create a error
 pub(crate) fn unsuccessfull_command_exit(status: std::process::ExitStatus, output: &str) -> crate::Error {
+	debug!("FFMPEG STDERR Output: {}", output);
+
 	let last_lines = output.lines().rev().take(5).collect::<String>();
 
+	let code_or_signal = if let Some(code) = status.code() {
+		format!("Exit Code: {code}")
+	} else if let Some(signal) = status.signal() {
+		format!("Exit Signal: {}", signal)
+	} else {
+		unreachable!("There should either be a code or signal!");
+	};
+
 	return crate::Error::command_unsuccessful(format!(
-		"FFMPEG did not successfully exit! Exit Code: {}\nLast Lines:\n{}",
-		status.code().map_or("None".to_string(), |v| return v.to_string()),
-		last_lines
+		"FFMPEG did not successfully exit! {code_or_signal}\nLast Lines:\n{last_lines}"
 	));
 }
 
