@@ -143,13 +143,17 @@ pub fn re_thumbnail<M: AsRef<Path>, I: AsRef<Path>, O: AsRef<Path>>(
 }
 
 /// Rethumbnail for container format "ogg" (using lofty)
+#[inline]
 fn rethumbnail_ogg(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
 	trace!("Using lofty ogg rethumbnail");
 
-	debug!("WHAT {:#?}", (media, image, output));
-
 	// ffmpeg somehow does not support embedding a mjpeg to a ogg/opus file, so we have to use lofty
 
+	return lofty_common(media, image, output);
+}
+
+/// Common code for lofty reading & writing tags & pictures
+fn lofty_common(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
 	// get the existing metadata in the original file
 	let mut tagged_file = Probe::open(media)
 		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?
@@ -179,7 +183,7 @@ fn rethumbnail_ogg(media: &Path, image: &Path, output: &Path) -> Result<(), crat
 
 	primary_tag
 		.save_to_path(output, WriteOptions::default())
-		.expect("Writing tags failed");
+		.map_err(|err| return crate::Error::other(format!("Could not save tags to file: {}", err)))?;
 
 	return Ok(());
 }
@@ -241,43 +245,13 @@ fn rethumbnail_mkv(media: &Path, image: &Path, output: &Path) -> Result<(), crat
 // }
 
 /// Rethumbnail for container format "mp3" (using lofty)
+#[inline]
 fn rethumbnail_mp3_lofty(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
 	trace!("Using lofty mp3 rethumbnail");
 
 	// alternative path for mp3, use lofty without having to spawn ffmpeg
 
-	// get the existing metadata in the original file
-	let mut tagged_file = Probe::open(media)
-		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?
-		.read()
-		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?;
-
-	// get the existing metadata, either from the primary tag format, or the first found
-	let primary_tag = match tagged_file.primary_tag_mut() {
-		Some(v) => v,
-		None => tagged_file
-			.first_tag_mut()
-			.ok_or_else(|| return crate::Error::other(format!("No tags in file \"{}\"", media.display())))?,
-	};
-
-	// read & add the picture
-	let mut reader = BufReader::new(File::open(image).attach_path_err(image)?);
-	let mut picture = Picture::from_reader(&mut reader).map_err(|err| {
-		return crate::Error::other(format!("Could not parse picture at \"{}\": {:#}", image.display(), err));
-	})?;
-	picture.set_pic_type(PictureType::CoverFront);
-	// set picture instead of push to only have one image
-	primary_tag.set_picture(0, picture);
-
-	// copy the original file first, because lofty changes metadata and does not remux (requires existing file)
-	// but dont apply it to the original yet
-	std::fs::copy(media, output).attach_path_err(output)?;
-
-	primary_tag
-		.save_to_path(output, WriteOptions::default())
-		.expect("Writing tags failed");
-
-	return Ok(());
+	return lofty_common(media, image, output);
 }
 
 /// Run the provided command and log the stderr
