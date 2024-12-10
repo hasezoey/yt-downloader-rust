@@ -43,7 +43,7 @@ pub trait DownloadOptions {
 	/// Get which subtitle languages to download
 	/// see <https://github.com/yt-dlp/yt-dlp#subtitle-options> for what is available
 	/// [None] disables adding subtitles
-	fn sub_langs(&self) -> Option<&String>;
+	fn sub_langs(&self) -> Option<&str>;
 
 	/// Get the current youtube-dl version in use as a chrono date
 	fn ytdl_version(&self) -> chrono::NaiveDate;

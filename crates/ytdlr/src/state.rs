@@ -203,8 +203,8 @@ impl DownloadOptions for DownloadState<'_> {
 		return self.save_command_log;
 	}
 
-	fn sub_langs(&self) -> Option<&String> {
-		return self.sub_langs;
+	fn sub_langs(&self) -> Option<&str> {
+		return self.sub_langs.map(String::as_str);
 	}
 
 	fn ytdl_version(&self) -> chrono::NaiveDate {
