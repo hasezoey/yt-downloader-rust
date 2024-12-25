@@ -121,19 +121,7 @@ pub fn assemble_ytdl_command<A: DownloadOptions>(
 	// write the media's thumbnail as a seperate file
 	ytdl_args.arg("--write-thumbnail");
 
-	if let Some(sub_langs) = options.sub_langs() {
-		// add subtitles directly into the downloaded file - if available
-		ytdl_args.arg("--embed-subs");
-
-		// write subtiles as a separate file
-		ytdl_args.arg("--write-subs");
-
-		// set which subtitles to download
-		ytdl_args.arg("--sub-langs").arg(sub_langs);
-
-		// set subtitle stream as default directly in the ytdl post-processing
-		ytdl_args.arg("--ppa").arg("EmbedSubtitle:-disposition:s:0 default"); // set stream 0 as default
-	}
+	add_subs(&mut ytdl_args, options);
 
 	// set custom ytdl logging for easy parsing
 	{
@@ -181,6 +169,25 @@ pub fn assemble_ytdl_command<A: DownloadOptions>(
 	ytdl_args.arg(options.get_url());
 
 	return Ok(ytdl_args.into());
+}
+
+/// Add subtitle arguments, if necessary
+fn add_subs<A: DownloadOptions>(ytdl_args: &mut ArgsHelper, options: &A) {
+	let Some(sub_langs) = options.sub_langs() else {
+		return;
+	};
+
+	// add subtitles directly into the downloaded file - if available
+	ytdl_args.arg("--embed-subs");
+
+	// write subtiles as a separate file
+	ytdl_args.arg("--write-subs");
+
+	// set which subtitles to download
+	ytdl_args.arg("--sub-langs").arg(sub_langs);
+
+	// set subtitle stream as default directly in the ytdl post-processing
+	ytdl_args.arg("--ppa").arg("EmbedSubtitle:-disposition:s:0 default"); // set stream 0 as default
 }
 
 #[cfg(test)]
