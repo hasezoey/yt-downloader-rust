@@ -5,6 +5,7 @@ use std::{
 		BufWriter,
 		Write as _,
 	},
+	path::Path,
 };
 
 use diesel::SqliteConnection;
@@ -66,26 +67,7 @@ pub fn assemble_ytdl_command<A: DownloadOptions>(
 	// set a custom format the videos will be in for consistent parsing
 	let output_format = output_dir.join("'%(extractor)s'-'%(id)s'-%(title).150B.%(ext)s");
 
-	if let Some(connection) = connection {
-		debug!("Found connection, generating archive");
-		if let Some(archive_lines) = options.gen_archive(connection) {
-			let archive_file_path = get_archive_name(output_dir);
-
-			// write all lines to the file and drop the handle before giving the argument
-			{
-				let mut archive_write_handle =
-					BufWriter::new(File::create(&archive_file_path).attach_path_err(&archive_file_path)?);
-
-				for archive_line in archive_lines {
-					archive_write_handle
-						.write_all(archive_line.as_bytes())
-						.attach_path_err(&archive_file_path)?;
-				}
-			}
-
-			ytdl_args.arg("--download-archive").arg(&archive_file_path);
-		}
-	}
+	generate_archive(&mut ytdl_args, connection, options, output_dir)?;
 
 	// using unwrap, because it is checked via tests that this statement compiles and is meant to be static
 	// 2023.3.24 is the date of the commit that added "--no-quiet"
@@ -145,6 +127,47 @@ pub fn assemble_ytdl_command<A: DownloadOptions>(
 	ytdl_args.arg(options.get_url());
 
 	return Ok(ytdl_args.into());
+}
+
+/// Generate the ytdl archive, if necessary
+fn generate_archive<A: DownloadOptions>(
+	ytdl_args: &mut ArgsHelper,
+	connection: Option<&mut SqliteConnection>,
+	options: &A,
+	output_dir: &Path,
+) -> Result<(), crate::Error> {
+	// no connection, nothing to generate
+	let Some(connection) = connection else {
+		return Ok(());
+	};
+
+	debug!("Found connection, generating archive");
+
+	// we have a connection, but the implementor didnt want a ytdl archive file or arguments
+	// Note: if this returns none, this means there will be no ytdlr archive file or argument,
+	// which also means that ytdl will not output a ytdl archive
+	let Some(archive_lines) = options.gen_archive(connection) else {
+		debug!("Found connection, but didnt generate any lines.");
+		return Ok(());
+	};
+
+	let archive_file_path = get_archive_name(output_dir);
+
+	// write all lines to the file and drop the handle before giving the argument
+	{
+		let mut archive_write_handle =
+			BufWriter::new(File::create(&archive_file_path).attach_path_err(&archive_file_path)?);
+
+		for archive_line in archive_lines {
+			archive_write_handle
+				.write_all(archive_line.as_bytes())
+				.attach_path_err(&archive_file_path)?;
+		}
+	}
+
+	ytdl_args.arg("--download-archive").arg(&archive_file_path);
+
+	return Ok(());
 }
 
 /// Add subtitle arguments, if necessary
