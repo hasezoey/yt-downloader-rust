@@ -18,7 +18,7 @@ use crate::error::IOErrorToError;
 #[inline]
 #[must_use]
 pub fn base_ffmpeg(overwrite: bool) -> Command {
-	let mut cmd = super::multiplatform::spawn_command(&"ffmpeg");
+	let mut cmd = Command::new("ffmpeg");
 
 	if overwrite {
 		cmd.arg("-y"); // always overwrite output path

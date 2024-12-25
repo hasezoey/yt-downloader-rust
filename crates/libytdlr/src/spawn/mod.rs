@@ -2,5 +2,4 @@
 
 pub mod editor;
 pub mod ffmpeg;
-mod multiplatform;
 pub mod ytdl;

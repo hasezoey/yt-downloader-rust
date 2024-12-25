@@ -17,7 +17,7 @@ pub const YTDL_BIN_NAME: &str = "yt-dlp";
 #[inline]
 #[must_use]
 pub fn base_ytdl() -> Command {
-	return super::multiplatform::spawn_command(&YTDL_BIN_NAME);
+	return Command::new(YTDL_BIN_NAME);
 }
 
 /// Regex to parse the version from a "youtube-dl --version" output

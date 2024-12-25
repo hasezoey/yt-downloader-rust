@@ -8,7 +8,7 @@ use std::{
 #[inline]
 #[must_use]
 pub fn base_editor(editor: &Path, filepath: &Path) -> Command {
-	let mut cmd = super::multiplatform::spawn_command(&editor);
+	let mut cmd = Command::new(editor);
 	cmd.arg(filepath);
 
 	return cmd;
