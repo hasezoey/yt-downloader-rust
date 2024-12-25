@@ -123,31 +123,7 @@ pub fn assemble_ytdl_command<A: DownloadOptions>(
 
 	add_subs(&mut ytdl_args, options);
 
-	// set custom ytdl logging for easy parsing
-	{
-		// print playlist information when available
-		// TODO: replace with "before_playlist" once available, see https://github.com/yt-dlp/yt-dlp/issues/7034
-		ytdl_args
-			.arg("--print")
-			// print the playlist count to get a sizehint
-			.arg("before_dl:PLAYLIST '%(playlist_count)s'");
-
-		// print once before the video starts to download to get all information and to get a consistent start point
-		ytdl_args
-			.arg("--print")
-			.arg("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s");
-		// print once after the video got fully processed to get a consistent end point
-		ytdl_args
-			.arg("--print")
-			// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
-			.arg("after_video:PARSE_END '%(extractor)s' '%(id)s'");
-
-		// print after move to get the filepath of the final output file
-		ytdl_args
-			.arg("--print")
-			// includes "extractor" and "id" for identifying which media the filepath is for
-			.arg("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s");
-	}
+	add_prints(&mut ytdl_args);
 
 	// ensure ytdl is printing progress reports
 	ytdl_args.arg("--progress");
@@ -188,6 +164,34 @@ fn add_subs<A: DownloadOptions>(ytdl_args: &mut ArgsHelper, options: &A) {
 
 	// set subtitle stream as default directly in the ytdl post-processing
 	ytdl_args.arg("--ppa").arg("EmbedSubtitle:-disposition:s:0 default"); // set stream 0 as default
+}
+
+/// Add the custom print statements used for detecting different stages and information
+fn add_prints(ytdl_args: &mut ArgsHelper) {
+	// set custom ytdl logging for easy parsing
+
+	// print playlist information when available
+	// TODO: replace with "before_playlist" once available, see https://github.com/yt-dlp/yt-dlp/issues/7034
+	ytdl_args
+		.arg("--print")
+		// print the playlist count to get a sizehint
+		.arg("before_dl:PLAYLIST '%(playlist_count)s'");
+
+	// print once before the video starts to download to get all information and to get a consistent start point
+	ytdl_args
+		.arg("--print")
+		.arg("before_dl:PARSE_START '%(extractor)s' '%(id)s' %(title)s");
+	// print once after the video got fully processed to get a consistent end point
+	ytdl_args
+		.arg("--print")
+		// only "extractor" and "id" is required, because it can be safely assumed that when this is printed, the "PARSE_START" was also printed
+		.arg("after_video:PARSE_END '%(extractor)s' '%(id)s'");
+
+	// print after move to get the filepath of the final output file
+	ytdl_args
+		.arg("--print")
+		// includes "extractor" and "id" for identifying which media the filepath is for
+		.arg("after_move:MOVE '%(extractor)s' '%(id)s' %(filepath)s");
 }
 
 #[cfg(test)]
