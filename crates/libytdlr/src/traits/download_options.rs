@@ -26,6 +26,9 @@ pub trait DownloadOptions {
 
 	/// Get a iterator over all the lines for a ytdl archive
 	/// All required videos should be made available with this function
+	///
+	/// Returning [None] means that not archive file will be create, which also means ytdl will not output any archive.
+	/// Use `Some(Box::new([].into_iter()))` to still create a archive, but without initial content
 	fn gen_archive<'a>(&'a self, connection: &'a mut SqliteConnection)
 		-> Option<Box<dyn Iterator<Item = String> + 'a>>;
 
