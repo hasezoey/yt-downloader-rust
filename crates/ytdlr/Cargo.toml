@@ -17,7 +17,7 @@ flexi_logger = "0.28" # this logger, because "env_logger" and "simple_logger" do
 is-terminal = "0.4"
 libytdlr = { path = "../libytdlr" }
 dirs.workspace = true
-terminal_size = "0.3"
+terminal_size = "0.4"
 regex.workspace = true
 sysinfo = { version = "0.30", default-features = false }
 ctrlc = { version = "3", features = ["termination"] }
