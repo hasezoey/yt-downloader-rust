@@ -148,7 +148,7 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 	for (index, val) in lines_iter.enumerate() {
 		let val = val?;
 		pgcb(ImportProgress::Increase(1, index));
-		let insmedia = InsMedia::new(&val.media_id, &val.provider, &val.title);
+		let insmedia = (&val).into();
 		let affected = insert_insmedia(&insmedia, merge_to)?;
 
 		affected_rows += affected;

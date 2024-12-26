@@ -42,3 +42,13 @@ impl<'a> InsMedia<'a> {
 		};
 	}
 }
+
+impl<'a> From<&'a Media> for InsMedia<'a> {
+	fn from(value: &'a Media) -> Self {
+		return Self {
+			media_id: &value.media_id,
+			provider: &value.provider,
+			title:    &value.title,
+		};
+	}
+}
