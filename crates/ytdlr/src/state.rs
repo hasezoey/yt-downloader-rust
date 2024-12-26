@@ -13,10 +13,7 @@ use libytdlr::{
 		FormatArgument,
 		MINIMAL_YTDL_VERSION,
 	},
-	spawn::ytdl::{
-		ytdl_parse_version_naivedate,
-		YTDL_BIN_NAME,
-	},
+	spawn::ytdl::ytdl_parse_version_naivedate,
 };
 
 use crate::clap_conf::{
@@ -77,15 +74,6 @@ impl<'a> DownloadState<'a> {
 
 			return *MINIMAL_YTDL_VERSION;
 		});
-
-		if ytdl_version < *MINIMAL_YTDL_VERSION {
-			warn!(
-				"Used {} version ({}) is lower than the recommended {}",
-				YTDL_BIN_NAME,
-				ytdl_version.format("%Y.%m.%d"),
-				MINIMAL_YTDL_VERSION.format("%Y.%m.%d"),
-			);
-		}
 
 		return Self {
 			audio_only_enable: sub_args.audio_only_enable,

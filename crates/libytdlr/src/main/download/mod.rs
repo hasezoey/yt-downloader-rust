@@ -1,6 +1,7 @@
 //! Module for handling youtube-dl
 
 use assemble_cmd::assemble_ytdl_command;
+use chrono::NaiveDate;
 use diesel::SqliteConnection;
 use once_cell::sync::Lazy;
 use parse_linetype::{
@@ -81,6 +82,18 @@ pub enum DownloadProgress {
 	PlaylistInfo(usize),
 }
 
+/// Warn if a version lower than the minimal is used
+fn warn_minimal_version(ytdl_version: NaiveDate) {
+	if ytdl_version < *MINIMAL_YTDL_VERSION {
+		warn!(
+			"Used {} version ({}) is lower than the recommended minimal {}",
+			YTDL_BIN_NAME,
+			ytdl_version.format("%Y.%m.%d"),
+			MINIMAL_YTDL_VERSION.format("%Y.%m.%d"),
+		);
+	}
+}
+
 /// Download a single URL
 /// Assumes ytdl and ffmpeg have already been checked to exist and work (like using [`crate::spawn::ytdl::ytdl_version`])
 /// Adds all non-skipped Media to the input [`Vec<MediaInfo>`]
@@ -90,6 +103,8 @@ pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 	pgcb: C,
 	mediainfo_vec: &mut Vec<MediaInfo>,
 ) -> Result<(), crate::Error> {
+	warn_minimal_version(options.ytdl_version());
+
 	let ytdl_child = {
 		let args = assemble_ytdl_command(connection, options)?;
 
