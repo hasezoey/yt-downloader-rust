@@ -278,6 +278,15 @@ mod tests {
 	}
 
 	#[test]
+	fn test_linetype_download_unknown() {
+		let input = "[download]   0.0% of   75.34MiB at  Unknown B/s ETA Unknown";
+
+		let linetype = LineType::try_from_line(input).unwrap();
+		assert_eq!(LineType::Download, linetype);
+		assert_eq!(Some(0), linetype.try_get_download_percent(input))
+	}
+
+	#[test]
 	fn test_try_get_download_percent() {
 		// should try to apply the regex, but would not find anything
 		let input = "[download] Downloading playlist: test";
