@@ -13,8 +13,9 @@ use diesel::SqliteConnection;
 use crate::{
 	error::IOErrorToError as _,
 	main::download::get_archive_name,
-	traits::download_options::DownloadOptions,
 };
+
+use super::download_options::DownloadOptions;
 
 /// Internal Struct for easily adding various types that resolve to [`OsString`] and output a [`Vec<OsString>`]
 /// exists because [std::process::Command] is too overkill to use for a argument collection for having to use [duct] later

@@ -8,11 +8,11 @@ use std::{
 use libytdlr::{
 	chrono,
 	diesel,
-	spawn::ytdl::YTDL_BIN_NAME,
-	traits::download_options::{
+	main::download::{
 		DownloadOptions,
 		FormatArgument,
 	},
+	spawn::ytdl::YTDL_BIN_NAME,
 };
 use once_cell::sync::Lazy;
 

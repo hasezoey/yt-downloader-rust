@@ -19,13 +19,19 @@ use indicatif::{
 	ProgressStyle,
 };
 use libytdlr::{
-	data,
-	data::cache::media_info::MediaInfo,
+	data::{
+		self,
+		cache::media_info::MediaInfo,
+	},
 	diesel,
 	error::IOErrorToError,
-	main,
-	main::download::YTDL_ARCHIVE_PREFIX,
-	traits::download_options::DownloadOptions,
+	main::{
+		self,
+		download::{
+			DownloadOptions as _,
+			YTDL_ARCHIVE_PREFIX,
+		},
+	},
 };
 use once_cell::sync::Lazy;
 use regex::Regex;

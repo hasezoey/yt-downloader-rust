@@ -21,10 +21,15 @@ use crate::{
 	data::cache::media_info::MediaInfo,
 	error::IOErrorToError,
 	spawn::ytdl::YTDL_BIN_NAME,
-	traits::download_options::DownloadOptions,
+};
+
+pub use download_options::{
+	DownloadOptions,
+	FormatArgument,
 };
 
 mod assemble_cmd;
+mod download_options;
 mod parse_linetype;
 
 /// Types for [DownloadProgress::Skipped]
@@ -336,12 +341,13 @@ pub(crate) mod test_utils {
 		TempDir,
 	};
 
-	use crate::traits::download_options::{
-		DownloadOptions,
-		FormatArgument,
+	use super::{
+		download_options::{
+			DownloadOptions,
+			FormatArgument,
+		},
+		DownloadProgress,
 	};
-
-	use super::DownloadProgress;
 
 	/// Test Implementation for [`DownloadOptions`]
 	pub struct TestOptions {

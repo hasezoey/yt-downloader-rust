@@ -12,7 +12,6 @@ pub mod data;
 pub mod error;
 pub mod main;
 pub mod spawn;
-pub mod traits;
 pub mod utils;
 pub use error::Error;
 
