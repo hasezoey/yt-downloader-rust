@@ -124,7 +124,7 @@ impl LineType {
 		/// Regex to parse the download percentage from a line
 		/// cap1: precentage(not decimal)
 		static DOWNLOAD_PERCENTAGE_REGEX: Lazy<Regex> = Lazy::new(|| {
-			return Regex::new(r"(?mi)^^\[[\da-z:_]*\]\s+(\d{1,3})(?:\.\d)?%").unwrap();
+			return Regex::new(r"(?mi)^\[download\]\s+(\d{1,3})(?:\.\d)?%").unwrap();
 		});
 
 		let input = input.as_ref();
