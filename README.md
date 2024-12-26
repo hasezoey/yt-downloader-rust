@@ -16,7 +16,7 @@ Notes:
 
 ### Building requirements
 
-- rust stable 1.70 profile `minimal` or higher is needed
+- rust stable 1.75 profile `minimal` or higher is needed
 - `build-essentail`(ubuntu) or `base-devel`(arch) needs to be installed
 - `libsqlite3-dev`(ubuntu) or `core/sqlite`(arch) needs to be installed
 - `git` needs to be available (required by build-script)
