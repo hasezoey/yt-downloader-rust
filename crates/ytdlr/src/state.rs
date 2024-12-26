@@ -54,10 +54,6 @@ pub struct DownloadState<'a> {
 	video_format: &'a str,
 }
 
-/// The default youtube-dl version to use
-static DEFAULT_YTDL_VERSION: Lazy<chrono::NaiveDate> =
-	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 3, 4).unwrap());
-
 /// The minimal youtube-dl that is recommended to be used
 static MINIMAL_YTDL_VERSION: Lazy<chrono::NaiveDate> =
 	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 3, 3).unwrap());
@@ -80,7 +76,7 @@ impl<'a> DownloadState<'a> {
 		let ytdl_version = chrono::NaiveDate::parse_from_str(ytdl_version, "%Y.%m.%d").unwrap_or_else(|_| {
 			warn!("Could not determine youtube-dl version properly, using default");
 
-			return *DEFAULT_YTDL_VERSION;
+			return *MINIMAL_YTDL_VERSION;
 		});
 
 		if ytdl_version < *MINIMAL_YTDL_VERSION {
@@ -228,10 +224,6 @@ mod test {
 	#[test]
 	fn static_dates_should_be_ok() {
 		// simple test to test that the versions compile without panic
-		let _ = *DEFAULT_YTDL_VERSION;
 		let _ = *MINIMAL_YTDL_VERSION;
-
-		// compare dates so that DEFAULT is always higher than MINIMAL
-		assert!(*DEFAULT_YTDL_VERSION >= *MINIMAL_YTDL_VERSION);
 	}
 }
