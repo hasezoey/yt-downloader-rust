@@ -19,7 +19,7 @@ libytdlr = { path = "../libytdlr" }
 dirs.workspace = true
 terminal_size = "0.4"
 regex.workspace = true
-sysinfo = { version = "0.30", default-features = false }
+sysinfo = { version = "0.33", default-features = false, features = ["system"]}
 ctrlc = { version = "3", features = ["termination"] }
 once_cell.workspace = true
 # the following 2 are required to get the correct boundaries to truncate at

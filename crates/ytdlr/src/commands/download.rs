@@ -358,10 +358,8 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 		));
 	}
 
-	// IMPORTANT: currently sysinfo creates threads, but never closes them (even when going out of scope)
-	// see https://github.com/GuillaumeGomez/sysinfo/issues/927
 	let mut s = sysinfo::System::new();
-	s.refresh_processes();
+	s.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
 	for file in path.read_dir().attach_path_err(path)?.filter_map(|res| {
 		let entry = res.ok()?;
@@ -1679,10 +1677,9 @@ fn try_find_and_read_recovery_files(
 	}
 
 	let mut read_files: Vec<PathBuf> = Vec::new();
-	// IMPORTANT: currently sysinfo creates threads, but never closes them (even when going out of scope)
-	// see https://github.com/GuillaumeGomez/sysinfo/issues/927
+
 	let mut s = sysinfo::System::new();
-	s.refresh_processes();
+	s.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
 	for file in path.read_dir().attach_path_err(path)?.filter_map(|res| {
 		let entry = res.ok()?;
