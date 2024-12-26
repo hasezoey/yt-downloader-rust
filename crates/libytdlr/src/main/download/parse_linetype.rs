@@ -57,14 +57,6 @@ impl LineType {
 		// check if the line is from a provider-like output
 		if let Some(cap) = BASIC_TYPE_REGEX.captures(input) {
 			let name = &cap[1];
-			// this case is first, because it is the most common case
-			if name == "download" {
-				return Some(Self::Download);
-			}
-
-			if name == "ffmpeg" {
-				return Some(Self::Ffmpeg);
-			}
 
 			if YTDL_ARCHIVE_SKIP_REGEX.is_match(input) {
 				return Some(Self::ArchiveSkip);
@@ -73,6 +65,15 @@ impl LineType {
 			if YTDL_PLAYLIST_REGEX.is_match(input) {
 				// this likely should have its own LineType, but for now the path of "Custom" is used
 				return Some(Self::Custom);
+			}
+
+			// this case is first, because it is the most common case
+			if name == "download" {
+				return Some(Self::Download);
+			}
+
+			if name == "ffmpeg" {
+				return Some(Self::Ffmpeg);
 			}
 
 			// everything that is not specially handled before, will get treated as being a provider
@@ -275,6 +276,9 @@ mod tests {
 		let input = "WARNING: [youtube] Falling back to generic n function search
          player = https://somewhere.com/some.js";
 		assert_eq!(Some(LineType::Warning), LineType::try_from_line(input));
+
+		let input = "[download] someid: has already been recorded in the archive";
+		assert_eq!(Some(LineType::ArchiveSkip), LineType::try_from_line(input));
 	}
 
 	#[test]
