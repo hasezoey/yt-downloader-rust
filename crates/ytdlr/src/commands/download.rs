@@ -848,11 +848,12 @@ fn do_download(
 			pgbar.finish_and_clear();
 			let total = total_count.fetch_add(new_count, std::sync::atomic::Ordering::AcqRel) + new_count;
 			// print how many media has been downloaded since last "AllStarting" and how many in total in this run
+			let url_index = download_info.borrow().url_index;
 			pgbar.println(format!(
 				"Finished Downloading {new_count} new Media (For a total of {total} Media) (url {}/{})",
-				download_info.borrow().url_index,
-				url_len
+				url_index, url_len
 			));
+			download_info.borrow_mut().reset_for_new_url(url_index);
 		},
 		main::download::DownloadProgress::PlaylistInfo(new_count) => {
 			let mut borrow = download_info.borrow_mut();
