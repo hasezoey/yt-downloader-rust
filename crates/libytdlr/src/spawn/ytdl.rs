@@ -10,6 +10,8 @@ use regex::Regex;
 
 use crate::error::IOErrorToError;
 
+use super::ffmpeg::require_ffmpeg_installed;
+
 /// Binary name to spawn for the youtube-dl process
 pub const YTDL_BIN_NAME: &str = "yt-dlp";
 
@@ -18,6 +20,26 @@ pub const YTDL_BIN_NAME: &str = "yt-dlp";
 #[must_use]
 pub fn base_ytdl() -> Command {
 	return Command::new(YTDL_BIN_NAME);
+}
+
+/// Test if ytdl is installed and reachable, including required dependencies like ffmpeg and return the version found.
+///
+/// This function is not automatically called in the library, it is recommended to run this in any binary trying to run libytdlr.
+pub fn require_ytdl_installed() -> Result<String, crate::Error> {
+	require_ffmpeg_installed()?;
+
+	return match ytdl_version() {
+		Ok(v) => Ok(v),
+		Err(err) => {
+			log::error!("Could not start or find youtube-dl! Error: {}", err);
+
+			return Err(crate::Error::custom_ioerror_location(
+				std::io::ErrorKind::NotFound,
+				"Youtube-DL(p) Version could not be determined, is it installed and reachable?",
+				format!("{} in PATH", YTDL_BIN_NAME),
+			));
+		},
+	};
 }
 
 /// Regex to parse the version from a "youtube-dl --version" output

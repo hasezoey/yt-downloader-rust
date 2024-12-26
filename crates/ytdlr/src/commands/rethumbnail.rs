@@ -1,19 +1,19 @@
 use std::path::PathBuf;
 
-use crate::{
-	clap_conf::{
-		CliDerive,
-		CommandReThumbnail,
-	},
-	utils,
+use crate::clap_conf::{
+	CliDerive,
+	CommandReThumbnail,
 };
-use libytdlr::main::rethumbnail::re_thumbnail_with_tmp;
+use libytdlr::{
+	main::rethumbnail::re_thumbnail_with_tmp,
+	spawn::ffmpeg::require_ffmpeg_installed,
+};
 
 /// Handler function for the "rethumbnail" subcommand
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 pub fn command_rethumbnail(_main_args: &CliDerive, sub_args: &CommandReThumbnail) -> Result<(), crate::Error> {
-	utils::require_ffmpeg_installed()?;
+	require_ffmpeg_installed()?;
 
 	// helper aliases to make it easier to access
 	let input_image_path: &PathBuf = &sub_args.input_image_path;

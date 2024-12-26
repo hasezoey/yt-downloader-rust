@@ -67,6 +67,24 @@ pub(crate) fn unsuccessfull_command_exit(status: std::process::ExitStatus, outpu
 	));
 }
 
+/// Test if FFMPEG is installed and reachable and return the version found.
+///
+/// This function is not automatically called in the library, it is recommended to run this in any binary trying to run libytdlr.
+pub fn require_ffmpeg_installed() -> Result<String, crate::Error> {
+	return match ffmpeg_version() {
+		Ok(v) => Ok(v),
+		Err(err) => {
+			log::error!("Could not start or find ffmpeg! Error: {}", err);
+
+			return Err(crate::Error::custom_ioerror_location(
+				std::io::ErrorKind::NotFound,
+				"FFmpeg Version could not be determined, is it installed and reachable?",
+				"ffmpeg in PATH",
+			));
+		},
+	};
+}
+
 /// Get Version of `ffmpeg`
 #[inline]
 pub fn ffmpeg_version() -> Result<String, crate::Error> {

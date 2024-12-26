@@ -16,13 +16,6 @@ use libytdlr::{
 		IOErrorToError,
 	},
 	main::archive::import::ImportProgress,
-	spawn::{
-		ffmpeg::ffmpeg_version,
-		ytdl::{
-			ytdl_version,
-			YTDL_BIN_NAME,
-		},
-	},
 };
 use std::{
 	borrow::Cow,
@@ -56,40 +49,6 @@ pub fn set_progressbar(bar: &ProgressBar, main_args: &CliDerive) {
 	if main_args.is_interactive() {
 		bar.set_draw_target(ProgressDrawTarget::stderr());
 	}
-}
-
-/// Test if ytdl is installed and reachable, including required dependencies like ffmpeg
-/// Returns the version used
-pub fn require_ytdl_installed() -> Result<String, crate::Error> {
-	require_ffmpeg_installed()?;
-
-	return match ytdl_version() {
-		Ok(v) => Ok(v),
-		Err(err) => {
-			log::error!("Could not start or find youtube-dl! Error: {}", err);
-
-			return Err(crate::Error::custom_ioerror_location(
-				std::io::ErrorKind::NotFound,
-				"Youtube-DL(p) Version could not be determined, is it installed and reachable?",
-				format!("{} in PATH", YTDL_BIN_NAME),
-			));
-		},
-	};
-}
-
-/// Test if FFMPEG is installed and reachable
-pub fn require_ffmpeg_installed() -> Result<(), crate::Error> {
-	if let Err(err) = ffmpeg_version() {
-		log::error!("Could not start or find ffmpeg! Error: {}", err);
-
-		return Err(crate::Error::custom_ioerror_location(
-			std::io::ErrorKind::NotFound,
-			"FFmpeg Version could not be determined, is it installed and reachable?",
-			"ffmpeg in PATH",
-		));
-	}
-
-	return Ok(());
 }
 
 /// Handler function for using [`libytdlr::main::sql_utils::migrate_and_connect`] with a [`ProgressBar`]

@@ -32,6 +32,7 @@ use libytdlr::{
 			YTDL_ARCHIVE_PREFIX,
 		},
 	},
+	spawn::ytdl::require_ytdl_installed,
 };
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -421,7 +422,7 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Result<(), crate::Error> {
-	let ytdl_version = utils::require_ytdl_installed()?;
+	let ytdl_version = require_ytdl_installed()?;
 
 	let only_recovery = sub_args.urls.is_empty();
 
