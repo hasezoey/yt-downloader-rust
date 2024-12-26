@@ -93,14 +93,12 @@ impl MediaInfo {
 	}
 }
 
-impl From<&MediaInfo> for InsMedia {
-	fn from(v: &MediaInfo) -> Self {
+impl<'a> From<&'a MediaInfo> for InsMedia<'a> {
+	fn from(v: &'a MediaInfo) -> Self {
 		return Self::new(
-			v.id.clone(),
-			v.provider.clone(),
-			v.title
-				.clone()
-				.unwrap_or_else(|| return UNKNOWN_NONE_PROVIDED.to_owned()),
+			&v.id,
+			v.provider.as_str(),
+			v.title.as_ref().map_or(UNKNOWN_NONE_PROVIDED, |v| return v.as_str()),
 		);
 	}
 }

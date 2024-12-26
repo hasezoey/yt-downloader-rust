@@ -23,22 +23,22 @@ pub struct Media {
 /// Struct for inserting a [Media] into the database
 #[derive(Debug, Clone, PartialEq, Insertable)]
 #[diesel(table_name = media_archive)]
-pub struct InsMedia {
+pub struct InsMedia<'a> {
 	/// The ID of the media given used by the provider
-	pub media_id: String,
+	pub media_id: &'a str,
 	/// The Provider from where this media was downloaded from
-	pub provider: String,
+	pub provider: &'a str,
 	/// The Title the media has
-	pub title:    String,
+	pub title:    &'a str,
 }
 
-impl InsMedia {
+impl<'a> InsMedia<'a> {
 	/// Create a new instance of [InsMedia]
-	pub fn new<MID: AsRef<str>, P: AsRef<str>, T: AsRef<str>>(media_id: MID, provider: P, title: T) -> Self {
+	pub fn new(media_id: &'a str, provider: &'a str, title: &'a str) -> Self {
 		return Self {
-			media_id: media_id.as_ref().into(),
-			provider: provider.as_ref().into(),
-			title:    title.as_ref().into(),
+			media_id,
+			provider,
+			title,
 		};
 	}
 }

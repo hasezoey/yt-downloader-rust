@@ -9,6 +9,14 @@ use crate::data::UNKNOWN;
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct Provider(String);
 
+impl Provider {
+	/// Get current current [`Provider`] as a str
+	#[must_use]
+	pub fn as_str(&self) -> &str {
+		return &self.0;
+	}
+}
+
 impl From<&Provider> for String {
 	fn from(provider: &Provider) -> Self {
 		return provider.0.clone();

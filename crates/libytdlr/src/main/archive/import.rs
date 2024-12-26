@@ -148,7 +148,7 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 	for (index, val) in lines_iter.enumerate() {
 		let val = val?;
 		pgcb(ImportProgress::Increase(1, index));
-		let insmedia = InsMedia::new(val.media_id, val.provider, val.title);
+		let insmedia = InsMedia::new(&val.media_id, &val.provider, &val.title);
 		let affected = insert_insmedia(&insmedia, merge_to)?;
 
 		affected_rows += affected;
@@ -188,7 +188,7 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 		let filename = REMOVE_KNOWN_FILEEXTENSION.replace_all(video.file_name(), "");
 
-		let insmedia = InsMedia::new(video.id(), String::from(video.provider()), filename);
+		let insmedia = InsMedia::new(video.id(), video.provider().as_str(), &filename);
 
 		let affected = insert_insmedia(&insmedia, merge_to)?;
 
@@ -242,7 +242,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(line) {
 			let affected = insert_insmedia(
-				&InsMedia::new(&cap[2], String::from(&Provider::from(&cap[1])), UNKNOWN_NONE_PROVIDED),
+				&InsMedia::new(&cap[2], Provider::from(&cap[1]).as_str(), UNKNOWN_NONE_PROVIDED),
 				merge_to,
 			)?;
 
