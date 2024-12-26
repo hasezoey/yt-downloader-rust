@@ -11,10 +11,13 @@ use libytdlr::{
 	main::download::{
 		DownloadOptions,
 		FormatArgument,
+		MINIMAL_YTDL_VERSION,
 	},
-	spawn::ytdl::YTDL_BIN_NAME,
+	spawn::ytdl::{
+		ytdl_parse_version_naivedate,
+		YTDL_BIN_NAME,
+	},
 };
-use once_cell::sync::Lazy;
 
 use crate::clap_conf::{
 	ArchiveMode,
@@ -54,10 +57,6 @@ pub struct DownloadState<'a> {
 	video_format: &'a str,
 }
 
-/// The minimal youtube-dl that is recommended to be used
-static MINIMAL_YTDL_VERSION: Lazy<chrono::NaiveDate> =
-	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 3, 3).unwrap());
-
 impl<'a> DownloadState<'a> {
 	/// Create a new instance of [`DownloadState`] with the required options
 	pub fn new(sub_args: &'a CommandDownload, download_path: PathBuf, ytdl_version: &str) -> Self {
@@ -73,7 +72,7 @@ impl<'a> DownloadState<'a> {
 			})
 			.collect();
 
-		let ytdl_version = chrono::NaiveDate::parse_from_str(ytdl_version, "%Y.%m.%d").unwrap_or_else(|_| {
+		let ytdl_version = ytdl_parse_version_naivedate(ytdl_version).unwrap_or_else(|_| {
 			warn!("Could not determine youtube-dl version properly, using default");
 
 			return *MINIMAL_YTDL_VERSION;

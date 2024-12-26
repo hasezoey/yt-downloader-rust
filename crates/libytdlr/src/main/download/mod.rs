@@ -2,6 +2,7 @@
 
 use assemble_cmd::assemble_ytdl_command;
 use diesel::SqliteConnection;
+use once_cell::sync::Lazy;
 use parse_linetype::{
 	CustomParseType,
 	LineType,
@@ -31,6 +32,12 @@ pub use download_options::{
 mod assemble_cmd;
 mod download_options;
 mod parse_linetype;
+
+/// The minimal youtube-dl(p) version that is expected to be used.
+///
+/// Newer versions can be used to likely unlock extra functionality, but ytdlr is build around this as the minimal in mind.
+pub static MINIMAL_YTDL_VERSION: Lazy<chrono::NaiveDate> =
+	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 3, 3).unwrap());
 
 /// Types for [DownloadProgress::Skipped]
 #[derive(Debug, Clone, PartialEq, Copy)]

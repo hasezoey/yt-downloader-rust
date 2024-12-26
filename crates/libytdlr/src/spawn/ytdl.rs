@@ -72,7 +72,7 @@ pub fn ytdl_version() -> Result<String, crate::Error> {
 	return ytdl_parse_version(&as_string);
 }
 
-/// Internal Function to parse the input to a ffmpeg version with regex
+/// Internal Function to parse the input to a ytdl version with regex
 #[inline]
 fn ytdl_parse_version(input: &str) -> Result<String, crate::Error> {
 	return Ok(YTDL_VERSION_REGEX
@@ -82,12 +82,27 @@ fn ytdl_parse_version(input: &str) -> Result<String, crate::Error> {
 		.to_owned());
 }
 
+/// Try to parse a given `input`, which is a youtube-dl(p) version, as a [NaiveDate](chrono::NaiveDate).
+pub fn ytdl_parse_version_naivedate(input: &str) -> Result<chrono::NaiveDate, crate::Error> {
+	let version = ytdl_parse_version(input)?;
+
+	let date = chrono::NaiveDate::parse_from_str(&version, "%Y.%m.%d").map_err(|err| {
+		return crate::Error::other(format!("Could not parse \"{version}\" as a date: {err}"));
+	})?;
+
+	return Ok(date);
+}
+
 #[cfg(test)]
 mod test {
+	use chrono::NaiveDate;
+
+	use crate::spawn::ytdl::ytdl_parse_version_naivedate;
+
 	use super::ytdl_version;
 
 	#[test]
-	pub fn test_ytdl_parse_version_invalid_input() {
+	fn test_ytdl_parse_version_invalid_input() {
 		assert_eq!(
 			super::ytdl_parse_version("hello"),
 			Err(crate::Error::no_captures("YTDL Version could not be determined"))
@@ -95,7 +110,7 @@ mod test {
 	}
 
 	#[test]
-	pub fn test_ytdl_parse_version_valid_static_input() {
+	fn test_ytdl_parse_version_valid_static_input() {
 		let ytdl_output = "2021.12.27";
 
 		assert_eq!(super::ytdl_parse_version(ytdl_output), Ok("2021.12.27".to_owned()));
@@ -103,7 +118,15 @@ mod test {
 
 	#[test]
 	#[ignore = "CI Install not present currently"]
-	pub fn test_ytdl_spawn() {
+	fn test_ytdl_spawn() {
 		assert!(ytdl_version().is_ok());
+	}
+
+	#[test]
+	fn test_parse_naivedate() {
+		assert_eq!(
+			NaiveDate::from_ymd_opt(2024, 01, 01).unwrap(),
+			ytdl_parse_version_naivedate("2024.01.01").unwrap()
+		);
 	}
 }
