@@ -804,7 +804,7 @@ fn do_download(
 	// track total count finished (no error)
 	let total_count = std::sync::atomic::AtomicUsize::new(0);
 	let download_pgcb = |dpg| match dpg {
-		main::download::DownloadProgress::AllStarting => {
+		main::download::DownloadProgress::UrlStarting => {
 			pgbar.reset();
 			pgbar.set_message(""); // because pgbar is not hidden and "reset" seemingly does not clear the message
 			let url_index = download_info.borrow().url_index;
@@ -844,7 +844,7 @@ fn do_download(
 			download_info.borrow_mut().reset_single_specific();
 			set_progressbar_prefix(pgbar, &download_info.borrow().url_specific);
 		},
-		main::download::DownloadProgress::AllFinished(new_count) => {
+		main::download::DownloadProgress::UrlFinished(new_count) => {
 			pgbar.finish_and_clear();
 			let total = total_count.fetch_add(new_count, std::sync::atomic::Ordering::AcqRel) + new_count;
 			// print how many media has been downloaded since last "AllStarting" and how many in total in this run

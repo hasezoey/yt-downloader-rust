@@ -41,8 +41,8 @@ pub enum SkippedType {
 /// but not all may be called, like there may be "SingleStarting -> SingleProgress -> Skipped" instead of "SingleStarting -> SingleProgress -> SingleFinished"
 #[derive(Debug, Clone, PartialEq)]
 pub enum DownloadProgress {
-	/// Variant representing that the download is starting
-	AllStarting,
+	/// Variant representing that the download of a single url is starting
+	UrlStarting,
 	/// Variant representing a skipped element, may or may not come because of it already being in the archive
 	/// may be called after "SingleStarting" and / or "SingleProcess" instead of "SingleFinished"
 	/// values (skipped_count)
@@ -59,10 +59,10 @@ pub enum DownloadProgress {
 	/// will only be called if there was a download AND no error happened
 	/// values: (id)
 	SingleFinished(String),
-	/// Variant representing that the download has finished
+	/// Variant representing that the download of a single url has finished
 	/// The value in this tuple is the size of actually downloaded media, not just found media
 	/// values: (downloaded media count)
-	AllFinished(usize),
+	UrlFinished(usize),
 	/// Variant representing that playlist info has been found - may not trigger if not in a playlist
 	/// the first (and currently only) value is the count of media in the playlist
 	/// values: (playlist_count)
@@ -140,7 +140,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	mediainfo_vec: &mut Vec<MediaInfo>,
 ) -> Result<(), crate::Error> {
 	// report that the downloading is now starting
-	pgcb(DownloadProgress::AllStarting);
+	pgcb(DownloadProgress::UrlStarting);
 
 	// cache the bool for "print_command_stdout" to not execute the function for every line (should be a static value)
 	let print_stdout = options.print_command_log();
@@ -238,7 +238,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 	}
 
 	// report that downloading is now finished
-	pgcb(DownloadProgress::AllFinished(mediainfo_vec.len()));
+	pgcb(DownloadProgress::UrlFinished(mediainfo_vec.len()));
 
 	if let Some(last_error) = last_error {
 		return Err(last_error);
@@ -541,7 +541,7 @@ mod test {
 		#[test]
 		fn test_basic_single_usage() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 50),
@@ -552,7 +552,7 @@ mod test {
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
 				DownloadProgress::SingleFinished("-----------".to_owned()),
-				DownloadProgress::AllFinished(1),
+				DownloadProgress::UrlFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
@@ -593,7 +593,7 @@ PARSE_END 'youtube' '-----------'
 		#[test]
 		fn test_basic_multi_usage() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("----------0".to_owned(), "Some Title Here 0".to_owned()),
 				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 0),
 				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 50),
@@ -614,7 +614,7 @@ PARSE_END 'youtube' '-----------'
 				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 100),
 				DownloadProgress::SingleProgress(Some("----------1".to_owned()), 100),
 				DownloadProgress::SingleFinished("----------1".to_owned()),
-				DownloadProgress::AllFinished(2),
+				DownloadProgress::UrlFinished(2),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
@@ -668,7 +668,7 @@ PARSE_END 'soundcloud' '----------1'
 		#[test]
 		fn test_skipped() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 50),
@@ -680,7 +680,7 @@ PARSE_END 'soundcloud' '----------1'
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
 				DownloadProgress::SingleFinished("-----------".to_owned()),
 				DownloadProgress::Skipped(1, SkippedType::InArchive),
-				DownloadProgress::AllFinished(1),
+				DownloadProgress::UrlFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
@@ -723,7 +723,7 @@ PARSE_END 'youtube' '-----------'
 		#[test]
 		fn test_skip_error_and_normal() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
@@ -733,7 +733,7 @@ PARSE_END 'youtube' '-----------'
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
 				DownloadProgress::SingleFinished("someid4".to_owned()),
-				DownloadProgress::AllFinished(1),
+				DownloadProgress::UrlFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
@@ -788,7 +788,7 @@ PARSE_END 'aprovider' 'someid4'
 		#[test]
 		fn test_warning_line() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 50),
@@ -799,7 +799,7 @@ PARSE_END 'aprovider' 'someid4'
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 100),
 				DownloadProgress::SingleFinished("-----------".to_owned()),
-				DownloadProgress::AllFinished(1),
+				DownloadProgress::UrlFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
@@ -843,7 +843,7 @@ PARSE_END 'youtube' '-----------'
 		#[test]
 		fn test_error_while_downloading() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::SingleStarting("someid1".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid1".to_owned()), 0),
@@ -859,7 +859,7 @@ PARSE_END 'youtube' '-----------'
 				DownloadProgress::SingleStarting("someid4".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 0),
 				DownloadProgress::Skipped(1, SkippedType::Error), // one error skip
-				DownloadProgress::AllFinished(1),
+				DownloadProgress::UrlFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
@@ -943,7 +943,7 @@ PARSE_END 'aprovider' 'someid4'
 		#[test]
 		fn test_playlistsize_from_playlist_downloading_items() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
@@ -953,7 +953,7 @@ PARSE_END 'aprovider' 'someid4'
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
 				DownloadProgress::SingleFinished("someid4".to_owned()),
-				DownloadProgress::AllFinished(1),
+				DownloadProgress::UrlFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
@@ -1009,7 +1009,7 @@ PARSE_END 'aprovider' 'someid4'
 		#[test]
 		fn test_playlistsize_from_custom_playlist() {
 			let expected_pg = &vec![
-				DownloadProgress::AllStarting,
+				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
@@ -1020,7 +1020,7 @@ PARSE_END 'aprovider' 'someid4'
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
 				DownloadProgress::SingleProgress(Some("someid4".to_owned()), 100),
 				DownloadProgress::SingleFinished("someid4".to_owned()),
-				DownloadProgress::AllFinished(1),
+				DownloadProgress::UrlFinished(1),
 			];
 			let expect_index = Arc::new(AtomicUsize::new(0));
 
