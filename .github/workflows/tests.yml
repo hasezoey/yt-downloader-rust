@@ -47,6 +47,9 @@ jobs:
         if: github.event.inputs.git-ref != ''
         with:
           ref: ${{ github.event.inputs.git-ref }}
+      - name: Install dev dependencies
+        # This seemingly worked without this in 2024, but not in 2025 CI
+        run: sudo apt update && sudo apt install libsqlite3-dev
       - name: Install Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
