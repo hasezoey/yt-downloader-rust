@@ -9,6 +9,7 @@ This is a manually written changelog, and only tracks front-facing changes since
 - `download`: ignore files that have `.temp` before the extension (youtube-dl files before post-processing)
 - `download`: ignore entries that are not a file or are size 0
 - `download`: fix not parsing `LineType::ArchiveSkip` correctly
+- `download`: reset progressbar again when actually moving file. (otherwise the time will count since the last reset, which was before asking what to do)
 - `rethumbnail`: support ogg container (via lofty)
 - `rethumbnail`: use lofty for mp3 rethumbnailing
 - bump msrv to `1.75`

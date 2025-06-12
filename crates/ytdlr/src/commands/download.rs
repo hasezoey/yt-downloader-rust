@@ -1438,9 +1438,7 @@ fn finish_media(
 
 	// first set the draw-target so that any subsequent setting change does not cause a draw
 	pgbar.set_draw_target(ProgressDrawTarget::hidden()); // so that it stays hidden until actually doing stuff
-	pgbar.reset();
-	pgbar.set_length(final_media.mediainfo_map.len().try_into().unwrap_or(u64::MAX));
-	pgbar.set_message("Moving files");
+	reset_progressbar_for_move(pgbar, final_media);
 
 	if main_args.is_interactive() && !sub_args.open_tagger {
 		// the following is used to ask the user what to do with the media-files
@@ -1560,6 +1558,13 @@ fn try_gen_final_path(dir_path: &Path, filename: &Path) -> Option<PathBuf> {
 	return Some(to_path);
 }
 
+/// Reset the progressbar for moving files
+fn reset_progressbar_for_move(pgbar: &ProgressBar, final_media: &MediaInfoArr) {
+	pgbar.reset();
+	pgbar.set_length(final_media.mediainfo_map.len().try_into().unwrap_or(u64::MAX));
+	pgbar.set_message("Moving files");
+}
+
 /// Move all media in `final_media` to it final resting place in `download_path`
 /// Helper to separate out the possible paths
 fn finish_with_move(
@@ -1581,6 +1586,8 @@ fn finish_with_move(
 	std::fs::create_dir_all(&final_dir_path).attach_path_err(&final_dir_path)?;
 
 	let mut moved_count = 0usize;
+	// reset again, as the "active time" will count since last reset
+	reset_progressbar_for_move(pgbar, final_media);
 	pgbar.set_draw_target(ProgressDrawTarget::stderr());
 
 	for media_helper in final_media.mediainfo_map.values() {
@@ -1642,6 +1649,8 @@ fn finish_with_tagger(
 
 	let final_dir_path = download_path.join("final");
 	std::fs::create_dir_all(&final_dir_path).attach_path_err(&final_dir_path)?;
+
+	reset_progressbar_for_move(pgbar, final_media);
 	pgbar.set_draw_target(ProgressDrawTarget::stderr());
 
 	for media_helper in final_media.mediainfo_map.values() {
