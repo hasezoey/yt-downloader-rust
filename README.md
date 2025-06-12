@@ -161,7 +161,6 @@ Aliases: `import`
 
 Currently supported formats that can be imported:
 
-- JSON Archive (from previous versions)
 - youtube-dl (provider, id) Archive
 - SQLite Archive
 
