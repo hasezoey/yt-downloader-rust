@@ -212,7 +212,3 @@ ytdlr archive search provider=youtube title="bug"
 ## Notes
 
 This Project is mainly a personal project, so it is currently tailored to my use-cases, but issues / requests will still be reviewed.
-
-## Project TODO
-
-Currently there is nothing to-do.
