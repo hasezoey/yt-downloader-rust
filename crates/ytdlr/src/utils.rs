@@ -1,8 +1,8 @@
 //! Utils for the `ytdlr` binary
 
 use crate::{
-	clap_conf::CliDerive,
 	TERMINATE,
+	clap_conf::CliDerive,
 };
 use indicatif::{
 	ProgressBar,
@@ -253,7 +253,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 					},
 					Err(mpsc::TryRecvError::Empty) => (),
 					Err(mpsc::TryRecvError::Disconnected) => {
-						return Err(crate::Error::other("Channel unexpectedly disconnected"))
+						return Err(crate::Error::other("Channel unexpectedly disconnected"));
 					},
 				}
 

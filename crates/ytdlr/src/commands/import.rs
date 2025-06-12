@@ -12,8 +12,8 @@ use indicatif::{
 	ProgressStyle,
 };
 use libytdlr::main::archive::import::{
-	import_any_archive,
 	ImportProgress,
+	import_any_archive,
 };
 
 /// Handler function for the "archive import" subcommand

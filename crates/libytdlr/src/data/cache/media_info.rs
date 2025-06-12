@@ -15,8 +15,8 @@ use std::{
 
 use super::media_provider::MediaProvider;
 use crate::data::{
-	sql_models::InsMedia,
 	UNKNOWN_NONE_PROVIDED,
+	sql_models::InsMedia,
 };
 
 /// Contains Media Information, like file-name and last processed status

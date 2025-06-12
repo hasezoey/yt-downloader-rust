@@ -350,8 +350,8 @@ pub(crate) mod test_utils {
 	use std::{
 		path::PathBuf,
 		sync::{
-			atomic::AtomicUsize,
 			Arc,
+			atomic::AtomicUsize,
 		},
 	};
 
@@ -362,11 +362,11 @@ pub(crate) mod test_utils {
 	};
 
 	use super::{
+		DownloadProgress,
 		download_options::{
 			DownloadOptions,
 			FormatArgument,
 		},
-		DownloadProgress,
 	};
 
 	/// Test Implementation for [`DownloadOptions`]
@@ -551,15 +551,15 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 mod test {
-	use std::sync::atomic::AtomicUsize;
 	use std::sync::Arc;
+	use std::sync::atomic::AtomicUsize;
 
 	use super::*;
 
 	mod handle_stdout {
 		use test_utils::{
-			callback_counter,
 			TestOptions,
+			callback_counter,
 		};
 
 		use super::*;
@@ -804,9 +804,11 @@ PARSE_END 'aprovider' 'someid4'
 			assert_eq!(1, media_vec.len());
 
 			assert_eq!(
-				vec![MediaInfo::new("someid4", "aprovider")
-					.with_title("Some Title Here")
-					.with_filename("somewhere")],
+				vec![
+					MediaInfo::new("someid4", "aprovider")
+						.with_title("Some Title Here")
+						.with_filename("somewhere")
+				],
 				media_vec
 			);
 		}
@@ -958,9 +960,11 @@ PARSE_END 'aprovider' 'someid4'
 			assert_eq!(1, media_vec.len());
 
 			assert_eq!(
-				vec![MediaInfo::new("someid1", "aprovider")
-					.with_title("Some Title Here")
-					.with_filename("somewhere")],
+				vec![
+					MediaInfo::new("someid1", "aprovider")
+						.with_title("Some Title Here")
+						.with_filename("somewhere")
+				],
 				media_vec
 			);
 		}
@@ -1024,9 +1028,11 @@ PARSE_END 'aprovider' 'someid4'
 			assert_eq!(1, media_vec.len());
 
 			assert_eq!(
-				vec![MediaInfo::new("someid4", "aprovider")
-					.with_title("Some Title Here")
-					.with_filename("somewhere")],
+				vec![
+					MediaInfo::new("someid4", "aprovider")
+						.with_title("Some Title Here")
+						.with_filename("somewhere")
+				],
 				media_vec
 			);
 		}
@@ -1092,9 +1098,11 @@ PARSE_END 'aprovider' 'someid4'
 			assert_eq!(1, media_vec.len());
 
 			assert_eq!(
-				vec![MediaInfo::new("someid4", "aprovider")
-					.with_title("Some Title Here")
-					.with_filename("somewhere")],
+				vec![
+					MediaInfo::new("someid4", "aprovider")
+						.with_title("Some Title Here")
+						.with_filename("somewhere")
+				],
 				media_vec
 			);
 		}

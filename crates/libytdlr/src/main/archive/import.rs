@@ -17,6 +17,7 @@ use std::{
 
 use crate::{
 	data::{
+		UNKNOWN_NONE_PROVIDED,
 		old_archive::{
 			JSONArchive,
 			Provider,
@@ -26,7 +27,6 @@ use crate::{
 			Media,
 		},
 		sql_schema::media_archive,
-		UNKNOWN_NONE_PROVIDED,
 	},
 	error::IOErrorToError,
 };

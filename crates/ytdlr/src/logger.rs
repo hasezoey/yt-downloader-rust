@@ -5,11 +5,11 @@ use colored::{
 	Colorize,
 };
 use flexi_logger::{
-	style,
 	DeferredNow,
 	Logger,
 	LoggerHandle,
 	Record,
+	style,
 };
 
 /// Function for setting up the logger

@@ -1189,11 +1189,11 @@ fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path) -> Result<(), cr
 /// Module for keeping all quirk workaround functions and imports
 mod quirks {
 	use super::{
-		utils,
 		IOErrorToError,
 		LazyLock,
 		Path,
 		PathBuf,
+		utils,
 	};
 	use libytdlr::spawn::ffmpeg::base_ffmpeg_hidebanner;
 	use std::{
@@ -1322,17 +1322,22 @@ mod quirks {
 	/// Ask for manual metadata stream selection
 	fn ask_format(input_file: &Path) -> Result<MetadataType, crate::Error> {
 		// if not FileType could be found, ask user what to do
-		return Ok(match utils::get_input(
-			&format!("Could not determine which metadata type is used for file. Select manually: [g]lobal [s]tream\nFile: \"{}\"", input_file.to_string_lossy()),
-			&["g", "s"],
-			"",
-		)?
-		.as_str()
-		{
-			"g" => MetadataType::Global,
-			"s" => MetadataType::Stream,
-			_ => unreachable!("get_input should only return a OK value from the possible array"),
-		});
+		return Ok(
+			match utils::get_input(
+				&format!(
+					"Could not determine which metadata type is used for file. Select manually: [g]lobal [s]tream\nFile: \"{}\"",
+					input_file.to_string_lossy()
+				),
+				&["g", "s"],
+				"",
+			)?
+			.as_str()
+			{
+				"g" => MetadataType::Global,
+				"s" => MetadataType::Stream,
+				_ => unreachable!("get_input should only return a OK value from the possible array"),
+			},
+		);
 	}
 
 	/// Apply the given Metadata to the given media_file
@@ -1495,7 +1500,10 @@ fn finish_media(
 
 	// notify the user if there are still files that have not been moved
 	if !utils::find_editable_files(download_path)?.is_empty() {
-		println!("{} Found Editable file(s) that have not been moved.\nConsider running recovery mode if no other ytdlr is running (with 0 URLs)", "WARN".color(Color::TrueColor { r: 255, g: 135, b: 0 }));
+		println!(
+			"{} Found Editable file(s) that have not been moved.\nConsider running recovery mode if no other ytdlr is running (with 0 URLs)",
+			"WARN".color(Color::TrueColor { r: 255, g: 135, b: 0 })
+		);
 	}
 
 	return Ok(EditCtrl::Finished);
@@ -1779,8 +1787,8 @@ mod test {
 	mod try_gen_final_path {
 		use super::*;
 		use std::fs::{
-			rename,
 			File,
+			rename,
 		};
 		use tempfile::{
 			Builder as TempBuilder,

@@ -6,8 +6,8 @@ extern crate log;
 
 use flexi_logger::LogSpecification;
 use libytdlr::{
-	invoke_vscode_debugger,
 	Error,
+	invoke_vscode_debugger,
 };
 use std::sync::{
 	LazyLock,
@@ -174,7 +174,7 @@ fn actual_main() -> Result<(), crate::Error> {
 				_ => {
 					return Err(crate::Error::other(
 						"Expected verbosity integer range between 0 and 3 (inclusive)",
-					))
+					));
 				},
 			}
 			.expect("Expected LogSpecification to parse correctly"),

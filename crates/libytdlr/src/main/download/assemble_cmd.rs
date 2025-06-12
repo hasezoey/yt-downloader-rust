@@ -228,8 +228,8 @@ mod test {
 	};
 
 	use crate::main::download::test_utils::{
-		create_connection,
 		TestOptions,
+		create_connection,
 	};
 
 	use super::*;
