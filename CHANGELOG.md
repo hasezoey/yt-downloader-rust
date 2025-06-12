@@ -4,6 +4,8 @@ This is a manually written changelog, and only tracks front-facing changes since
 
 ## unreleased
 
+- bump msrv to `1.85`
+
 ## v0.11.0
 
 - `download`: add `opus`, `m4a` and `flac` as possible extension to be found during recovery

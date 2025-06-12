@@ -7,7 +7,7 @@ version = "0.11.0"
 authors = ["hasezoey <hasezoey@gmail.com>"]
 edition = "2021"
 license = "MIT"
-rust-version = "1.75"
+rust-version = "1.85"
 
 [workspace.dependencies]
 # TODO: replace with std::Lazy once MSRV is 1.80
