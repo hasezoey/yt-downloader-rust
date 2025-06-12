@@ -6,6 +6,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
+description = "A library to interact with youtube-dl/p with a custom archive"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
