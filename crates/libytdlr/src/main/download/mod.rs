@@ -241,7 +241,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 						pgcb(DownloadProgress::SingleProgress(id, percent));
 					}
 				},
-				LineType::Custom => handle_linetype_custom(&linetype, &line, &mut current_mediainfo, &mut pgcb, &mut had_download, mediainfo_vec),
+				LineType::Custom => handle_linetype_custom(linetype, &line, &mut current_mediainfo, &mut pgcb, &mut had_download, mediainfo_vec),
 				LineType::ArchiveSkip => {
 					pgcb(DownloadProgress::Skipped(1, SkippedType::InArchive));
 				},
@@ -276,7 +276,7 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 ///
 /// outsourced, because it would otherwise become really nested
 fn handle_linetype_custom<C: FnMut(DownloadProgress)>(
-	linetype: &LineType,
+	linetype: LineType,
 	line: &str,
 	current_mediainfo: &mut Option<MediaInfo>,
 	mut pgcb: C,

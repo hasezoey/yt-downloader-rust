@@ -117,9 +117,9 @@ impl LineType {
 
 	/// Try to get the download precent from input
 	/// Returns [`None`] if not being of variant [`LineType::Download`] or if not percentage can be found or could not be parsed
-	pub fn try_get_download_percent<I: AsRef<str>>(&self, input: I) -> Option<u8> {
+	pub fn try_get_download_percent<I: AsRef<str>>(self, input: I) -> Option<u8> {
 		// this function only works with Download lines
-		if self != &Self::Download {
+		if self != Self::Download {
 			return None;
 		}
 
@@ -143,9 +143,9 @@ impl LineType {
 
 	/// Try to parse the custom parse-helpers like "PARSE_START"
 	/// Retruns [`None`] if not being of variant [`LineType::Custom`] or if no parse helper can be found
-	pub fn try_get_parse_helper<I: AsRef<str>>(&self, input: I) -> Option<CustomParseType> {
+	pub fn try_get_parse_helper<I: AsRef<str>>(self, input: I) -> Option<CustomParseType> {
 		// this function only works with Custom lines
-		if self != &Self::Custom {
+		if self != Self::Custom {
 			return None;
 		}
 
