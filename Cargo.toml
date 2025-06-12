@@ -10,7 +10,7 @@ license = "MIT"
 rust-version = "1.85"
 
 [workspace.dependencies]
-log = "0.4"
+log = "0.4.27"
 regex = "1.11"
 dirs = "5.0"
 tempfile = "3.14"
