@@ -47,9 +47,10 @@ pub enum SkippedType {
 	InArchive,
 }
 
-/// Enum for hooks to know what is currently happening
+/// Enum for hooks to know what is currently happening.
+///
 /// All Variants will have a certian order in which they are called (like AllStarting is always before a SingleStarting)
-/// but not all may be called, like there may be "SingleStarting -> SingleProgress -> Skipped" instead of "SingleStarting -> SingleProgress -> SingleFinished"
+/// but not all may be called, like there may be "SingleStarting -> SingleProgress -> Skipped" instead of "SingleStarting -> SingleProgress -> SingleFinished".
 #[derive(Debug, Clone, PartialEq)]
 pub enum DownloadProgress {
 	/// Variant representing that the download of a single url is starting
@@ -92,9 +93,10 @@ fn warn_minimal_version(ytdl_version: NaiveDate) {
 	}
 }
 
-/// Download a single URL
-/// Assumes ytdl and ffmpeg have already been checked to exist and work (like using [`crate::spawn::ytdl::ytdl_version`])
-/// Adds all non-skipped Media to the input [`Vec<MediaInfo>`]
+/// Download a single URL.
+///
+/// Assumes ytdl and ffmpeg have already been checked to exist and work (like using [`crate::spawn::ytdl::ytdl_version`]).
+/// Adds all non-skipped Media to the input [`Vec<MediaInfo>`].
 pub fn download_single<A: DownloadOptions, C: FnMut(DownloadProgress)>(
 	connection: Option<&mut SqliteConnection>,
 	options: &A,

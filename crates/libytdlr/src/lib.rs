@@ -15,8 +15,8 @@ pub mod spawn;
 pub mod utils;
 pub use error::Error;
 
-/// Debug function to start vscode-lldb debugger from external console
-/// Only compiled when the target is "debug"
+/// Debug function to start vscode-lldb debugger from external console.
+/// Only compiled when the target is "debug".
 #[cfg(debug_assertions)]
 pub fn invoke_vscode_debugger() {
 	println!("Requesting Debugger");

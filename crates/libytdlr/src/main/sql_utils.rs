@@ -19,8 +19,9 @@ use super::archive::import::{
 /// All migrations from "libytdlr/migrations" embedded into the binary
 pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
 
-/// Open a SQLite Connection for `sqlite_path` and apply sqlite migrations
-/// does not migrate archive formats, use [migrate_and_connect] instead
+/// Open a SQLite Connection for `sqlite_path` and apply sqlite migrations.
+///
+/// Does not migrate archive formats, use [migrate_and_connect] instead.
 pub fn sqlite_connect<P: AsRef<Path>>(sqlite_path: P) -> Result<SqliteConnection, crate::Error> {
 	// having to convert the path to "str" because diesel (and underlying sqlite library) only accept strings
 	return match sqlite_path.as_ref().to_str() {
@@ -49,10 +50,11 @@ fn apply_sqlite_migrations(connection: &mut SqliteConnection) -> Result<(), crat
 	return Ok(());
 }
 
-/// Check if the input path is a sql database, if not migrate to sql and return new path and open connection
-/// Parameter `pgcb` will be used when migration will be applied
+/// Check if the input path is a sql database, if not migrate to sql and return new path and open connection.
 ///
-/// This function is intended to be used over [`sqlite_connect`] in all non-test cases
+/// Parameter `pgcb` will be used when migration will be applied.
+///
+/// This function is intended to be used over [`sqlite_connect`] in all non-test cases.
 pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	archive_path: &Path,
 	_pgcb: S,

@@ -37,9 +37,10 @@ use crate::{
 	spawn::ffmpeg::unsuccessfull_command_exit,
 };
 
-/// Re-Apply a thumbnail from `image` onto `media` as `output`
-/// Where the output is added with a "tmp" to the `output` until finished
-/// Will convert input images to jpg
+/// Re-Apply a thumbnail from `image` onto `media` as `output`.
+///
+/// Where the output is added with a "tmp" to the `output` until finished.
+/// Will convert input images to jpg.
 pub fn re_thumbnail_with_tmp(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
 	let mut output_path_tmp = output.to_owned();
 
@@ -99,10 +100,10 @@ pub fn re_thumbnail_with_tmp(media: &Path, image: &Path, output: &Path) -> Resul
 	return Ok(());
 }
 
-/// Re-Apply a thumbnail from `image` onto `media` as `output`
-/// Will not apply any image conversion
+/// Re-Apply a thumbnail from `image` onto `media` as `output`.
 ///
-/// To Automatically handle with a temporary file, use [`re_thumbnail_with_tmp`]
+/// Will not apply any image conversion.
+/// To Automatically handle with a temporary file, use [`re_thumbnail_with_tmp`].
 pub fn re_thumbnail(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
 	info!(
 		"ReThumbnail media \"{}\", with image \"{}\", into \"{}\"",
@@ -288,8 +289,9 @@ fn re_thumbnail_with_command(mut cmd: std::process::Command) -> Result<(), crate
 // sorted based on how common it should be
 const IMAGE_EXTENSIONS: &[&str] = &["jpg", "png", "webp"];
 
-/// Find a image based on the input's media_path
-/// Returns [`Some`] with a path to the image found, otherwise [`None`] if none was found
+/// Find a image based on the input's media_path.
+///
+/// Returns [`Some`] with a path to the image found, otherwise [`None`] if none was found.
 pub fn find_image(media_path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 	if !media_path.exists() {
 		return Err(crate::Error::custom_ioerror_path(
@@ -317,22 +319,25 @@ pub fn find_image(media_path: &Path) -> Result<Option<PathBuf>, crate::Error> {
 	return Ok(None);
 }
 
-/// Convert "image_path" into "jpg" if possible with ffmpeg
-/// This will need to be used to convert * to jpg for thumbnails (mainly from webp)
-/// "output_dir" will be used when a conversion happens to store the converted file
-/// Returns the converted image's path
+/// Convert "image_path" into "jpg" if possible with ffmpeg.
+///
+/// This will need to be used to convert * to jpg for thumbnails (mainly from webp).
+/// "output_dir" will be used when a conversion happens to store the converted file.
+///
+/// Returns the converted image's path.
 pub fn convert_image_to_jpg<'a>(image_path: &'a Path, output_dir: &Path) -> Result<Cow<'a, Path>, crate::Error> {
 	let cmd = crate::spawn::ffmpeg::base_ffmpeg_hidebanner(true);
 
 	return convert_image_to_jpg_with_command(cmd, image_path, output_dir);
 }
 
-/// Convert "image_path" into "jpg" if possible with the provided command base
-/// This will need to be used to convert * to jpg for thumbnails (mainly from webp)
-/// "output_dir" will be used when a conversion happens to store the converted file
-/// Returns the converted image's path
+/// Convert "image_path" into "jpg" if possible with the provided command base.
 ///
-/// This function should not be called directly, use [`convert_image_to_jpg`] instead
+/// This will need to be used to convert * to jpg for thumbnails (mainly from webp).
+/// "output_dir" will be used when a conversion happens to store the converted file.
+/// Returns the converted image's path.
+///
+/// This function should not be called directly, use [`convert_image_to_jpg`] instead.
 pub fn convert_image_to_jpg_with_command<'a>(
 	mut cmd: std::process::Command,
 	image_path: &'a Path,
