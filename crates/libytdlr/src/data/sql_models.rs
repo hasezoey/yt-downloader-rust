@@ -9,7 +9,8 @@ use diesel::prelude::*;
 #[diesel(table_name = media_archive)]
 pub struct Media {
 	/// The ID of the video, auto-incremented upwards
-	pub _id:         i64,
+	#[allow(clippy::pub_underscore_fields)] // field name in sql
+	pub _id: i64,
 	/// The ID of the media given used by the provider
 	pub media_id:    String,
 	/// The Provider from where this media was downloaded from
