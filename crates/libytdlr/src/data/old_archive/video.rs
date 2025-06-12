@@ -168,7 +168,7 @@ mod test {
 				media_id:    "someid".to_owned(),
 				provider:    "youtube".to_owned(),
 				title:       "helloTitle".to_owned(),
-				inserted_at: chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap(),
+				inserted_at: chrono::DateTime::UNIX_EPOCH.naive_utc(),
 			};
 
 			assert_eq!(
