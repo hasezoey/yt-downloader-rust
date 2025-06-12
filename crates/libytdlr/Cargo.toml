@@ -32,3 +32,13 @@ path = "src/lib.rs"
 
 [lints]
 workspace = true
+
+[[example]]
+name = "simple"
+path = "examples/simple.rs"
+required-features = []
+
+[[example]]
+name = "rethumbnail"
+path = "examples/rethumbnail.rs"
+required-features = []
