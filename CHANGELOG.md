@@ -4,8 +4,11 @@ This is a manually written changelog, and only tracks front-facing changes since
 
 ## unreleased
 
+## v0.12.0
+
 - bump msrv to `1.85`
 - remove ability to import old ytdlr JSON Archives. They were upgrade from since [`v0.5.0`](#v050), which released in January 2023.
+- try releasing on crates.io
 
 ## v0.11.0
 

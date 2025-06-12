@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.11.0"
+version = "0.12.0"
 authors = ["hasezoey <hasezoey@gmail.com>"]
 edition = "2024"
 license = "MIT"
@@ -12,7 +12,7 @@ repository = "https://github.com/hasezoey/yt-downloader-rust"
 
 [workspace.dependencies]
 # NOTE: keep this version in-sync with the version above, see https://github.com/rust-lang/cargo/issues/11133 for why this is not possible by default
-libytdlr = { path = "./crates/libytdlr", version = "0.11.0" }
+libytdlr = { path = "./crates/libytdlr", version = "0.12.0" }
 log = "0.4.27"
 regex = "1.11"
 dirs = "6.0"
