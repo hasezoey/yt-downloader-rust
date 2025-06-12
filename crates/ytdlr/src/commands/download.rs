@@ -285,7 +285,7 @@ impl MediaInfoArr {
 
 	/// Insert a [`MediaInfo`] into the map, updating the old value if existed and returing the old value
 	pub fn insert(&mut self, mediainfo: MediaInfo) -> Option<MediaHelper> {
-		return self._insert(mediainfo, None);
+		return self.insert_common(mediainfo, None);
 	}
 	/// Insert a [`MediaInfo`] into the map, updating the old value if existed and returing the old value
 	/// with a comment
@@ -294,11 +294,11 @@ impl MediaInfoArr {
 		C: Into<String>,
 	{
 		self.has_maybe_uninserted = true;
-		return self._insert(mediainfo, Some(comment.into()));
+		return self.insert_common(mediainfo, Some(comment.into()));
 	}
 
 	/// Helper for [`Self::insert`] and [`Self::insert_with_comment`] to only have one implementation
-	fn _insert(&mut self, mediainfo: MediaInfo, comment: Option<String>) -> Option<MediaHelper> {
+	fn insert_common(&mut self, mediainfo: MediaInfo, comment: Option<String>) -> Option<MediaHelper> {
 		let order = self.next_order;
 		self.next_order += 1;
 
