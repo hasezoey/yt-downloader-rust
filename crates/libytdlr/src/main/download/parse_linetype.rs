@@ -287,7 +287,7 @@ mod tests {
 
 		let linetype = LineType::try_from_line(input).unwrap();
 		assert_eq!(LineType::Download, linetype);
-		assert_eq!(Some(0), linetype.try_get_download_percent(input))
+		assert_eq!(Some(0), linetype.try_get_download_percent(input));
 	}
 
 	#[test]

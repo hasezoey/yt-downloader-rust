@@ -125,7 +125,7 @@ mod test {
 	#[test]
 	fn test_parse_naivedate() {
 		assert_eq!(
-			NaiveDate::from_ymd_opt(2024, 01, 01).unwrap(),
+			NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
 			ytdl_parse_version_naivedate("2024.01.01").unwrap()
 		);
 	}

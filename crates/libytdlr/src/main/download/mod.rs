@@ -494,7 +494,7 @@ pub(crate) mod test_utils {
 		}
 
 		fn sub_langs(&self) -> Option<&str> {
-			return self.sub_langs.as_ref().map(String::as_str);
+			return self.sub_langs.as_deref();
 		}
 
 		fn ytdl_version(&self) -> chrono::NaiveDate {
