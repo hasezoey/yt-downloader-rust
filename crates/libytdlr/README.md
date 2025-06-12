@@ -30,7 +30,7 @@ Small example:
 libytdlr::main::rethumbnail::re_thumbnail_with_tmp(&media_path, &image_path, &output_path)?;
 ```
 
-For a full example see [`examples/rehtumbnail](https://github.com/hasezoey/yt-downloader-rust/tree/master/crates/libytdlr/examples/rethumbnail.rs).
+For a full example see [`examples/rehtumbnail`](https://github.com/hasezoey/yt-downloader-rust/tree/master/crates/libytdlr/examples/rethumbnail.rs).
 
 ### archive interaction
 
