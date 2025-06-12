@@ -286,7 +286,7 @@ pub fn get_input(msg: &str, possible: &[&'static str], default: &'static str) ->
 
 /// Run a editor with provided path and resolve not having a editor
 /// `path` input is not checked to be a file or directory, so it should be checked beforehand
-pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), crate::Error> {
+pub fn run_editor(maybe_editor: Option<&Path>, path: &Path) -> Result<(), crate::Error> {
 	if !path.exists() {
 		return Err(crate::Error::custom_ioerror_path(
 			std::io::ErrorKind::NotFound,
@@ -338,7 +338,7 @@ pub fn run_editor(maybe_editor: &Option<PathBuf>, path: &Path) -> Result<(), cra
 }
 
 /// Try to get the editor from the input argument, if not ask the user to provide a path
-fn get_editor_base(maybe_editor: &Option<PathBuf>) -> Result<PathBuf, crate::Error> {
+fn get_editor_base(maybe_editor: Option<&Path>) -> Result<PathBuf, crate::Error> {
 	if let Some(editor) = maybe_editor {
 		// return path if "Some", if none ask for another new path
 		if let Some(path) = test_editor_base(editor)? {

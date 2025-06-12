@@ -1073,11 +1073,11 @@ fn edit_media(
 				"y" => match utils::get_filetype(media_filename) {
 					utils::FileType::Video => {
 						println!("Found filetype to be of video");
-						run_editor_wrap(&sub_args.video_editor, &media_path)?;
+						run_editor_wrap(sub_args.video_editor.as_deref(), &media_path)?;
 					},
 					utils::FileType::Audio => {
 						println!("Found filetype to be of audio");
-						run_editor_wrap(&sub_args.audio_editor, &media_path)?;
+						run_editor_wrap(sub_args.audio_editor.as_deref(), &media_path)?;
 					},
 					utils::FileType::Unknown => {
 						// if not FileType could be found, ask user what to do
@@ -1088,8 +1088,8 @@ fn edit_media(
 						)?
 						.as_str()
 						{
-							"a" => run_editor_wrap(&sub_args.audio_editor, &media_path)?,
-							"v" => run_editor_wrap(&sub_args.video_editor, &media_path)?,
+							"a" => run_editor_wrap(sub_args.audio_editor.as_deref(), &media_path)?,
+							"v" => run_editor_wrap(sub_args.video_editor.as_deref(), &media_path)?,
 							"b" => return Err(crate::Error::other("Abort Selected")),
 							"n" => continue 'media_loop,
 							_ => unreachable!("get_input should only return a OK value from the possible array"),
@@ -1111,13 +1111,13 @@ fn edit_media(
 					continue 'ask_do_loop;
 				},
 				"a" => {
-					run_editor_wrap(&sub_args.audio_editor, &media_path)?;
+					run_editor_wrap(sub_args.audio_editor.as_deref(), &media_path)?;
 				},
 				"v" => {
-					run_editor_wrap(&sub_args.video_editor, &media_path)?;
+					run_editor_wrap(sub_args.video_editor.as_deref(), &media_path)?;
 				},
 				"p" => {
-					utils::run_editor(&sub_args.player_editor, &media_path)?;
+					utils::run_editor(sub_args.player_editor.as_deref(), &media_path)?;
 
 					// re-do the loop, because it was only played
 					continue 'ask_do_loop;
@@ -1161,7 +1161,7 @@ fn edit_media(
 }
 
 /// Wrap [utils::run_editor] calls to apply quirks in all cases - but only when editor is actually run
-fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path) -> Result<(), crate::Error> {
+fn run_editor_wrap(maybe_editor: Option<&Path>, file: &Path) -> Result<(), crate::Error> {
 	// re-apply full metadata after a editor run, because currently audacity does not properly handle custom tags
 	// see https://github.com/audacity/audacity/issues/3733
 	let metadata_file = quirks::save_metadata(file)?;
@@ -1683,7 +1683,7 @@ fn finish_with_tagger(
 	pgbar.finish_and_clear();
 
 	debug!("Running Tagger");
-	utils::run_editor(&sub_args.tagger_editor, &final_dir_path)?;
+	utils::run_editor(sub_args.tagger_editor.as_deref(), &final_dir_path)?;
 
 	return Ok(());
 }
