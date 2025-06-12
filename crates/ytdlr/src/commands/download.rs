@@ -1178,7 +1178,7 @@ fn run_editor_wrap(maybe_editor: &Option<PathBuf>, file: &Path) -> Result<(), cr
 			Err(err) => {
 				info!("Removing metadata file failed, error: {}", err);
 			},
-		};
+		}
 	} else {
 		debug!("No metadata file, not reapplying metadata");
 	}
@@ -1626,7 +1626,7 @@ fn finish_with_move(
 				println!("Couldnt move file \"{}\", error: {}", from_path.to_string_lossy(), err);
 				continue;
 			},
-		};
+		}
 
 		trace!("Removing file \"{}\"", from_path.to_string_lossy());
 		// remove the original file, because copy was used
