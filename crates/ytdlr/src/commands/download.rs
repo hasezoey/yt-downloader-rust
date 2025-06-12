@@ -659,7 +659,7 @@ impl DownloadInfoUrlSpecific {
 		self.set_for_current_single = false;
 	}
 
-	/// Increment the playlist_count. if [None] set it to [by]
+	/// Increment the playlist_count. if [None] set it to `by`
 	pub fn inc_current_playlist_pos(&mut self, by: usize) {
 		self.set_for_current_single = true;
 		if self.current_playlist_position.is_none() {

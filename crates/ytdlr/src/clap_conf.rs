@@ -277,7 +277,7 @@ pub struct ArchiveSearch {
 	///   title="long title"
 	///   "inserted=>=2023-05"
 	/// Supported Date operators are (omitted defaults to "="):
-	///   >,<,=,>=,<=
+	///   `>,<,=,>=,<=`
 	#[arg(required(true), value_parser = parse_key_val::<ArchiveSearchColumn, String>, verbatim_doc_comment)]
 	pub queries: Vec<(ArchiveSearchColumn, String)>,
 
