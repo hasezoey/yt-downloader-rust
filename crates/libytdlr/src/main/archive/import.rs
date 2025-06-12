@@ -18,10 +18,7 @@ use std::{
 use crate::{
 	data::{
 		UNKNOWN_NONE_PROVIDED,
-		old_archive::{
-			JSONArchive,
-			Provider,
-		},
+		cache::media_provider::MediaProvider,
 		sql_models::{
 			InsMedia,
 			Media,
@@ -100,7 +97,9 @@ pub fn import_any_archive<S: FnMut(ImportProgress)>(
 	let mut reader = BufReader::new(File::open(input_path).attach_path_err(input_path)?);
 
 	return match detect_archive_type(&mut reader)? {
-		ArchiveType::JSON => import_ytdlr_json_archive(&mut reader, merge_to, pgcb),
+		ArchiveType::JSON => Err(crate::Error::other(
+			"JSON archive is now unsupported, please use version <=0.10.0 to import it.",
+		)),
 		ArchiveType::SQLite => import_ytdlr_sqlite_archive(input_path, merge_to, pgcb),
 		// Assume "Unknown" is a YTDL Archive (plain text)
 		ArchiveType::Unknown => import_ytdl_archive(&mut reader, merge_to, pgcb),
@@ -159,47 +158,6 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 	return Ok(());
 }
 
-/// Regex for removing known file extension from imported filenames
-/// for [import_ytdlr_json_archive]
-static REMOVE_KNOWN_FILEEXTENSION: LazyLock<Regex> = LazyLock::new(|| {
-	return Regex::new(r"(?mi)\.(?:(?:mp3)|(?:mp4))$").unwrap();
-});
-
-/// Import a YTDL-Rust (json) Archive
-///
-/// This function modifies the input `merge_to` archive, and so will return `()`
-pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
-	reader: &mut T,
-	merge_to: &mut SqliteConnection,
-	mut pgcb: S,
-) -> Result<(), crate::Error> {
-	log::debug!("import ytdl json archive");
-
-	pgcb(ImportProgress::Starting);
-
-	let input_archive: JSONArchive = serde_json::from_reader(reader)?;
-
-	pgcb(ImportProgress::SizeHint(input_archive.get_videos().len()));
-
-	let mut affected_rows = 0usize;
-
-	for (index, video) in input_archive.get_videos().iter().enumerate() {
-		pgcb(ImportProgress::Increase(1, index));
-
-		let filename = REMOVE_KNOWN_FILEEXTENSION.replace_all(video.file_name(), "");
-
-		let insmedia = InsMedia::new(video.id(), video.provider().as_str(), &filename);
-
-		let affected = insert_insmedia(&insmedia, merge_to)?;
-
-		affected_rows += affected;
-	}
-
-	pgcb(ImportProgress::Finished(affected_rows));
-
-	return Ok(());
-}
-
 /// Regex for a line in a youtube-dl archive
 /// Ignores starting and ending whitespaces / tabs
 /// 1. capture group is the provider
@@ -242,7 +200,7 @@ pub fn import_ytdl_archive<T: BufRead, S: FnMut(ImportProgress)>(
 
 		if let Some(cap) = YTDL_ARCHIVE_LINE_REGEX.captures(line) {
 			let affected = insert_insmedia(
-				&InsMedia::new(&cap[2], Provider::from(&cap[1]).as_str(), UNKNOWN_NONE_PROVIDED),
+				&InsMedia::new(&cap[2], MediaProvider::from(&cap[1]).as_str(), UNKNOWN_NONE_PROVIDED),
 				merge_to,
 			)?;
 
@@ -297,7 +255,6 @@ pub fn insert_insmedia_noupdate(input: &InsMedia, connection: &mut SqliteConnect
 #[cfg(test)]
 mod test {
 	use super::*;
-	use crate::data::old_archive::video::Video;
 	use std::path::PathBuf;
 	use std::sync::RwLock;
 	use std::{
@@ -429,7 +386,7 @@ mod test {
 		}
 
 		#[test]
-		fn test_any_to_ytdl() {
+		fn test_any_to_ytdlr_ytdl() {
 			let (mut connection0, tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
@@ -444,11 +401,11 @@ mod test {
 			let res0 = import_any_archive(&input_data_path, &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
-			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
-				Video::new("------------", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename(UNKNOWN_NONE_PROVIDED),
+			let cmp_vec: Vec<_> = vec![
+				("____________", "youtube", UNKNOWN_NONE_PROVIDED),
+				("------------", "youtube", UNKNOWN_NONE_PROVIDED),
+				("aaaaaaaaaaaa", "youtube", UNKNOWN_NONE_PROVIDED),
+				("0000000000", "soundcloud", UNKNOWN_NONE_PROVIDED),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -456,7 +413,13 @@ mod test {
 				.load::<Media>(&mut connection0)
 				.expect("Expected a successfully query");
 
-			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
+			assert_eq!(
+				cmp_vec,
+				found
+					.iter()
+					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.collect::<Vec<_>>()
+			);
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
@@ -472,56 +435,37 @@ mod test {
 		}
 
 		#[test]
-		fn test_any_to_ytdlr() {
+		fn test_any_to_ytdlr_sqlite() {
 			let (mut connection0, tempdir) = create_connection();
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
-			let string0 = r#"
-			{
-				"version": "0.1.0",
-				"videos": [
-					{
-						"id": "____________",
-						"provider": "youtube",
-						"dlFinished": true,
-						"editAsked": true,
-						"fileName": "someFile1.mp3"
-					},
-					{
-						"id": "------------",
-						"provider": "youtube",
-						"dlFinished": false,
-						"editAsked": true,
-						"fileName": "someFile2.mp3"
-					},
-					{
-						"id": "aaaaaaaaaaaa",
-						"provider": "youtube",
-						"dlFinished": true,
-						"editAsked": false,
-						"fileName": "someFile3.mp3"
-					},
-					{
-						"id": "0000000000",
-						"provider": "soundcloud",
-						"dlFinished": true,
-						"editAsked": true,
-						"fileName": "someFile4.mp3"
-					}
-				]
-			}
-			"#;
-			let input_data_path = create_input_data(string0, tempdir.as_ref());
+			let media = &[
+				InsMedia::new("____________", "youtube", "Some Title1"),
+				InsMedia::new("------------", "youtube", "Some Title2"),
+				InsMedia::new("aaaaaaaaaaaa", "youtube", "Some Title3"),
+				InsMedia::new("0000000000", "soundcloud", "Some Title4"),
+			];
 
-			let res0 = import_any_archive(&input_data_path, &mut connection0, callback_counter(&pgcounter));
+			let import_from_path = tempdir.path().join("from.db");
+
+			let mut import_from_connection = crate::main::sql_utils::sqlite_connect(&import_from_path)
+				.expect("Expected SQLite to successfully start");
+
+			for insmedia in media {
+				insert_insmedia(&insmedia, &mut import_from_connection).unwrap();
+			}
+
+			drop(import_from_connection);
+
+			let res0 = import_any_archive(&import_from_path, &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
 
-			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::from("youtube")).with_filename("someFile1"),
-				Video::new("------------", Provider::from("youtube")).with_filename("someFile2"),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someFile3"),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someFile4"),
+			let cmp_vec: Vec<_> = vec![
+				("____________", "youtube", "Some Title1"),
+				("------------", "youtube", "Some Title2"),
+				("aaaaaaaaaaaa", "youtube", "Some Title3"),
+				("0000000000", "soundcloud", "Some Title4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -529,7 +473,13 @@ mod test {
 				.load::<Media>(&mut connection0)
 				.expect("Expected a successfully query");
 
-			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
+			assert_eq!(
+				cmp_vec,
+				found
+					.iter()
+					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.collect::<Vec<_>>()
+			);
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
@@ -567,10 +517,15 @@ mod test {
 				.load::<Media>(&mut connection0)
 				.expect("Expected a successfully query");
 
-			let cmp_vec: Vec<Video> =
-				vec![Video::new("someid", Provider::from("someprovider")).with_filename("sometitle")];
+			let cmp_vec: Vec<_> = vec![("someid", "someprovider", "sometitle")];
 
-			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
+			assert_eq!(
+				cmp_vec,
+				found
+					.iter()
+					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.collect::<Vec<_>>()
+			);
 		}
 	}
 
@@ -592,11 +547,11 @@ mod test {
 			let res0 = import_ytdl_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
 
 			assert!(res0.is_ok());
-			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
-				Video::new("------------", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename(UNKNOWN_NONE_PROVIDED),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename(UNKNOWN_NONE_PROVIDED),
+			let cmp_vec: Vec<_> = vec![
+				("____________", "youtube", UNKNOWN_NONE_PROVIDED),
+				("------------", "youtube", UNKNOWN_NONE_PROVIDED),
+				("aaaaaaaaaaaa", "youtube", UNKNOWN_NONE_PROVIDED),
+				("0000000000", "soundcloud", UNKNOWN_NONE_PROVIDED),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -604,7 +559,13 @@ mod test {
 				.load::<Media>(&mut connection0)
 				.expect("Expected a successfully query");
 
-			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
+			assert_eq!(
+				cmp_vec,
+				found
+					.iter()
+					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.collect::<Vec<_>>()
+			);
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
@@ -640,84 +601,6 @@ mod test {
 					"No valid lines have been found from the reader!"
 				)),
 				res0
-			);
-		}
-	}
-
-	mod import_ytdlr_json_archive {
-		use super::*;
-
-		#[test]
-		fn test_basic_ytdlr_json() {
-			let (mut connection0, _tempdir) = create_connection();
-			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
-
-			let string0 = r#"
-			{
-				"version": "0.1.0",
-				"videos": [
-					{
-						"id": "____________",
-						"provider": "youtube",
-						"dlFinished": true,
-						"editAsked": true,
-						"fileName": "someFile1.mp3"
-					},
-					{
-						"id": "------------",
-						"provider": "youtube",
-						"dlFinished": false,
-						"editAsked": true,
-						"fileName": "someFile2.mp3"
-					},
-					{
-						"id": "aaaaaaaaaaaa",
-						"provider": "youtube",
-						"dlFinished": true,
-						"editAsked": false,
-						"fileName": "someFile3.mp3"
-					},
-					{
-						"id": "0000000000",
-						"provider": "soundcloud",
-						"dlFinished": true,
-						"editAsked": true,
-						"fileName": "someFile4.mp3"
-					}
-				]
-			}
-			"#;
-
-			let res0 =
-				import_ytdlr_json_archive(&mut string0.as_bytes(), &mut connection0, callback_counter(&pgcounter));
-
-			assert!(res0.is_ok());
-
-			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::from("youtube")).with_filename("someFile1"),
-				Video::new("------------", Provider::from("youtube")).with_filename("someFile2"),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someFile3"),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someFile4"),
-			];
-
-			let found = media_archive::dsl::media_archive
-				.order(media_archive::_id.asc())
-				.load::<Media>(&mut connection0)
-				.expect("Expected a successfully query");
-
-			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
-			assert_eq!(
-				&vec![
-					ImportProgress::Starting,
-					ImportProgress::SizeHint(4), // Size Hint of 4, because of a intermediate array length
-					// index start at 0, thanks to json array index
-					ImportProgress::Increase(1, 0),
-					ImportProgress::Increase(1, 1),
-					ImportProgress::Increase(1, 2),
-					ImportProgress::Increase(1, 3),
-					ImportProgress::Finished(4)
-				],
-				pgcounter.read().expect("failed to read").deref()
 			);
 		}
 	}
@@ -763,11 +646,11 @@ mod test {
 
 			assert!(res0.is_ok());
 
-			let cmp_vec: Vec<Video> = vec![
-				Video::new("____________", Provider::from("youtube")).with_filename("someTitle1"),
-				Video::new("------------", Provider::from("youtube")).with_filename("someTitle2"),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someTitle3"),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someTitle4"),
+			let cmp_vec: Vec<_> = vec![
+				("____________", "youtube", "someTitle1"),
+				("------------", "youtube", "someTitle2"),
+				("aaaaaaaaaaaa", "youtube", "someTitle3"),
+				("0000000000", "soundcloud", "someTitle4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -775,7 +658,13 @@ mod test {
 				.load::<Media>(&mut connection0)
 				.expect("Expected a successfully query");
 
-			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
+			assert_eq!(
+				cmp_vec,
+				found
+					.iter()
+					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.collect::<Vec<_>>()
+			);
 			assert_eq!(
 				&vec![
 					ImportProgress::Starting,
@@ -816,12 +705,12 @@ mod test {
 
 			assert!(res0.is_ok());
 
-			let cmp_vec: Vec<Video> = vec![
+			let cmp_vec: Vec<_> = vec![
 				// should have the title updated
-				Video::new("____________", Provider::from("youtube")).with_filename("some A title"),
-				Video::new("------------", Provider::from("youtube")).with_filename("someTitle2"),
-				Video::new("aaaaaaaaaaaa", Provider::from("youtube")).with_filename("someTitle3"),
-				Video::new("0000000000", Provider::from("soundcloud")).with_filename("someTitle4"),
+				("____________", "youtube", "some A title"),
+				("------------", "youtube", "someTitle2"),
+				("aaaaaaaaaaaa", "youtube", "someTitle3"),
+				("0000000000", "soundcloud", "someTitle4"),
 			];
 
 			let found = media_archive::dsl::media_archive
@@ -829,7 +718,13 @@ mod test {
 				.load::<Media>(&mut connection0)
 				.expect("Expected a successfully query");
 
-			assert_eq!(cmp_vec, found.iter().map(Video::from).collect::<Vec<Video>>());
+			assert_eq!(
+				cmp_vec,
+				found
+					.iter()
+					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.collect::<Vec<_>>()
+			);
 		}
 	}
 }

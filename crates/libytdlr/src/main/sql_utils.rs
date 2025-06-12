@@ -14,7 +14,6 @@ use super::archive::import::{
 	ArchiveType,
 	ImportProgress,
 	detect_archive_type,
-	import_ytdlr_json_archive,
 };
 
 /// All migrations from "libytdlr/migrations" embedded into the binary
@@ -56,7 +55,7 @@ fn apply_sqlite_migrations(connection: &mut SqliteConnection) -> Result<(), crat
 /// This function is intended to be used over [`sqlite_connect`] in all non-test cases
 pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	archive_path: &Path,
-	pgcb: S,
+	_pgcb: S,
 ) -> Result<(Cow<Path>, SqliteConnection), crate::Error> {
 	// early return in case the file does not actually exist
 	if !archive_path.exists() {
@@ -111,22 +110,9 @@ pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 			));
 		},
 		ArchiveType::JSON => {
-			debug!("Applying Migration from JSON to SQLite");
-
-			// handle case where the input path matches the changed path
-			if migrate_to_path == archive_path {
-				return Err(crate::Error::other(
-					"Migration cannot be done: Input path matches output path (setting extension to \".db\")",
-				));
-			}
-
-			let mut connection = sqlite_connect(&migrate_to_path)?;
-
-			import_ytdlr_json_archive(&mut input_archive_reader, &mut connection, pgcb)?;
-
-			debug!("Migration from JSON to SQLite done");
-
-			(migrate_to_path.into(), connection)
+			return Err(crate::Error::other(
+				"JSON archive is now unsupported, please use version <=0.10.0 to import it.",
+			));
 		},
 		ArchiveType::SQLite => (archive_path.into(), sqlite_connect(archive_path)?),
 	});
@@ -222,7 +208,6 @@ mod test {
 				BufWriter,
 				Write,
 			},
-			ops::Deref,
 			path::PathBuf,
 			sync::RwLock,
 		};
@@ -334,7 +319,7 @@ mod test {
 		}
 
 		#[test]
-		fn test_input_json_archive() {
+		fn test_input_json_archive_err() {
 			let string0 = r#"
 			{
 				"version": "0.1.0",
@@ -345,27 +330,6 @@ mod test {
 						"dlFinished": true,
 						"editAsked": true,
 						"fileName": "someFile1.mp3"
-					},
-					{
-						"id": "------------",
-						"provider": "youtube",
-						"dlFinished": false,
-						"editAsked": true,
-						"fileName": "someFile2.mp3"
-					},
-					{
-						"id": "aaaaaaaaaaaa",
-						"provider": "youtube",
-						"dlFinished": true,
-						"editAsked": false,
-						"fileName": "someFile3.mp3"
-					},
-					{
-						"id": "0000000000",
-						"provider": "soundcloud",
-						"dlFinished": true,
-						"editAsked": true,
-						"fileName": "someFile4.mp3"
 					}
 				]
 			}
@@ -384,25 +348,12 @@ mod test {
 
 			let pgcounter = RwLock::new(Vec::<ImportProgress>::new());
 
-			let res = migrate_and_connect(&path, callback_counter(&pgcounter));
+			// we cannot use "unwrap_err" as "SqliteConnection" does not impl "Debug"
+			let Err(res) = migrate_and_connect(&path, callback_counter(&pgcounter)) else {
+				panic!("Expected Err variant");
+			};
 
-			assert!(res.is_ok());
-			let res = res.unwrap();
-
-			assert_eq!(&expected_path, res.0.as_ref());
-			assert_eq!(
-				&vec![
-					ImportProgress::Starting,
-					ImportProgress::SizeHint(4), // Size Hint of 4, because of a intermediate array length
-					// index start at 0, thanks to json array index
-					ImportProgress::Increase(1, 0),
-					ImportProgress::Increase(1, 1),
-					ImportProgress::Increase(1, 2),
-					ImportProgress::Increase(1, 3),
-					ImportProgress::Finished(4)
-				],
-				pgcounter.read().expect("failed to read").deref()
-			);
+			assert!(res.to_string().contains("JSON archive is now unsupported"));
 		}
 
 		#[test]

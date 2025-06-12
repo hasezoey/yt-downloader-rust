@@ -147,9 +147,6 @@ pub enum ErrorInner {
 	/// Wrapper Variant for [`std::string::FromUtf8Error`]
 	#[error("FromStringUTF8Error: {0}")]
 	FromStringUTF8Error(#[from] std::string::FromUtf8Error),
-	/// Variant for serde-json Errors
-	#[error("SerdeJSONError: {0}")]
-	SerdeJSONError(#[from] serde_json::Error),
 
 	/// Variant for a diesel Connection Error (sql i/o)
 	#[error("SQLConnectionError: {0}")]
