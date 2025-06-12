@@ -16,7 +16,7 @@ colored = "3.0.0"
 log.workspace = true
 flexi_logger = "0.29" # this logger, because "env_logger" and "simple_logger" do not provide setting the log level dynamically
 is-terminal = "0.4"
-libytdlr = { path = "../libytdlr" }
+libytdlr.workspace = true
 dirs.workspace = true
 terminal_size = "0.4"
 regex.workspace = true
