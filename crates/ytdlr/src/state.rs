@@ -72,7 +72,7 @@ impl<'a> DownloadState<'a> {
 		let ytdl_version = ytdl_parse_version_naivedate(ytdl_version).unwrap_or_else(|_| {
 			warn!("Could not determine youtube-dl version properly, using default");
 
-			return *MINIMAL_YTDL_VERSION;
+			return MINIMAL_YTDL_VERSION;
 		});
 
 		return Self {
@@ -211,6 +211,6 @@ mod test {
 	#[test]
 	fn static_dates_should_be_ok() {
 		// simple test to test that the versions compile without panic
-		let _ = *MINIMAL_YTDL_VERSION;
+		let _ = MINIMAL_YTDL_VERSION;
 	}
 }

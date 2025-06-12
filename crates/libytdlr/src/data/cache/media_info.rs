@@ -1,14 +1,16 @@
 //! Module containing [`MediaInfo`]
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{
 	Deserialize,
 	Serialize,
 };
-use std::path::{
-	Path,
-	PathBuf,
+use std::{
+	path::{
+		Path,
+		PathBuf,
+	},
+	sync::LazyLock,
 };
 
 use super::media_provider::MediaProvider;
@@ -72,7 +74,7 @@ impl MediaInfo {
 	/// Only accepts a str input, not a path one
 	pub fn try_from_filename<I: AsRef<str>>(filename: &I) -> Option<Self> {
 		/// Regex for getting the provider, id and title from a filename (as defined in `crate::main::download::assemble_ytdl_command`)
-		static FROM_PATH_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static FROM_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
 		});
 

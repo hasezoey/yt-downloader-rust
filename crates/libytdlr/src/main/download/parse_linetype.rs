@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use regex::Regex;
 
 use crate::data::cache::media_info::MediaInfo;
@@ -38,19 +39,19 @@ impl LineType {
 	/// Will return [`None`] if no type has been found
 	pub fn try_from_line(input: &str) -> Option<Self> {
 		/// basic regex to test if the line is "[something] something", and if it is, return what is inside "[]"
-		static BASIC_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static BASIC_TYPE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^\[([\da-z:_]*)\]").unwrap();
 		});
 		/// regex to check for generic lines
-		static GENERIC_TYPE_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static GENERIC_TYPE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^deleting original file").unwrap();
 		});
 		/// regex to check for skip lines
-		static YTDL_ARCHIVE_SKIP_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static YTDL_ARCHIVE_SKIP_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?m)^\[\w+\] [^:]+: has already been recorded in the archive$").unwrap();
 		});
 		/// regex to check for "[] Playlist ...:" lines
-		static YTDL_PLAYLIST_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static YTDL_PLAYLIST_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?m)^\[[\w:]+\] Playlist [^:]+:").unwrap();
 		});
 
@@ -124,7 +125,7 @@ impl LineType {
 
 		/// Regex to parse the download percentage from a line
 		/// cap1: precentage(not decimal)
-		static DOWNLOAD_PERCENTAGE_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static DOWNLOAD_PERCENTAGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^\[download\]\s+(\d{1,3})(?:\.\d)?%").unwrap();
 		});
 
@@ -149,19 +150,19 @@ impl LineType {
 		}
 
 		/// Regex to get all information from the Parsing helper "PARSE_START" and "PARSE_END"
-		static PARSE_START_END_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static PARSE_START_END_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^PARSE_(START|END) '([^']+)' '([^']+)'(?: (.+))?$").unwrap();
 		});
 		/// Regex to get all information from the Parsing helper "PLAYLIST"
-		static PARSE_PLAYLIST_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static PARSE_PLAYLIST_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^PLAYLIST '(\d+)'$").unwrap();
 		});
 		/// Regex to get all information from the Parsing helper "MOVE"
-		static PARSE_MOVE_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static PARSE_MOVE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^MOVE '([^']+)' '([^']+)' (.+)$").unwrap();
 		});
 		/// regex to check for "[] Playlist ...: Downloading ... items of ..." lines
-		static YTDL_PLAYLIST_COUNT_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static YTDL_PLAYLIST_COUNT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?m)^\[[\w:]+\] Playlist [^:]+: Downloading (\d+) items of (\d+)$").unwrap();
 		});
 

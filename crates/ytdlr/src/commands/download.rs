@@ -34,7 +34,6 @@ use libytdlr::{
 	},
 	spawn::ytdl::require_ytdl_installed,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
 	cell::RefCell,
@@ -49,6 +48,7 @@ use std::{
 		Path,
 		PathBuf,
 	},
+	sync::LazyLock,
 	time::Duration,
 };
 
@@ -182,7 +182,7 @@ impl Recovery {
 	pub fn try_from_line(line: &str) -> Option<data::cache::media_info::MediaInfo> {
 		/// Regex for getting the provider,id,title from a line in a recovery format
 		/// cap1: provider, cap2: id, cap3: title
-		static FROM_LINE_REGEX: Lazy<Regex> = Lazy::new(|| {
+		static FROM_LINE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 			return Regex::new(r"(?mi)^'([^']+)'-'([^']+)'-(.+)$").unwrap();
 		});
 
@@ -383,7 +383,7 @@ fn find_and_remove_tmp_archive_files(path: &Path) -> Result<(), crate::Error> {
 		let pid_str = {
 			/// Regex for extracting the pid from the filename
 			/// cap1: pid str
-			static PID_OF_ARCHIVE: Lazy<Regex> = Lazy::new(|| {
+			static PID_OF_ARCHIVE: LazyLock<Regex> = LazyLock::new(|| {
 				return Regex::new(r"(?m)^ytdl_archive_(\d+)\.txt$").unwrap();
 			});
 
@@ -438,7 +438,7 @@ pub fn command_download(main_args: &CliDerive, sub_args: &CommandDownload) -> Re
 	}
 
 	/// ProgressBar Style for download, will look like `[0/0] [00:00:00] [#>-] CustomMsg`
-	static DOWNLOAD_STYLE: Lazy<ProgressStyle> = Lazy::new(|| {
+	static DOWNLOAD_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
 		return ProgressStyle::default_bar()
 			.template("{prefix:.dim} [{elapsed_precise}] {wide_bar:.cyan/blue} {msg}")
 			.expect("Expected ProgressStyle template to be valid")
@@ -1191,7 +1191,7 @@ mod quirks {
 	use super::{
 		utils,
 		IOErrorToError,
-		Lazy,
+		LazyLock,
 		Path,
 		PathBuf,
 	};
@@ -1271,11 +1271,11 @@ mod quirks {
 	}
 
 	/// Extensions that store metadata in the global
-	static GLOBAL_METADATA_EXT: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+	static GLOBAL_METADATA_EXT: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 		return HashSet::from(["mp3", "matroska", "flac"]);
 	});
 	/// Extensions that store metadata in the stream
-	static STREAM_METADATA_EXT: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+	static STREAM_METADATA_EXT: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 		return HashSet::from(["ogg"]);
 	});
 

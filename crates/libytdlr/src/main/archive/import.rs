@@ -4,7 +4,6 @@ use diesel::{
 	prelude::*,
 	upsert::excluded,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
 	fs::File,
@@ -13,6 +12,7 @@ use std::{
 		BufReader,
 	},
 	path::Path,
+	sync::LazyLock,
 };
 
 use crate::{
@@ -161,7 +161,7 @@ pub fn import_ytdlr_sqlite_archive<S: FnMut(ImportProgress)>(
 
 /// Regex for removing known file extension from imported filenames
 /// for [import_ytdlr_json_archive]
-static REMOVE_KNOWN_FILEEXTENSION: Lazy<Regex> = Lazy::new(|| {
+static REMOVE_KNOWN_FILEEXTENSION: LazyLock<Regex> = LazyLock::new(|| {
 	return Regex::new(r"(?mi)\.(?:(?:mp3)|(?:mp4))$").unwrap();
 });
 
@@ -206,7 +206,7 @@ pub fn import_ytdlr_json_archive<T: BufRead, S: FnMut(ImportProgress)>(
 /// 2. capture group is the ID
 ///
 /// Because the format of a ytdl-archive is not defined, the regex is rather loosely defined (any word character instead of specific characters)
-static YTDL_ARCHIVE_LINE_REGEX: Lazy<Regex> = Lazy::new(|| {
+static YTDL_ARCHIVE_LINE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 	return Regex::new(r"(?mi)^\s*([\w\-_]+)\s+([\w\-_]+)\s*$").unwrap();
 });
 

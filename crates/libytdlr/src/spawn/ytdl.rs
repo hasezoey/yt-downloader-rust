@@ -1,11 +1,13 @@
 //! Module that contains all logic for spawning the "ytdl" command
-use std::process::{
-	Command,
-	Output,
-	Stdio,
+use std::{
+	process::{
+		Command,
+		Output,
+		Stdio,
+	},
+	sync::LazyLock,
 };
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::error::IOErrorToError;
@@ -44,7 +46,7 @@ pub fn require_ytdl_installed() -> Result<String, crate::Error> {
 
 /// Regex to parse the version from a "youtube-dl --version" output
 /// cap1: version (date)
-static YTDL_VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
+static YTDL_VERSION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 	return Regex::new(r"(?mi)^(\d{4}\.\d{1,2}\.\d{1,2})").unwrap();
 });
 

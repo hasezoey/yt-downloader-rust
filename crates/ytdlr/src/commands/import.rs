@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use crate::{
 	clap_conf::{
 		ArchiveImport,
@@ -13,7 +15,6 @@ use libytdlr::main::archive::import::{
 	import_any_archive,
 	ImportProgress,
 };
-use once_cell::sync::Lazy;
 
 /// Handler function for the "archive import" subcommand
 /// This function is mainly to keep the code structured and sorted
@@ -28,7 +29,7 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 		Some(v) => v,
 	};
 
-	static IMPORT_STYLE: Lazy<ProgressStyle> = Lazy::new(|| {
+	static IMPORT_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {
 		return ProgressStyle::default_bar()
 			.template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
 			.expect("Expected ProgressStyle template to be valid")

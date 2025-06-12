@@ -7,9 +7,9 @@ use std::{
 		Output,
 		Stdio,
 	},
+	sync::LazyLock,
 };
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 use crate::error::IOErrorToError;
@@ -44,7 +44,7 @@ pub fn base_ffmpeg_hidebanner(overwrite: bool) -> Command {
 
 /// Regex to parse the version from a "ffmpeg -version" output
 /// cap1: version (semver or git hash)
-static FFMPEG_VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
+static FFMPEG_VERSION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 	return Regex::new(r"(?mi)^ffmpeg version ([a-z0-9.-]+) Copyright").unwrap();
 });
 
@@ -157,7 +157,7 @@ where
 }
 
 /// Regex to parse the format from "input #0" from ffmpeg output
-static FFMPEG_PARSE_FORMAT: Lazy<Regex> = Lazy::new(|| {
+static FFMPEG_PARSE_FORMAT: LazyLock<Regex> = LazyLock::new(|| {
 	return Regex::new(r"(?mi)^input #0, ([\w,]+?), from '").unwrap();
 });
 

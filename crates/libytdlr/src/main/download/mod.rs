@@ -3,7 +3,6 @@
 use assemble_cmd::assemble_ytdl_command;
 use chrono::NaiveDate;
 use diesel::SqliteConnection;
-use once_cell::sync::Lazy;
 use parse_linetype::{
 	CustomParseType,
 	LineType,
@@ -37,8 +36,7 @@ mod parse_linetype;
 /// The minimal youtube-dl(p) version that is expected to be used.
 ///
 /// Newer versions can be used to likely unlock extra functionality, but ytdlr is build around this as the minimal in mind.
-pub static MINIMAL_YTDL_VERSION: Lazy<chrono::NaiveDate> =
-	Lazy::new(|| return chrono::NaiveDate::from_ymd_opt(2023, 3, 3).unwrap());
+pub const MINIMAL_YTDL_VERSION: chrono::NaiveDate = chrono::NaiveDate::from_ymd_opt(2023, 3, 3).unwrap();
 
 /// Types for [DownloadProgress::Skipped]
 #[derive(Debug, Clone, PartialEq, Copy)]
@@ -84,7 +82,7 @@ pub enum DownloadProgress {
 
 /// Warn if a version lower than the minimal is used
 fn warn_minimal_version(ytdl_version: NaiveDate) {
-	if ytdl_version < *MINIMAL_YTDL_VERSION {
+	if ytdl_version < MINIMAL_YTDL_VERSION {
 		warn!(
 			"Used {} version ({}) is lower than the recommended minimal {}",
 			YTDL_BIN_NAME,

@@ -9,8 +9,10 @@ use libytdlr::{
 	invoke_vscode_debugger,
 	Error,
 };
-use once_cell::sync::Lazy;
-use std::sync::RwLock;
+use std::sync::{
+	LazyLock,
+	RwLock,
+};
 
 mod clap_conf;
 use clap_conf::{
@@ -74,7 +76,7 @@ impl TerminateData {
 const TERMINATE_MSG: &str = "Termination requested, press again to terminate immediately";
 
 /// Global instance of [TerminateData] for termination handling
-static TERMINATE: Lazy<RwLock<TerminateData>> = Lazy::new(|| {
+static TERMINATE: LazyLock<RwLock<TerminateData>> = LazyLock::new(|| {
 	return RwLock::new(TerminateData::default());
 });
 
