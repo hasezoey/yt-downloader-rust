@@ -8,6 +8,7 @@ authors = ["hasezoey <hasezoey@gmail.com>"]
 edition = "2024"
 license = "MIT"
 rust-version = "1.85"
+repository = "https://github.com/hasezoey/yt-downloader-rust"
 
 [workspace.dependencies]
 log = "0.4.27"
