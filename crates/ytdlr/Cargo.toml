@@ -8,6 +8,7 @@ rust-version.workspace = true
 build = "build.rs"
 repository.workspace = true
 description = "A better youtube-dl/p CLI interface"
+readme = "../../README.md"
 
 [dependencies]
 clap = { version = "~4.5", features = ["derive", "wrap_help", "env"] }
