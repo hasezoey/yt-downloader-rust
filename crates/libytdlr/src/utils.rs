@@ -67,7 +67,7 @@ mod test {
 		#[test]
 		fn basic_func() {
 			// fake home
-			std::env::set_var("HOME", "/custom/home");
+			unsafe { std::env::set_var("HOME", "/custom/home") };
 
 			// should not modify a absolute path
 			let absolue_path = PathBuf::from("/absolute/to/path");
@@ -112,7 +112,7 @@ mod test {
 		#[test]
 		fn basic_func() {
 			// fake home
-			std::env::set_var("HOME", "/custom/home");
+			unsafe { std::env::set_var("HOME", "/custom/home") };
 
 			// should not modify the input
 			let absolue_path = PathBuf::from("/absolute/to/path");

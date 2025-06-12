@@ -192,7 +192,7 @@ impl Recovery {
 	}
 
 	/// Try to read the recovery from the given path
-	pub fn read_recovery(path: &Path) -> Result<impl Iterator<Item = MediaInfo>, crate::Error> {
+	pub fn read_recovery(path: &Path) -> Result<impl Iterator<Item = MediaInfo> + use<>, crate::Error> {
 		if !path.exists() {
 			return Err(crate::Error::custom_ioerror_path(
 				std::io::ErrorKind::NotFound,
@@ -1813,14 +1813,14 @@ mod test {
 			std::fs::create_dir_all(&output_dir).unwrap();
 
 			{
-				let gen = try_gen_final_path(&output_dir, Path::new(testfile1.file_name().unwrap())).unwrap();
-				assert_eq!(output_dir.join(testfile1.file_name().unwrap()), gen);
-				rename(testfile1, gen).unwrap();
+				let r#gen = try_gen_final_path(&output_dir, Path::new(testfile1.file_name().unwrap())).unwrap();
+				assert_eq!(output_dir.join(testfile1.file_name().unwrap()), r#gen);
+				rename(testfile1, r#gen).unwrap();
 			}
 			{
-				let gen = try_gen_final_path(&output_dir, Path::new(testfile2.file_name().unwrap())).unwrap();
-				assert_eq!(output_dir.join(testfile2.file_name().unwrap()), gen);
-				rename(testfile2, gen).unwrap();
+				let r#gen = try_gen_final_path(&output_dir, Path::new(testfile2.file_name().unwrap())).unwrap();
+				assert_eq!(output_dir.join(testfile2.file_name().unwrap()), r#gen);
+				rename(testfile2, r#gen).unwrap();
 			}
 		}
 
@@ -1839,14 +1839,14 @@ mod test {
 			std::fs::create_dir_all(&output_dir).unwrap();
 
 			{
-				let gen = try_gen_final_path(&output_dir, Path::new("hello.mkv")).unwrap();
-				assert_eq!(output_dir.join("hello.mkv"), gen);
-				rename(&testfile1, gen).unwrap();
+				let r#gen = try_gen_final_path(&output_dir, Path::new("hello.mkv")).unwrap();
+				assert_eq!(output_dir.join("hello.mkv"), r#gen);
+				rename(&testfile1, r#gen).unwrap();
 			}
 
 			{
-				let gen = try_gen_final_path(&output_dir, Path::new("hello.mkv")).unwrap();
-				assert_eq!(output_dir.join("hello 1.mkv"), gen);
+				let r#gen = try_gen_final_path(&output_dir, Path::new("hello.mkv")).unwrap();
+				assert_eq!(output_dir.join("hello 1.mkv"), r#gen);
 			}
 		}
 

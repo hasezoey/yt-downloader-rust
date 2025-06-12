@@ -9,7 +9,7 @@ use std::{
 
 /// Macro to not repeat having to do multiple implementations of a [ErrorInner] variant with the same string type
 macro_rules! fn_string {
-	($fn_name:ident, $fortype:expr) => {
+	($fn_name:ident, $fortype:expr_2021) => {
 		#[doc = concat!("Create a new [Self] as [", stringify!($fortype), "]")]
 		pub fn $fn_name<M>(msg: M) -> Self
 		where
@@ -22,7 +22,7 @@ macro_rules! fn_string {
 
 /// Macro to not repeat having to do multiple implementations of a [ErrorInner] variant with the same path type
 macro_rules! fn_path {
-	($fn_name:ident, $fortype:expr) => {
+	($fn_name:ident, $fortype:expr_2021) => {
 		#[doc = concat!("Create a new [Self] as [", stringify!($fortype), "]")]
 		pub fn $fn_name<M, P>(msg: M, path: P) -> Self
 		where

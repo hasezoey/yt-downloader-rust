@@ -568,7 +568,7 @@ mod test {
 		fn test_check_outpath_fixed() {
 			// fake home
 			let homedir = Path::new("/custom/home");
-			std::env::set_var("HOME", homedir);
+			unsafe { std::env::set_var("HOME", homedir) };
 
 			let mut original = CommandDownload {
 				output_path: Some(PathBuf::from("~/somedir")),
@@ -606,7 +606,7 @@ mod test {
 		fn test_check_filepath_fixed() {
 			// fake home
 			let homedir = Path::new("/custom/home");
-			std::env::set_var("HOME", homedir);
+			unsafe { std::env::set_var("HOME", homedir) };
 
 			let mut init_default = ArchiveImport {
 				file_path: PathBuf::from("~/somedir"),
@@ -704,7 +704,7 @@ mod test {
 		fn test_check_archivepath_fixed() {
 			// fake home
 			let homedir = Path::new("/custom/home");
-			std::env::set_var("HOME", homedir);
+			unsafe { std::env::set_var("HOME", homedir) };
 
 			let mut init_default = CliDerive {
 				verbosity:    0,
@@ -728,7 +728,7 @@ mod test {
 		fn test_check_tmppath_fixed() {
 			// fake home
 			let homedir = Path::new("/custom/home");
-			std::env::set_var("HOME", homedir);
+			unsafe { std::env::set_var("HOME", homedir) };
 
 			let mut init_default = CliDerive {
 				verbosity:    0,
@@ -843,7 +843,7 @@ mod test {
 		fn test_check_inputpaths_fixed() {
 			// fake home
 			let homedir = Path::new("/custom/home");
-			std::env::set_var("HOME", homedir);
+			unsafe { std::env::set_var("HOME", homedir) };
 
 			// initial value
 			let mut init_default = CommandReThumbnail {
@@ -868,7 +868,7 @@ mod test {
 		fn test_check_outputpaths_fixed() {
 			// fake home
 			let homedir = Path::new("/custom/home");
-			std::env::set_var("HOME", homedir);
+			unsafe { std::env::set_var("HOME", homedir) };
 
 			// initial value
 			let mut init_default = CommandReThumbnail {
