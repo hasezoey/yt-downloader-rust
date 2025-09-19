@@ -417,7 +417,7 @@ mod test {
 				cmp_vec,
 				found
 					.iter()
-					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.map(|v| return (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
 					.collect::<Vec<_>>()
 			);
 			assert_eq!(
@@ -452,7 +452,7 @@ mod test {
 				.expect("Expected SQLite to successfully start");
 
 			for insmedia in media {
-				insert_insmedia(&insmedia, &mut import_from_connection).unwrap();
+				insert_insmedia(insmedia, &mut import_from_connection).unwrap();
 			}
 
 			drop(import_from_connection);
@@ -477,7 +477,7 @@ mod test {
 				cmp_vec,
 				found
 					.iter()
-					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.map(|v| return (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
 					.collect::<Vec<_>>()
 			);
 			assert_eq!(
@@ -523,7 +523,7 @@ mod test {
 				cmp_vec,
 				found
 					.iter()
-					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.map(|v| return (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
 					.collect::<Vec<_>>()
 			);
 		}
@@ -563,7 +563,7 @@ mod test {
 				cmp_vec,
 				found
 					.iter()
-					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.map(|v| return (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
 					.collect::<Vec<_>>()
 			);
 			assert_eq!(
@@ -662,7 +662,7 @@ mod test {
 				cmp_vec,
 				found
 					.iter()
-					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.map(|v| return (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
 					.collect::<Vec<_>>()
 			);
 			assert_eq!(
@@ -722,7 +722,7 @@ mod test {
 				cmp_vec,
 				found
 					.iter()
-					.map(|v| (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
+					.map(|v| return (v.media_id.as_str(), v.provider.as_str(), v.title.as_str()))
 					.collect::<Vec<_>>()
 			);
 		}

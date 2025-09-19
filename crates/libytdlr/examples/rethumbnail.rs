@@ -15,5 +15,5 @@ fn main() -> Result<(), libytdlr::Error> {
 
 	println!("Done");
 
-	Ok(())
+	return Ok(());
 }

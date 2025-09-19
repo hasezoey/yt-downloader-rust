@@ -22,50 +22,50 @@ struct Options {
 
 impl DownloadOptions for Options {
 	fn audio_only(&self) -> bool {
-		false
+		return false;
 	}
 
 	fn extra_ytdl_arguments(&self) -> Vec<&std::ffi::OsStr> {
-		Vec::new()
+		return Vec::new();
 	}
 
 	fn download_path(&self) -> &std::path::Path {
-		Path::new("/tmp/download")
+		return Path::new("/tmp/download");
 	}
 
 	fn gen_archive<'a>(
 		&'a self,
 		_connection: &'a mut diesel::SqliteConnection,
 	) -> Option<Box<dyn Iterator<Item = String> + 'a>> {
-		None
+		return None;
 	}
 
 	fn get_url(&self) -> &str {
-		&self.url
+		return &self.url;
 	}
 
 	fn print_command_log(&self) -> bool {
-		false
+		return false;
 	}
 
 	fn save_command_log(&self) -> bool {
-		false
+		return false;
 	}
 
 	fn sub_langs(&self) -> Option<&str> {
-		None
+		return None;
 	}
 
 	fn ytdl_version(&self) -> chrono::NaiveDate {
-		self.ytdl_version
+		return self.ytdl_version;
 	}
 
 	fn get_audio_format(&self) -> libytdlr::main::download::FormatArgument {
-		"best"
+		return "best";
 	}
 
 	fn get_video_format(&self) -> libytdlr::main::download::FormatArgument {
-		"mkv"
+		return "mkv";
 	}
 }
 
@@ -99,9 +99,7 @@ fn main() -> Result<(), libytdlr::Error> {
 
 	let url = args.next().expect("Expected a URL as a argument");
 
-	if url.is_empty() {
-		panic!("Given URL is empty!");
-	}
+	assert!(!url.is_empty(), "Given URL is empty!");
 
 	let connection = None;
 	let options = Options { ytdl_version, url };
@@ -112,5 +110,5 @@ fn main() -> Result<(), libytdlr::Error> {
 
 	println!("Finished downloading everything, all media: {result_vec:#?}");
 
-	Ok(())
+	return Ok(());
 }
