@@ -24,9 +24,8 @@ pub fn command_import(main_args: &CliDerive, sub_args: &ArchiveImport) -> Result
 
 	let input_path = &sub_args.file_path;
 
-	let archive_path = match main_args.archive_path.as_ref() {
-		None => return Err(crate::Error::other("Archive is required for Import!")),
-		Some(v) => v,
+	let Some(archive_path) = main_args.archive_path.as_ref() else {
+		return Err(crate::Error::other("Archive is required for Import!"));
 	};
 
 	static IMPORT_STYLE: LazyLock<ProgressStyle> = LazyLock::new(|| {

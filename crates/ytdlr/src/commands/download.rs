@@ -1724,9 +1724,8 @@ fn try_find_and_read_recovery_files(
 			}
 			opt.unwrap().1 // unwrap because "None" is checked above
 		};
-		let pid_of_file = match pid_str.parse::<usize>() {
-			Err(_) => continue,
-			Ok(v) => v,
+		let Ok(pid_of_file) = pid_str.parse::<usize>() else {
+			continue;
 		};
 		// check that the pid of the file is actually not running anymore
 		// and just ignore them if the process exists

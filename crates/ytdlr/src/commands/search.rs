@@ -29,9 +29,8 @@ fn to_like_query(input: &str) -> String {
 /// This function is mainly to keep the code structured and sorted
 #[inline]
 pub fn command_search(main_args: &CliDerive, sub_args: &ArchiveSearch) -> Result<(), crate::Error> {
-	let archive_path = match main_args.archive_path.as_ref() {
-		None => return Err(crate::Error::other("Archive is required for Search!")),
-		Some(v) => v,
+	let Some(archive_path) = main_args.archive_path.as_ref() else {
+		return Err(crate::Error::other("Archive is required for Search!"));
 	};
 
 	let bar: ProgressBar = ProgressBar::hidden();
