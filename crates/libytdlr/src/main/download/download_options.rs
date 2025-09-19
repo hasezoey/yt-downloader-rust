@@ -54,10 +54,10 @@ pub trait DownloadOptions {
 	/// Get the format for audio-only/audio-extract downloads
 	///
 	/// Only set extensions supported by youtube-dl
-	fn get_audio_format(&self) -> FormatArgument;
+	fn get_audio_format(&self) -> FormatArgument<'_>;
 
 	/// Get the format for video downloads
 	///
 	/// Only set extensions supported by youtube-dl
-	fn get_video_format(&self) -> FormatArgument;
+	fn get_video_format(&self) -> FormatArgument<'_>;
 }

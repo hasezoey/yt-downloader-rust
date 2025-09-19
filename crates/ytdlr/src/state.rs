@@ -194,11 +194,11 @@ impl DownloadOptions for DownloadState<'_> {
 		return self.ytdl_version;
 	}
 
-	fn get_audio_format(&self) -> FormatArgument {
+	fn get_audio_format(&self) -> FormatArgument<'_> {
 		return self.audio_format;
 	}
 
-	fn get_video_format(&self) -> FormatArgument {
+	fn get_video_format(&self) -> FormatArgument<'_> {
 		return self.video_format;
 	}
 }

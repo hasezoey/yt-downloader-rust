@@ -468,7 +468,7 @@ pub struct CharInfo<'a> {
 }
 
 /// Convert a given string into a array of [CharInfo] to index at the correct positions
-pub fn msg_to_cluster<M>(msg: &M) -> Vec<CharInfo>
+pub fn msg_to_cluster<M>(msg: &M) -> Vec<CharInfo<'_>>
 where
 	M: AsRef<str>,
 {
@@ -502,7 +502,7 @@ where
 /// Truncate a given message to be of max "to_size_bytes" bytes long
 /// does not truncate if "msg" is less or equal to "to_size_bytes"
 /// also replaces the last 3 characters (after truncation) with "..." to indicate a truncation if "replace_with_dot" is true
-pub fn truncate_to_size_bytes<M>(msg: &M, to_size_bytes: usize, replace_with_dot: bool) -> Cow<str>
+pub fn truncate_to_size_bytes<M>(msg: &M, to_size_bytes: usize, replace_with_dot: bool) -> Cow<'_, str>
 where
 	M: AsRef<str>,
 {
@@ -557,7 +557,7 @@ where
 /// Truncate a given message to be of max "to_display_pos" display width long
 /// does not truncate if "msg" is less or equal to "to_display_pos"
 /// also replaces the last 3 characters (after truncation) with "..." to indicate a truncation if "replace_with_dot" is true
-pub fn truncate_message_display_pos<M>(msg: &M, to_display_pos: usize, replace_with_dot: bool) -> Cow<str>
+pub fn truncate_message_display_pos<M>(msg: &M, to_display_pos: usize, replace_with_dot: bool) -> Cow<'_, str>
 where
 	M: AsRef<str>,
 {

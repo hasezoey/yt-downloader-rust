@@ -60,11 +60,11 @@ impl DownloadOptions for Options {
 		return self.ytdl_version;
 	}
 
-	fn get_audio_format(&self) -> libytdlr::main::download::FormatArgument {
+	fn get_audio_format(&self) -> libytdlr::main::download::FormatArgument<'_> {
 		return "best";
 	}
 
-	fn get_video_format(&self) -> libytdlr::main::download::FormatArgument {
+	fn get_video_format(&self) -> libytdlr::main::download::FormatArgument<'_> {
 		return "mkv";
 	}
 }

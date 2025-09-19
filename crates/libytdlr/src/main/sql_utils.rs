@@ -58,7 +58,7 @@ fn apply_sqlite_migrations(connection: &mut SqliteConnection) -> Result<(), crat
 pub fn migrate_and_connect<S: FnMut(ImportProgress)>(
 	archive_path: &Path,
 	_pgcb: S,
-) -> Result<(Cow<Path>, SqliteConnection), crate::Error> {
+) -> Result<(Cow<'_, Path>, SqliteConnection), crate::Error> {
 	// early return in case the file does not actually exist
 	if !archive_path.exists() {
 		return Ok((archive_path.into(), sqlite_connect(archive_path)?));
