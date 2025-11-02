@@ -115,7 +115,7 @@ pub fn re_thumbnail(media: &Path, image: &Path, output: &Path) -> Result<(), cra
 	let ffmpeg_output = crate::spawn::ffmpeg::ffmpeg_probe(media)?;
 	let container_formats = crate::spawn::ffmpeg::parse_format(&ffmpeg_output)?;
 
-	if container_formats.contains(&"ogg") | container_formats.contains(&"flac") {
+	if container_formats.contains(&"ogg") || container_formats.contains(&"flac") {
 		return rethumbnail_ogg(media, image, output);
 	}
 	if container_formats.contains(&"matroska") {
