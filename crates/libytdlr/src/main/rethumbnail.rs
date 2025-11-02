@@ -2,6 +2,7 @@
 
 use std::{
 	borrow::Cow,
+	error::Error,
 	ffi::{
 		OsStr,
 		OsString,
@@ -20,6 +21,7 @@ use std::{
 
 use lofty::{
 	config::WriteOptions,
+	error::LoftyError,
 	file::TaggedFileExt,
 	picture::{
 		Picture,
@@ -100,6 +102,15 @@ pub fn re_thumbnail_with_tmp(media: &Path, image: &Path, output: &Path) -> Resul
 	return Ok(());
 }
 
+/// Check if the given `err` is a [`ErrorKind::UnknownFormat`](lofty::error::ErrorKind::UnknownFormat).
+fn is_lofty_unknownformat_error(err: &crate::Error) -> bool {
+	return err
+		.source()
+		.and_then(|v| return v.downcast_ref::<LoftyError>())
+		.map(|v| matches!(v.kind(), &lofty::error::ErrorKind::UnknownFormat))
+		.unwrap_or_default();
+}
+
 /// Re-Apply a thumbnail from `image` onto `media` as `output`.
 ///
 /// Will not apply any image conversion.
@@ -112,43 +123,64 @@ pub fn re_thumbnail(media: &Path, image: &Path, output: &Path) -> Result<(), cra
 		output.display()
 	);
 
+	// try lofty probing & rethumbnailing first (less file open/closes & command spawns)
+	// if lofty fails with unknownformat, fallback to ffmpeg
+	match lofty_probe_and_rethumbnail(media, image, output) {
+		Ok(()) => return Ok(()),
+		Err(err) => {
+			if is_lofty_unknownformat_error(&err) {
+				info!("Lofty unknown format, falling back to ffmpeg");
+			} else {
+				return Err(err);
+			}
+		},
+	};
+
 	let ffmpeg_output = crate::spawn::ffmpeg::ffmpeg_probe(media)?;
 	let container_formats = crate::spawn::ffmpeg::parse_format(&ffmpeg_output)?;
 
 	if container_formats.contains(&"ogg") || container_formats.contains(&"flac") {
-		return rethumbnail_ogg(media, image, output);
-	}
-	if container_formats.contains(&"matroska") {
+		// ffmpeg somehow does not support embedding a mjpeg to a ogg/opus file, so we have to use lofty
+		return rethumbnail_lofty_generic(media, image, output, None);
+	} else if container_formats.contains(&"matroska") {
 		return rethumbnail_mkv(media, image, output);
-	} else if container_formats.contains(&"mp3") {
-		return rethumbnail_mp3_lofty(media, image, output);
-
-		// return rethumbnail_mp3_ffmpeg(media, image, output);
 	}
+
+	// ffmpeg requires specific options for each format to set a "attached_pic"(cover) and the metadata,
+	// so there cannot really be a generic form
 
 	return Err(crate::Error::other(format!(
-		"Unhandled container format: \"{}\"",
+		"Unhandled ffmpeg container format: \"{}\"",
 		container_formats.join(", ")
 	)));
 }
 
-/// Rethumbnail for container format "ogg" (using lofty)
-#[inline]
-fn rethumbnail_ogg(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
-	trace!("Using lofty ogg rethumbnail");
+/// Try lofty probing & rethumbnailing
+fn lofty_probe_and_rethumbnail(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
+	let probe = lofty::probe::Probe::open(media)?;
+	let Some(file_type) = probe.file_type() else {
+		return Err(LoftyError::new(lofty::error::ErrorKind::UnknownFormat).into());
+	};
 
-	// ffmpeg somehow does not support embedding a mjpeg to a ogg/opus file, so we have to use lofty
+	info!("Lofty detected file-type: {:#?}", file_type);
 
-	return lofty_common(media, image, output);
+	return rethumbnail_lofty_generic(media, image, output, Some(probe));
 }
 
 /// Common code for lofty reading & writing tags & pictures
-fn lofty_common(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
+fn lofty_common(
+	media: &Path,
+	image: &Path,
+	output: &Path,
+	existing_probe: Option<Probe<BufReader<File>>>,
+) -> Result<(), crate::Error> {
+	let probe = if let Some(probe) = existing_probe {
+		probe
+	} else {
+		Probe::open(media)?
+	};
 	// get the existing metadata in the original file
-	let mut tagged_file = Probe::open(media)
-		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?
-		.read()
-		.map_err(|err| return crate::Error::other(format!("LoftyError: {}", err)))?;
+	let mut tagged_file = probe.read()?;
 
 	// get the existing metadata, either from the primary tag format, or the first found
 	let primary_tag = match tagged_file.primary_tag_mut() {
@@ -234,14 +266,17 @@ fn rethumbnail_mkv(media: &Path, image: &Path, output: &Path) -> Result<(), crat
 // 	return re_thumbnail_with_command(cmd);
 // }
 
-/// Rethumbnail for container format "mp3" (using lofty)
+/// Rethumbnail for any container format that does not require specific handling
 #[inline]
-fn rethumbnail_mp3_lofty(media: &Path, image: &Path, output: &Path) -> Result<(), crate::Error> {
-	trace!("Using lofty mp3 rethumbnail");
+fn rethumbnail_lofty_generic(
+	media: &Path,
+	image: &Path,
+	output: &Path,
+	existing_probe: Option<Probe<BufReader<File>>>,
+) -> Result<(), crate::Error> {
+	trace!("Using lofty generic rethumbnail");
 
-	// alternative path for mp3, use lofty without having to spawn ffmpeg
-
-	return lofty_common(media, image, output);
+	return lofty_common(media, image, output, existing_probe);
 }
 
 /// Run the provided command and log the stderr

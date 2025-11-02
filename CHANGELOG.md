@@ -4,6 +4,8 @@ This is a manually written changelog, and only tracks front-facing changes since
 
 ## unreleased
 
+- `rethumbnail`: try using lofty for embedding pictures first, then fallback to known ffmpeg ways
+
 ## v0.12.0
 
 - bump msrv to `1.85`
