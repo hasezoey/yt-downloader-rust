@@ -147,6 +147,9 @@ pub enum ErrorInner {
 	/// Wrapper Variant for [`std::string::FromUtf8Error`]
 	#[error("FromStringUTF8Error: {0}")]
 	FromStringUTF8Error(#[from] std::string::FromUtf8Error),
+	/// Wrapper variant for [`lofty::error::LoftyError`]
+	#[error("LoftyError: {0}")]
+	LoftyError(#[from] lofty::error::LoftyError),
 
 	/// Variant for a diesel Connection Error (sql i/o)
 	#[error("SQLConnectionError: {0}")]
