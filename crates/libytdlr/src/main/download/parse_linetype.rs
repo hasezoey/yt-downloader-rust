@@ -32,6 +32,8 @@ pub enum LineType {
 	Warning,
 	/// Variant for archive skip lines
 	ArchiveSkip,
+	/// Youtube-dl hard-error
+	Traceback,
 }
 
 impl LineType {
@@ -109,6 +111,11 @@ impl LineType {
 
 		if input.starts_with("WARNING:") {
 			return Some(Self::Warning);
+		}
+
+		// Python error
+		if input.starts_with("Traceback") {
+			return Some(Self::Traceback);
 		}
 
 		// if nothing above matches, return None, because no type has been found
@@ -280,6 +287,9 @@ mod tests {
 
 		let input = "[download] someid: has already been recorded in the archive";
 		assert_eq!(Some(LineType::ArchiveSkip), LineType::try_from_line(input));
+
+		let input = "Traceback (most recent call last):";
+		assert_eq!(Some(LineType::Traceback), LineType::try_from_line(input));
 	}
 
 	#[test]

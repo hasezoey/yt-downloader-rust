@@ -204,6 +204,8 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 		None
 	};
 
+	let mut traceback_lines = Vec::new();
+
 	// HACK: .lines() iter never exits on non-0 exit codes in duct, see https://github.com/oconnor663/duct.rs/issues/112
 	for line in reader.lines() {
 		let line = match line {
@@ -221,6 +223,11 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 		if let Some((file, path)) = &mut maybe_command_file_log {
 			file.write_all(line.as_bytes()).attach_path_err(&path)?;
 			file.write_all(b"\n").attach_path_err(path)?;
+		}
+		// collect the remainder of lines
+		if !traceback_lines.is_empty() {
+			traceback_lines.push(line);
+			continue;
 		}
 
 		if let Some(linetype) = LineType::try_from_line(&line) {
@@ -258,10 +265,18 @@ fn handle_stdout<A: DownloadOptions, C: FnMut(DownloadProgress), R: BufRead>(
 					// ytdl warnings are non-fatal, but should still be logged
 					warn!("youtube-dl: {:#?}", line);
 				}
+				LineType::Traceback => {
+					error!("Youtube-dl encountered a Traceback Error");
+					traceback_lines.push(line);
+				}
 			}
 		} else if !line.is_empty() {
 			info!("No type has been found for line \"{}\"", line);
 		}
+	}
+
+	if !traceback_lines.is_empty() {
+		return Err(crate::Error::command_unsuccessful(traceback_lines.join("\n")));
 	}
 
 	// report that downloading is now finished
