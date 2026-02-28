@@ -583,7 +583,7 @@ mod test {
 
 		#[test]
 		fn test_basic_single_usage() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
@@ -635,7 +635,7 @@ PARSE_END 'youtube' '-----------'
 
 		#[test]
 		fn test_basic_multi_usage() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("----------0".to_owned(), "Some Title Here 0".to_owned()),
 				DownloadProgress::SingleProgress(Some("----------0".to_owned()), 0),
@@ -710,7 +710,7 @@ PARSE_END 'soundcloud' '----------1'
 
 		#[test]
 		fn test_skipped() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
@@ -765,7 +765,7 @@ PARSE_END 'youtube' '-----------'
 		/// Test to test skipping, erroring and normal download together
 		#[test]
 		fn test_skip_error_and_normal() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
@@ -832,7 +832,7 @@ PARSE_END 'aprovider' 'someid4'
 
 		#[test]
 		fn test_warning_line() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::SingleStarting("-----------".to_owned(), "Some Title Here".to_owned()),
 				DownloadProgress::SingleProgress(Some("-----------".to_owned()), 0),
@@ -887,7 +887,7 @@ PARSE_END 'youtube' '-----------'
 		/// Test that when a error happens while downloading that the media is not added as a final media
 		#[test]
 		fn test_error_while_downloading() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::SingleStarting("someid1".to_owned(), "Some Title Here".to_owned()),
@@ -989,7 +989,7 @@ PARSE_END 'aprovider' 'someid4'
 		/// Test parsing of "[] Playlist ...: Downloading ... items of ..." lines
 		#[test]
 		fn test_playlistsize_from_playlist_downloading_items() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip
@@ -1057,7 +1057,7 @@ PARSE_END 'aprovider' 'someid4'
 		/// Test parsing of "PLAYLIST ''" lines
 		#[test]
 		fn test_playlistsize_from_custom_playlist() {
-			let expected_pg = &vec![
+			let expected_pg = &[
 				DownloadProgress::UrlStarting,
 				DownloadProgress::PlaylistInfo(4), // "[] Playlist ...: Downloading ... items of ..."
 				DownloadProgress::Skipped(1, SkippedType::InArchive), // one archive skip

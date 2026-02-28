@@ -179,9 +179,8 @@ mod test {
 
 			assert!(err.is_err());
 			// Not using "unwrap_err", because of https://github.com/diesel-rs/diesel/discussions/3124
-			let err = match err {
-				Ok(_) => panic!("Expected a Error value"),
-				Err(err) => err,
+			let Err(err) = err else {
+				panic!("Expected a Error value")
 			};
 			// the following is only a "contains", because of the abitrary path that could be after it
 			assert!(err.to_string().contains("SQLite only accepts UTF-8 Paths, and given path failed to be converted to a string without being lossy, Path (converted lossy):"));
@@ -287,9 +286,8 @@ mod test {
 			let res = migrate_and_connect(&path, callback_counter(&pgcounter));
 
 			assert!(res.is_err());
-			let res = match res {
-				Ok(_) => panic!("Expected a Error value"),
-				Err(err) => err,
+			let Err(res) = res else {
+				panic!("Expected a Error value")
 			};
 
 			assert!(
@@ -372,9 +370,8 @@ mod test {
 			let res = migrate_and_connect(&path, callback_counter(&pgcounter));
 
 			assert!(res.is_err());
-			let res = match res {
-				Ok(_) => panic!("Expected a Error value"),
-				Err(err) => err,
+			let Err(res) = res else {
+				panic!("Expected a Error value")
 			};
 
 			assert_eq!(
@@ -403,9 +400,8 @@ mod test {
 			let res = migrate_and_connect(&path, callback_counter(&pgcounter));
 
 			assert!(res.is_err());
-			let res = match res {
-				Ok(_) => panic!("Expected a Error value"),
-				Err(err) => err,
+			let Err(res) = res else {
+				panic!("Expected a Error value")
 			};
 
 			assert_eq!(
